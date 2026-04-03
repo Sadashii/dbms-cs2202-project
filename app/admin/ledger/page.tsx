@@ -17,7 +17,8 @@ function SuccessAwareLedgerForm({
   fields: { id: string; name: string; label: string; placeholder: string; type?: string }[];
   submitLabel: string;
 }) {
-  const [result, formAction] = useActionState(action, undefined as unknown as string | null);
+  // Use a sentinel to distinguish "not yet submitted" (initial) from "success" (null after submit).
+  const [result, formAction] = useActionState<string | null, FormData>(action, "unsubmitted");
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
@@ -48,7 +49,7 @@ function SuccessAwareLedgerForm({
             ✅ Operation completed successfully.
           </div>
         )}
-        {result !== null && result !== undefined && (
+        {result !== null && result !== "unsubmitted" && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-3 py-2 text-sm">
             {result}
           </div>

@@ -1,14 +1,12 @@
-import { randomUUID } from "crypto";
+import { randomUUID, randomInt } from "crypto";
 
 /**
- * Generates a cryptographically random 6-digit numeric OTP.
+ * Generates a cryptographically random 6-digit numeric OTP using Node's crypto module.
  */
 export function generateOTP(): string {
-  const digits = "0123456789";
   let otp = "";
-  // Use crypto.getRandomValues equivalent in Node – index is discarded, randomness comes from Math.random
   for (let i = 0; i < 6; i++) {
-    otp += digits[Math.floor(Math.random() * 10)];
+    otp += randomInt(0, 10).toString();
   }
   return otp;
 }
@@ -21,8 +19,15 @@ export function generateTransactionId(): string {
 }
 
 /**
- * Generates a 10-digit numeric account number.
+ * Generates a 10-digit numeric account number using crypto.randomInt for uniform distribution.
  */
 export function generateAccountNumber(): string {
-  return String(Math.floor(1_000_000_000 + Math.random() * 9_000_000_000));
+  // Generate each digit independently to avoid modulo bias
+  let num = "";
+  // First digit must be 1–9 to avoid a leading zero
+  num += randomInt(1, 10).toString();
+  for (let i = 1; i < 10; i++) {
+    num += randomInt(0, 10).toString();
+  }
+  return num;
 }

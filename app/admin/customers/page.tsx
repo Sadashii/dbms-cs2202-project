@@ -1,13 +1,14 @@
 "use client";
 
 import { useActionState } from "react";
-import { createCustomer } from "@/app/actions/admin";
+import { createCustomer, type CreateCustomerResult } from "@/app/actions/admin";
 import { SubmitButton } from "@/components/SubmitButton";
 
 export default function CustomersPage() {
-  const [result, formAction] = useActionState(createCustomer, null);
-
-  const isSuccess = result !== null && !result.startsWith("A user") && !result.includes("required") && !result.includes("Unauthorized");
+  const [result, formAction] = useActionState<CreateCustomerResult, FormData>(
+    createCustomer,
+    null
+  );
 
   return (
     <div>
@@ -65,15 +66,15 @@ export default function CustomersPage() {
             />
           </div>
 
-          {result !== null && (
-            <div
-              className={`rounded-md px-3 py-2 text-sm ${
-                isSuccess
-                  ? "bg-green-50 border border-green-200 text-green-700"
-                  : "bg-red-50 border border-red-200 text-red-700"
-              }`}
-            >
-              {result}
+          {result?.ok === true && (
+            <div className="bg-green-50 border border-green-200 text-green-700 rounded-md px-3 py-2 text-sm">
+              ✅ Customer created. Account number:{" "}
+              <span className="font-mono font-semibold">{result.accountNumber}</span>
+            </div>
+          )}
+          {result?.ok === false && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-3 py-2 text-sm">
+              {result.error}
             </div>
           )}
 

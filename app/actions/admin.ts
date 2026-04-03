@@ -15,36 +15,42 @@ async function assertEmployee(): Promise<void> {
   }
 }
 
+export type CreateCustomerResult =
+  | { ok: true; accountNumber: string }
+  | { ok: false; error: string }
+  | null;
+
 /**
  * Create a new customer account.
  */
 export async function createCustomer(
-  _prevState: string | null,
+  _prevState: CreateCustomerResult,
   formData: FormData
-): Promise<string | null> {
+): Promise<CreateCustomerResult> {
   const name = (formData.get("name") as string | null)?.trim();
   const email = (formData.get("email") as string | null)?.toLowerCase().trim();
   const initialBalanceStr = (formData.get("initialBalance") as string | null)?.trim() ?? "0";
 
-  if (!name || !email) return "Name and email are required.";
+  if (!name || !email) return { ok: false, error: "Name and email are required." };
 
   const initialBalance = parseFloat(initialBalanceStr);
-  if (isNaN(initialBalance) || initialBalance < 0) return "Initial balance must be >= 0.";
+  if (isNaN(initialBalance) || initialBalance < 0)
+    return { ok: false, error: "Initial balance must be >= 0." };
 
   try {
     await assertEmployee();
   } catch {
-    return "Unauthorized.";
+    return { ok: false, error: "Unauthorized." };
   }
 
   await connectDB();
 
   const existing = await User.findOne({ email });
-  if (existing) return "A user with that email already exists.";
+  if (existing) return { ok: false, error: "A user with that email already exists." };
 
   const accountNumber = generateAccountNumber();
 
-  const newUser = await User.create({
+  await User.create({
     name,
     email,
     role: "CUSTOMER",
@@ -58,7 +64,7 @@ export async function createCustomer(
     console.error("Failed to send welcome email:", err);
   }
 
-  return `Customer created successfully. Account number: ${newUser.accountNumber}`;
+  return { ok: true, accountNumber };
 }
 
 /**
