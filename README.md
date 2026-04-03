@@ -21,13 +21,26 @@ docker compose up -d
 
 ```bash
 cp .env.example .env.local
-# Edit .env.local with your SMTP credentials
+# Edit .env.local with your SMTP credentials and admin details
 ```
 
-### 3. Install dependencies and run
+### 3. Install dependencies
 
 ```bash
 npm install
+```
+
+### 4. Seed the first admin user
+
+```bash
+npm run seed
+```
+
+This creates the initial EMPLOYEE account using `ADMIN_EMAIL` and `ADMIN_NAME` from `.env.local`. You can then log in with that email and start creating customer accounts from the admin portal.
+
+### 5. Run the development server
+
+```bash
 npm run dev
 ```
 
@@ -53,6 +66,8 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 │       ├── page.tsx       # Admin overview
 │       ├── customers/     # Create new customer
 │       └── ledger/        # Deposit / withdraw / transfer
+├── scripts/
+│   └── seed.ts             # Creates the first admin user (run: npm run seed)
 ├── components/
 │   ├── Navbar.tsx
 │   └── SubmitButton.tsx
