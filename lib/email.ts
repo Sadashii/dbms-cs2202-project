@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { OTP_EXPIRY_MINUTES } from "@/lib/constants";
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST ?? "smtp.ethereal.email",
@@ -15,11 +16,11 @@ export async function sendOTPEmail(to: string, otp: string): Promise<void> {
     from: process.env.SMTP_FROM ?? "noreply@banking.local",
     to,
     subject: "Your Banking Platform OTP",
-    text: `Your one-time password is: ${otp}\n\nIt expires in 10 minutes. Do not share this code.`,
+    text: `Your one-time password is: ${otp}\n\nIt expires in ${OTP_EXPIRY_MINUTES} minutes. Do not share this code.`,
     html: `
       <div style="font-family: sans-serif; max-width: 400px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px;">
         <h2 style="color: #1d4ed8;">Banking Platform</h2>
-        <p>Use the following OTP to log in. It expires in <strong>10 minutes</strong>.</p>
+        <p>Use the following OTP to log in. It expires in <strong>${OTP_EXPIRY_MINUTES} minutes</strong>.</p>
         <div style="font-size: 2rem; font-weight: bold; letter-spacing: 0.25em; color: #1d4ed8; margin: 16px 0;">${otp}</div>
         <p style="color: #6b7280; font-size: 0.875rem;">Do not share this code with anyone.</p>
       </div>

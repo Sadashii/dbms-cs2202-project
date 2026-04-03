@@ -4,10 +4,13 @@ import { useActionState } from "react";
 import { createCustomer, type CreateCustomerResult } from "@/app/actions/admin";
 import { SubmitButton } from "@/components/SubmitButton";
 
+// Sentinel value to distinguish "not yet submitted" from a real null/success state.
+const UNSUBMITTED: CreateCustomerResult = { ok: false, error: "" };
+
 export default function CustomersPage() {
   const [result, formAction] = useActionState<CreateCustomerResult, FormData>(
     createCustomer,
-    null
+    UNSUBMITTED
   );
 
   return (
@@ -72,7 +75,7 @@ export default function CustomersPage() {
               <span className="font-mono font-semibold">{result.accountNumber}</span>
             </div>
           )}
-          {result?.ok === false && (
+          {result?.ok === false && result.error !== "" && (
             <div className="bg-red-50 border border-red-200 text-red-700 rounded-md px-3 py-2 text-sm">
               {result.error}
             </div>

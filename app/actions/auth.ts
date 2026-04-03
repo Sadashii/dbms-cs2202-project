@@ -6,8 +6,7 @@ import { sendOTPEmail } from "@/lib/email";
 import { setAuthCookie, clearAuthCookie } from "@/lib/auth";
 import { generateOTP } from "@/lib/utils";
 import { redirect } from "next/navigation";
-
-const OTP_EXPIRY_MINUTES = 10;
+import { OTP_EXPIRY_MINUTES } from "@/lib/constants";
 
 /**
  * Step 1 – Request an OTP.
