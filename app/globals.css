@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@layer base {
+  /* Smooth scrolling for anchor links */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent blue tap highlight on mobile devices for a more native app feel */
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ... rest of your custom scrollbar utilities ... */
+
+@layer base {
+  /* Smooth scrolling for anchor links */
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Prevent blue tap highlight on mobile devices for a more native app feel */
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+@layer utilities {
+  /* * Utility to completely hide the scrollbar but keep functionality.
+   * Useful for horizontal tag lists or mobile navigation.
+   */
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  /* * Elegant custom scrollbar for data-heavy enterprise tables.
+   * Add 'custom-scrollbar' to any div with overflow-y-auto or overflow-x-auto.
+   */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1; /* Tailwind slate-300 */
+    border-radius: 20px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8; /* Tailwind slate-400 */
+  }
+
+  /* * Prevents text selection on UI elements like buttons and sidebar links
+   * to make it feel more like a desktop application.
+   */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+}
