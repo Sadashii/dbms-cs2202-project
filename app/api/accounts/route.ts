@@ -18,7 +18,7 @@ const verifyAuth = (reqHeaders: Headers) => {
 
 export async function GET(req: Request) {
     try {
-        const decoded = verifyAuth(headers());
+        const decoded = verifyAuth(await headers());
         if (!decoded) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }

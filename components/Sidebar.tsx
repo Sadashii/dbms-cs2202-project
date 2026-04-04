@@ -48,6 +48,7 @@ const navigation: NavItem[] = [
   { name: "Support Tickets", href: "/my/support", icon: Icons.Support, allowedRoles: ["Customer", "Employee", "Manager", "Admin"] },
   
   // Back-office / Admin Routes
+  { name: "Account Requests", href: '/admin/accountrequests', icon: Icons.Shield, allowedRoles: ['Employee', 'Manager', 'Admin'] },
   { name: "KYC Approvals", href: "/admin/kyc", icon: Icons.Shield, allowedRoles: ["Employee", "Manager", "Admin"] },
   { name: "Audit Logs", href: "/admin/audit", icon: Icons.Audit, allowedRoles: ["Manager", "Admin"] },
   { name: "Branch Management", href: "/admin/branches", icon: Icons.Dashboard, allowedRoles: ["Admin"] },

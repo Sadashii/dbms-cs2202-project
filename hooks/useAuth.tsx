@@ -87,9 +87,12 @@ export const useAuth = () => {
     const apiFetch = async (url: string, options: RequestInit = {}) => {
         const headers: HeadersInit = {
             ...options.headers,
-            'Content-Type': 'application/json',
         };
 
+        if (!(options.body instanceof FormData)) {
+            headers['Content-Type'] = 'application/json';
+        }
+        
         if (accessToken) {
             headers['Authorization'] = `Bearer ${accessToken}`;
         }

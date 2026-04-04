@@ -28,7 +28,7 @@ const AccountSchema = new Schema<IAccount>({
     branchId: { 
         type: Schema.Types.ObjectId, 
         ref: "Branch", 
-        required: true,
+        required: false,
         index: true,
         immutable: true 
     },

@@ -16,6 +16,7 @@ interface Account {
 }
 
 export default function AccountsPage() {
+  // Removed accessToken since apiFetch handles it natively
   const { apiFetch, requireAuth } = useAuthContext();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,12 +25,25 @@ export default function AccountsPage() {
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferError, setTransferError] = useState("");
-  
-  // Form State
   const [fromAccountId, setFromAccountId] = useState("");
   const [toAccountNumber, setToAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
+
+  // Account Request & KYC Modal State
+  const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
+  const [isSubmittingKYC, setIsSubmittingKYC] = useState(false);
+  const [kycStatus, setKycStatus] = useState<"idle" | "pending">("idle");
+  const [newAccountType, setNewAccountType] = useState("Savings");
+  
+  // File & Document Data States
+  const [panFile, setPanFile] = useState<File | null>(null);
+  const [panNumber, setPanNumber] = useState("");
+  
+  const [aadharFile, setAadharFile] = useState<File | null>(null);
+  const [aadharNumber, setAadharNumber] = useState("");
+  
+  const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
   requireAuth("/auth/login");
 
@@ -41,7 +55,7 @@ export default function AccountsPage() {
         const data = await res.json();
         setAccounts(data.accounts);
         if (data.accounts.length > 0) {
-          setFromAccountId(data.accounts[0]._id); // Default to first account
+          setFromAccountId(data.accounts[0]._id); 
         }
       }
     } catch (error) {
@@ -76,12 +90,11 @@ export default function AccountsPage() {
       if (!res.ok) {
         setTransferError(data.message || "Transfer failed.");
       } else {
-        // Success! Reset form, close modal, and refresh accounts
         setIsTransferModalOpen(false);
         setToAccountNumber("");
         setAmount("");
         setMemo("");
-        alert(`Transfer Successful! Ref ID: ${data.referenceId}`); // Replace with Toast
+        alert(`Transfer Successful! Ref ID: ${data.referenceId}`); 
         fetchAccounts();
       }
     } catch (err) {
@@ -91,6 +104,58 @@ export default function AccountsPage() {
     }
   };
 
+  const handleRequestAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!panFile || !signatureFile || !aadharFile) {
+        alert("Please upload your PAN Card, Aadhar Card, and Signature.");
+        return;
+    }
+    
+    setIsSubmittingKYC(true);
+
+    try {
+        const formData = new FormData();
+        formData.append("accountType", newAccountType);
+        formData.append("panNumber", panNumber);
+        formData.append("aadharNumber", aadharNumber);
+        
+        formData.append("panCard", panFile);
+        formData.append("aadhar", aadharFile);
+        formData.append("signature", signatureFile);
+
+        // Using apiFetch instead of native fetch!
+        const response = await apiFetch("/api/account-requests", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Failed to submit request");
+        }
+
+        setKycStatus("pending");
+        
+    } catch (error: any) {
+        console.error("Failed to submit KYC:", error);
+        alert(error.message || "Failed to submit account request.");
+    } finally {
+        setIsSubmittingKYC(false);
+    }
+  };
+
+  const closeKycModal = () => {
+    if (!isSubmittingKYC) {
+        setIsNewAccountModalOpen(false);
+        setTimeout(() => setKycStatus("idle"), 300); 
+        setPanFile(null);
+        setAadharFile(null);
+        setSignatureFile(null);
+        setPanNumber("");
+        setAadharNumber("");
+    }
+  }
+
   return (
     <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -98,9 +163,14 @@ export default function AccountsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Your Accounts</h1>
           <p className="text-sm text-gray-500">Manage your balances and execute transfers.</p>
         </div>
-        <Button onClick={() => setIsTransferModalOpen(true)} variant="primary">
-          New Transfer
-        </Button>
+        <div className="flex gap-3">
+            <Button onClick={() => setIsNewAccountModalOpen(true)} variant="outline">
+                Register for New Account
+            </Button>
+            <Button onClick={() => setIsTransferModalOpen(true)} variant="primary">
+                New Transfer
+            </Button>
+        </div>
       </div>
 
       {/* Accounts Grid */}
@@ -111,7 +181,7 @@ export default function AccountsPage() {
           </div>
         ) : accounts.length === 0 ? (
           <div className="col-span-full py-10 text-center text-gray-500 bg-white border border-gray-200 rounded-xl shadow-sm">
-            No accounts found. Please contact support to open an account.
+            No accounts found. Please register for a new account above.
           </div>
         ) : (
           accounts.map((acc) => (
@@ -143,6 +213,124 @@ export default function AccountsPage() {
           ))
         )}
       </div>
+
+      {/* Account Request & KYC Modal */}
+      <Modal
+        isOpen={isNewAccountModalOpen}
+        onClose={closeKycModal}
+        title="Open New Account"
+        description={kycStatus === "pending" ? "" : "Please provide your KYC documents to process your request."}
+      >
+        {kycStatus === "pending" ? (
+            <div className="py-8 text-center space-y-4 animate-fade-in">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 mb-4">
+                    <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">KYC Pending</h3>
+                <p className="text-sm text-gray-500 px-4">
+                    Your account request and documents have been submitted successfully. Please wait while our compliance team verifies your details.
+                </p>
+                <div className="pt-6">
+                    <Button onClick={closeKycModal} variant="outline" className="w-full">
+                        Close Window
+                    </Button>
+                </div>
+            </div>
+        ) : (
+            <form onSubmit={handleRequestAccount} className="space-y-5">
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
+                    <select
+                        className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        value={newAccountType}
+                        onChange={(e) => setNewAccountType(e.target.value)}
+                        disabled={isSubmittingKYC}
+                    >
+                        <option value="Savings">Savings Account</option>
+                        <option value="Current">Current Account</option>
+                        <option value="Fixed">Fixed Deposit</option>
+                    </select>
+                </div>
+
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4 max-h-[50vh] overflow-y-auto">
+                    <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">Mandatory KYC Details</h4>
+                    
+                    {/* PAN Input Group */}
+                    <div className="space-y-3 pb-4 border-b border-gray-200">
+                        <Input
+                            label="PAN Number"
+                            type="text"
+                            value={panNumber}
+                            onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
+                            required
+                            disabled={isSubmittingKYC}
+                            placeholder="ABCDE1234F"
+                        />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">PAN Card Image</label>
+                            <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                onChange={(e) => setPanFile(e.target.files?.[0] || null)}
+                                required
+                                disabled={isSubmittingKYC}
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Aadhar Input Group */}
+                    <div className="space-y-3 pb-4 border-b border-gray-200">
+                        <Input
+                            label="Aadhar Number"
+                            type="text"
+                            value={aadharNumber}
+                            onChange={(e) => setAadharNumber(e.target.value.replace(/\D/g, ''))}
+                            required
+                            disabled={isSubmittingKYC}
+                            placeholder="1234 5678 9012"
+                            maxLength={12}
+                        />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Card Image</label>
+                            <input
+                                type="file"
+                                accept="image/*,.pdf"
+                                onChange={(e) => setAadharFile(e.target.files?.[0] || null)}
+                                required
+                                disabled={isSubmittingKYC}
+                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Signature Input Group */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Signature Image</label>
+                        <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setSignatureFile(e.target.files?.[0] || null)}
+                            required
+                            disabled={isSubmittingKYC}
+                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                        />
+                    </div>
+                </div>
+
+                <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 mt-6">
+                    <Button type="button" variant="ghost" onClick={closeKycModal} disabled={isSubmittingKYC}>
+                        Cancel
+                    </Button>
+                    <Button type="submit" variant="primary" isLoading={isSubmittingKYC}>
+                        Submit Documents
+                    </Button>
+                </div>
+            </form>
+        )}
+      </Modal>
 
       {/* Money Transfer Modal */}
       <Modal
@@ -179,7 +367,7 @@ export default function AccountsPage() {
             label="Recipient Account Number"
             type="text"
             value={toAccountNumber}
-            onChange={(e) => setToAccountNumber(e.target.value.replace(/\D/g, ''))} // Numbers only
+            onChange={(e) => setToAccountNumber(e.target.value.replace(/\D/g, ''))}
             required
             disabled={isTransferring}
             placeholder="e.g., 0987654321"

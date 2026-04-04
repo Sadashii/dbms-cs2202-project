@@ -67,7 +67,7 @@ const KYCSchema = new Schema<IKYC>({
     documentType: { 
         type: String, 
         enum: ['Passport', 'SSN', 'National_ID', 'Driving_License', 'PAN', 'Aadhar'], 
-        required: true,
+        required: true, 
         immutable: true // Cannot change document type once submitted
     },
     documentDetails: {
