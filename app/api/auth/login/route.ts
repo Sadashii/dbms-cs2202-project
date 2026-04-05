@@ -5,6 +5,7 @@ import { createHmac } from "crypto";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import Session from "@/models/Session";
+import Notification from "@/models/Notifications";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
@@ -72,8 +73,20 @@ export async function POST(req: Request) {
         if (requestprocess === "generateotp") {
             const totp = generateHashTimeOTP(latestPassword.hash);
             
-            // TODO: In a real app, trigger an SMS/Email service (e.g., Twilio or AWS SES) here.
-            console.log(`[MOCK EMAIL/SMS] Your OTP for ${email} is: ${totp}`);
+            console.log(`============= MOCK SMS/EMAIL =============`);
+            console.log(`To: ${email}`);
+            console.log(`Subject: VaultPay Login Verification`);
+            console.log(`Message: Your Secure OTP is: ${totp}. Do not share this. It expires in 60 seconds.`);
+            console.log(`==========================================`);
+            
+            // Create a System Alert so users can view the OTP in their dashboard if logged in elsewhere
+            await Notification.create({
+                userId: user._id,
+                title: "Login Verification OTP",
+                body: `Your Secure OTP is: ${totp}. It expires in 60 seconds.`,
+                type: "System",
+                expiresAt: new Date(Date.now() + 5 * 60 * 1000) // Keep for 5 minutes
+            });
             
             return NextResponse.json({ message: "OTP sent to your registered email/device." }, { status: 200 });
         }

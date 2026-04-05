@@ -1,21 +1,72 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuthContext } from "./AuthProvider";
 
 export const Navbar = () => {
-  const { isLoggedIn, user, logout, isLoading } = useAuthContext();
+  const { isLoggedIn, user, logout, isLoading, apiFetch } = useAuthContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+
+  // Notifications State
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
   const handleLogout = async () => {
     await logout("/auth/login");
   };
 
-  // Helper to highlight active links
   const isActive = (path: string) => pathname === path;
+
+  const fetchNotifications = async () => {
+    if (!isLoggedIn) return;
+    try {
+      const res = await apiFetch("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data.notifications || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // Refresh notifications every minute
+    const interval = setInterval(fetchNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [isLoggedIn, apiFetch]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+            setIsNotifOpen(false);
+        }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleMarkAsRead = async (id?: string) => {
+      try {
+          const body = id ? { notificationId: id } : { markAll: true };
+          const res = await apiFetch("/api/notifications", {
+              method: "PATCH",
+              body: JSON.stringify(body)
+          });
+          if (res.ok) {
+              fetchNotifications();
+          }
+      } catch (e) {
+          console.error(e);
+      }
+  };
+
+  const unreadCount = notifications.filter(n => !n.isRead).length;
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
@@ -25,7 +76,6 @@ export const Navbar = () => {
           <div className="flex">
             <div className="flex-shrink-0 flex items-center">
               <Link href="/" className="flex items-center gap-2">
-                {/* Generic Bank/Fintech Logo Icon */}
                 <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-xl leading-none">V</span>
                 </div>
@@ -59,6 +109,67 @@ export const Navbar = () => {
               {!isLoading && (
                 isLoggedIn ? (
                   <div className="flex items-center gap-4">
+                    
+                    {/* Notification Bell */}
+                    <div className="relative" ref={notifRef}>
+                        <button 
+                            onClick={() => setIsNotifOpen(!isNotifOpen)}
+                            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none relative transition-colors"
+                        >
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                            {unreadCount > 0 && (
+                                <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 bg-red-600 border-2 border-white rounded-full text-white text-[9px] font-bold shadow-sm animate-pulse">
+                                    {unreadCount > 99 ? '99+' : unreadCount}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* Notifications Dropdown */}
+                        {isNotifOpen && (
+                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-50 animate-fade-in origin-top-right">
+                                <div className="p-3 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+                                    <h3 className="text-sm font-bold text-gray-900">Notifications</h3>
+                                    {unreadCount > 0 && (
+                                        <button onClick={() => handleMarkAsRead()} className="text-xs text-blue-600 hover:underline">Mark all read</button>
+                                    )}
+                                </div>
+                                <div className="max-h-[70vh] overflow-y-auto">
+                                    {notifications.length === 0 ? (
+                                        <div className="p-6 text-center text-gray-500 text-sm flex flex-col items-center">
+                                            <svg className="w-10 h-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                                            No notifications
+                                        </div>
+                                    ) : (
+                                        notifications.map((notif) => (
+                                            <div 
+                                                key={notif._id} 
+                                                className={`p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors flex gap-3 ${!notif.isRead ? 'bg-blue-50/30' : 'opacity-70'}`}
+                                            >
+                                                <div className="mt-0.5">
+                                                    {notif.type === 'System' ? <div className="w-2 h-2 rounded-full bg-blue-500"></div> :
+                                                     notif.type === 'Alert' ? <div className="w-2 h-2 rounded-full bg-red-500"></div> :
+                                                     <div className="w-2 h-2 rounded-full bg-emerald-500"></div>}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className={`text-sm ${!notif.isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>{notif.title}</p>
+                                                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{notif.body}</p>
+                                                    <p className="text-[10px] text-gray-400 mt-2 font-mono">{new Date(notif.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} • {new Date(notif.createdAt).toLocaleDateString()}</p>
+                                                </div>
+                                                {!notif.isRead && (
+                                                    <button onClick={() => handleMarkAsRead(notif._id)} className="text-blue-500 hover:bg-blue-100 p-1.5 rounded-md h-fit" title="Mark as read">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" /></svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="h-6 w-px bg-gray-200 mx-2"></div>
+
                     <div className="flex flex-col items-end">
                       <span className="text-sm font-medium text-gray-900">
                         {user?.firstName} {user?.lastName}
@@ -98,14 +209,22 @@ export const Navbar = () => {
             </div>
 
             {/* Mobile menu button */}
-            <div className="-mr-2 flex items-center sm:hidden">
+            <div className="-mr-2 flex items-center sm:hidden gap-2">
+              {isLoggedIn && (
+                  <button 
+                  onClick={() => setIsNotifOpen(true)}
+                  className="p-2 rounded-md text-gray-400 relative"
+                  >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                  {unreadCount > 0 && <span className="absolute top-1 right-2 w-2.5 h-2.5 bg-red-600 rounded-full border border-white"></span>}
+                  </button>
+              )}
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
                 aria-expanded="false"
               >
                 <span className="sr-only">Open main menu</span>
-                {/* Hamburger Icon */}
                 {!isMobileMenuOpen ? (
                   <svg className="block h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
