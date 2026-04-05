@@ -10,12 +10,9 @@ export interface ICard extends Document {
     cardNetwork: 'Visa' | 'MasterCard' | 'RuPay' | 'Amex';
     
     // PCI-DSS Secure Data
-    // MUST be a token from a PCI-compliant vault (like VGS, Marqeta) or AES-256 encrypted
     tokenizedNumber: string;      
     maskedNumber: string;    
     expiryDate: Date;
-    // According to PCI-DSS, CVV should generally NOT be stored after authorization.
-    // If you are the issuer, this must be a cryptographic hash or vault token.
     cvvHash: string;             
     pinHash: string;         
     
@@ -29,7 +26,7 @@ export interface ICard extends Document {
     };
 
     currency: 'INR' | 'USD' | 'EUR';
-    currentStatus: 'Inactive' | 'Active' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired';
+    currentStatus: 'Inactive' | 'Active' | 'Frozen' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired';
     
     metadata?: {
         issuedAt: Date;
@@ -39,7 +36,7 @@ export interface ICard extends Document {
     };
 
     statusHistory: Array<{
-        state: 'Inactive' | 'Active' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired';
+        state: 'Inactive' | 'Active' | 'Frozen' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired';
         reason?: string;
         updatedBy?: Types.ObjectId; 
         updatedAt: Date;
@@ -64,14 +61,14 @@ const CardSchema = new Schema<ICard>({
         ref: 'User', 
         required: true,
         index: true,
-        immutable: true // A card cannot change owners
+        immutable: true 
     },
     accountId: { 
         type: Schema.Types.ObjectId, 
         ref: 'Account', 
         required: true,
         index: true,
-        immutable: true // The funding account cannot change once issued
+        immutable: true 
     },
     cardType: { 
         type: String, 
@@ -85,8 +82,6 @@ const CardSchema = new Schema<ICard>({
         required: true,
         immutable: true 
     },
-    
-    // PCI-DSS Adjustments
     tokenizedNumber: { 
         type: String, 
         required: true, 
@@ -102,7 +97,7 @@ const CardSchema = new Schema<ICard>({
     expiryDate: { 
         type: Date, 
         required: true,
-        immutable: true // Physical card expiration dates don't change
+        immutable: true 
     },
     cvvHash: { 
         type: String, 
@@ -115,7 +110,6 @@ const CardSchema = new Schema<ICard>({
         required: true,
         select: false 
     },
-    
     limits: {
         dailyWithdrawalLimit: { type: Schema.Types.Decimal128, default: 50000.00, min: 0 },
         dailyOnlineLimit: { type: Schema.Types.Decimal128, default: 100000.00, min: 0 },
@@ -131,7 +125,7 @@ const CardSchema = new Schema<ICard>({
     },
     currentStatus: { 
         type: String, 
-        enum: ['Inactive', 'Active', 'Blocked', 'Lost', 'Stolen', 'Expired'], 
+        enum: ['Inactive', 'Active', 'Frozen', 'Blocked', 'Lost', 'Stolen', 'Expired'], 
         default: 'Inactive',
         index: true
     },
@@ -144,7 +138,7 @@ const CardSchema = new Schema<ICard>({
     statusHistory: [{
         state: { 
             type: String,
-            enum: ['Inactive', 'Active', 'Blocked', 'Lost', 'Stolen', 'Expired'],
+            enum: ['Inactive', 'Active', 'Frozen', 'Blocked', 'Lost', 'Stolen', 'Expired'],
             required: true
         },
         reason: { type: String },
@@ -153,14 +147,13 @@ const CardSchema = new Schema<ICard>({
     }]
 }, { 
     timestamps: true,
-    // CRITICAL: Prevents race conditions for PIN failures and Credit limits
     optimisticConcurrency: true 
 });
 
 // --- Validation / Hooks ---
 
-// 1. Cross-field validation for Credit vs Debit
-CardSchema.pre('validate', function(next) {
+// 1. Cross-field validation for Credit vs Debit (Synchronous, NO next() needed)
+CardSchema.pre('validate', function() {
     if (this.cardType !== 'Credit') {
         if (this.limits?.creditLimit != null) {
             this.invalidate('limits.creditLimit', 'Only Credit cards can have a credit limit.');
@@ -169,38 +162,29 @@ CardSchema.pre('validate', function(next) {
             this.invalidate('limits.outstandingAmount', 'Debit/Virtual cards cannot have an outstanding balance.');
         }
     }
-    
 });
 
-// 2. Automatically track card lifecycle changes
-CardSchema.pre('save', function(next) {
+// 2. Automatically track card lifecycle changes (Synchronous, NO next() needed)
+CardSchema.pre('save', function() {
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,
-            // If the service layer doesn't attach an updatedBy, we leave it blank. 
-            // Defaulting it to this.userId is dangerous because admins/systems often block cards.
             updatedBy: this.statusHistory[this.statusHistory.length - 1]?.updatedBy, 
             updatedAt: new Date()
         });
         
-        // Auto-set activation date if status changes to Active
-        if (this.currentStatus === 'Active' && !this.metadata?.activatedAt) {
-            // Using TypeScript non-null assertion or safe assignment
-            if (!this.metadata) this.metadata = { failureAttempts: 0, issuedAt: new Date() };
+        // Auto-set activation date if status changes to Active for the first time
+        if (this.currentStatus === 'Active' && (!this.metadata || !this.metadata.activatedAt)) {
+            if (!this.metadata) {
+                this.metadata = { failureAttempts: 0, issuedAt: new Date() };
+            }
             this.metadata.activatedAt = new Date();
         }
     }
-    
 });
 
 // --- Indexes ---
-
-// Find a user's active cards for the dashboard
 CardSchema.index({ userId: 1, currentStatus: 1 });
-
-// Daily cron job: Instantly find all cards expiring this month to trigger renewal logic
 CardSchema.index({ currentStatus: 1, expiryDate: 1 });
-
-// Note: Removed the `cardReference` index since `unique: true` handles it automatically.
 
 export default mongoose.models.Card || mongoose.model<ICard>("Card", CardSchema);

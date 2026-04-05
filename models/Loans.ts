@@ -10,14 +10,15 @@ export interface ILoan extends Document {
     tenureMonths: number;
     emiAmount: Types.Decimal128;
     remainingAmount: Types.Decimal128;
-    totalAmountPaid: Types.Decimal128; // Added for auditing
+    totalAmountPaid: Types.Decimal128;
+    lateFees: Types.Decimal128;
+    paidEmiCount: number;
     currency: 'INR' | 'USD' | 'EUR';
     currentStatus: 'Applied' | 'Approved' | 'Disbursed' | 'Active' | 'Rejected' | 'Closed' | 'Defaulted';
-
     disbursedAt?: Date;
     nextPaymentDate?: Date;
+    lastPaymentDate?: Date;
     maturityDate?: Date;
-
     metadata?: {
         ipAddress?: string;
         remarks?: string;
@@ -89,7 +90,6 @@ const LoanSchema = new Schema<ILoan>({
         min: [0, 'EMI cannot be negative'],
         immutable: true
     },
-    
     remainingAmount: { 
         type: Schema.Types.Decimal128, 
         required: true,
@@ -100,7 +100,16 @@ const LoanSchema = new Schema<ILoan>({
         default: 0.00,
         min: [0, 'Total paid cannot be negative']
     },
-
+    lateFees: {
+        type: Schema.Types.Decimal128,
+        default: 0.00,
+        min: [0, 'Late fees cannot be negative']
+    },
+    paidEmiCount: {
+        type: Number,
+        default: 0,
+        min: [0, 'Paid EMI count cannot be negative']
+    },
     currency: {
         type: String,
         default: 'INR',
@@ -113,11 +122,10 @@ const LoanSchema = new Schema<ILoan>({
         default: 'Applied',
         index: true
     },
-
     disbursedAt: { type: Date },
     nextPaymentDate: { type: Date, index: true },
+    lastPaymentDate: { type: Date },
     maturityDate: { type: Date },
-
     metadata: {
         ipAddress: { type: String },
         remarks: { type: String },
@@ -142,19 +150,17 @@ const LoanSchema = new Schema<ILoan>({
     optimisticConcurrency: true 
 });
 
-LoanSchema.pre('save', function(next) {
+LoanSchema.pre('save', async function() {
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,
             updatedAt: new Date()
         });
 
-        // Auto-set disbursement date if status changes to Disbursed
         if (this.currentStatus === 'Disbursed' && !this.disbursedAt) {
             this.disbursedAt = new Date();
         }
     }
-    
 });
 
 LoanSchema.index({ userId: 1, currentStatus: 1 });
