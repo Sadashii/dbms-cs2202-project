@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import ScheduledPayment from "@/models/ScheduledPayments";
-import Account from "@/models/Account";
-import { headers } from "next/headers";
+import Account from "@/models/Accounts";
 import jwt from "jsonwebtoken";
 
 const getUserAuth = async (request: Request) => {
