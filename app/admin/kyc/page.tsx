@@ -3,10 +3,12 @@
 import React, { useEffect, useState } from "react";
 import { useAuthContext } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 interface UserInfo {
   _id: string;
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
 }
 
@@ -25,8 +27,14 @@ interface KYCRecord {
   currentStatus: string;
   attachments: Attachment[];
   createdAt: string;
+  documentDetails?: {
+    issuedCountry?: string;
+    expiryDate?: string;
+  };
+  verifiedAt?: string;
   metadata?: {
     rejectionReason?: string;
+    ipAddress?: string;
   };
 }
 
@@ -39,6 +47,9 @@ export default function AdminKYCPage() {
   // State for rejecting a document
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const fetchKYCRecords = async () => {
     setIsLoading(true);
@@ -68,16 +79,16 @@ export default function AdminKYCPage() {
       });
 
       if (res.ok) {
-        alert(`KYC status updated to ${newStatus}!`);
+        toast.success(`KYC status updated to ${newStatus}!`);
         setRejectingId(null);
         setRejectionReason("");
         fetchKYCRecords(); // Refresh the list
       } else {
         const error = await res.json();
-        alert(error.message || "Failed to update KYC status.");
+        toast.error(error.message || "Failed to update KYC status.");
       }
     } catch (error) {
-      alert("An error occurred while updating the status.");
+      toast.error("An error occurred while updating the status.");
     } finally {
       setProcessingId(null);
     }
@@ -91,20 +102,50 @@ export default function AdminKYCPage() {
     );
   }
 
+  const filteredRecords = kycRecords.filter((kyc) => {
+    const matchesSearch = kyc.kycReference.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          kyc.userId?.email?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "All" || kyc.currentStatus === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">KYC Verification Queue</h1>
-        <p className="text-sm text-gray-500">Review user identity documents and update verification statuses.</p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">KYC Verification Queue</h1>
+          <p className="text-sm text-gray-500">Review user identity documents and update verification statuses.</p>
+        </div>
+        <div className="flex gap-3">
+          <input 
+            type="text" 
+            placeholder="Search email or reference..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500 w-full min-w-[200px]"
+          />
+          <select 
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:border-blue-500"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="In-Review">In-Review</option>
+            <option value="Verified">Verified</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Expired">Expired</option>
+          </select>
+        </div>
       </div>
 
       <div className="space-y-6">
-        {kycRecords.length === 0 ? (
+        {filteredRecords.length === 0 ? (
           <div className="p-8 text-center text-gray-500 bg-white border border-gray-200 rounded-xl shadow-sm">
-            No KYC records found.
+            No matching KYC records found.
           </div>
         ) : (
-          kycRecords.map((kyc) => (
+          filteredRecords.map((kyc) => (
             <div key={kyc._id} className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden flex flex-col md:flex-row">
               
               {/* Left Column: Details */}
@@ -112,27 +153,44 @@ export default function AdminKYCPage() {
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h3 className="text-lg font-bold text-gray-900">{kyc.documentType}</h3>
-                    <p className="text-sm font-mono text-gray-500">Ref: {kyc.kycReference}</p>
+                    <p className="text-sm font-mono text-gray-500 mb-1">Ref: {kyc.kycReference}</p>
                   </div>
-                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                    kyc.currentStatus === 'Verified' ? 'bg-green-50 text-green-700 border-green-200' :
-                    kyc.currentStatus === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' :
-                    kyc.currentStatus === 'In-Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                    'bg-yellow-50 text-yellow-700 border-yellow-200'
-                  }`}>
-                    {kyc.currentStatus}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                      kyc.currentStatus === 'Verified' ? 'bg-green-50 text-green-700 border-green-200' :
+                      kyc.currentStatus === 'Rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                      kyc.currentStatus === 'In-Review' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                      'bg-yellow-50 text-yellow-700 border-yellow-200'
+                    }`}>
+                      {kyc.currentStatus}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4 text-sm">
                   <div>
-                    <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">User Email</p>
-                    <p className="font-medium text-gray-900">{kyc.userId?.email || 'Unknown User'}</p>
+                    <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">User Details</p>
+                    <p className="font-medium text-gray-900">{kyc.userId?.firstName || kyc.userId?.lastName ? `${kyc.userId.firstName || ''} ${kyc.userId.lastName || ''}`.trim() : 'Unknown'}</p>
+                    <p className="text-xs text-gray-500">{kyc.userId?.email || 'Unknown User'}</p>
                   </div>
                   <div>
                     <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">Submitted On</p>
                     <p className="font-medium text-gray-900">{new Date(kyc.createdAt).toLocaleDateString()}</p>
                   </div>
+                  {(kyc.documentDetails?.issuedCountry || kyc.documentDetails?.expiryDate) && (
+                    <div>
+                      <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">Document Info</p>
+                      {kyc.documentDetails.issuedCountry && <p className="font-medium text-gray-900">{kyc.documentDetails.issuedCountry}</p>}
+                      {kyc.documentDetails.expiryDate && <p className="text-xs text-gray-500">Exp: {new Date(kyc.documentDetails.expiryDate).toLocaleDateString()}</p>}
+                    </div>
+                  )}
+                  {(kyc.verifiedAt || kyc.metadata?.ipAddress) && (
+                    <div>
+                      <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">Additional Info</p>
+                      {kyc.verifiedAt && <p className="font-medium text-green-700">Verified: {new Date(kyc.verifiedAt).toLocaleDateString()}</p>}
+                      {kyc.metadata?.ipAddress && <p className="text-xs text-gray-500">IP: {kyc.metadata.ipAddress}</p>}
+                    </div>
+                  )}
                 </div>
 
                 {kyc.currentStatus === 'Rejected' && kyc.metadata?.rejectionReason && (
@@ -163,70 +221,13 @@ export default function AdminKYCPage() {
               </div>
 
               {/* Right Column: Actions */}
-              <div className="p-6 w-full md:w-64 bg-gray-50 flex flex-col justify-center space-y-3">
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider text-center mb-2">Actions</h4>
-                
-                {rejectingId === kyc._id ? (
-                  <div className="space-y-2 animate-fade-in">
-                    <textarea
-                      placeholder="Reason for rejection..."
-                      className="w-full text-sm border border-gray-300 rounded-md p-2 outline-none focus:border-red-500"
-                      rows={3}
-                      value={rejectionReason}
-                      onChange={(e) => setRejectionReason(e.target.value)}
-                    />
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="ghost" 
-                        className="flex-1 text-xs" 
-                        onClick={() => { setRejectingId(null); setRejectionReason(""); }}
-                        disabled={processingId === kyc._id}
-                      >
-                        Cancel
-                      </Button>
-                      <Button 
-                        variant="primary" 
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-xs"
-                        onClick={() => handleUpdateStatus(kyc._id, 'Rejected', rejectionReason)}
-                        isLoading={processingId === kyc._id}
-                      >
-                        Confirm
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <Button 
-                      variant="primary" 
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      onClick={() => handleUpdateStatus(kyc._id, 'Verified')}
-                      disabled={kyc.currentStatus === 'Verified' || processingId !== null}
-                      isLoading={processingId === kyc._id}
-                    >
-                      Approve & Verify
-                    </Button>
-                    
-                    {kyc.currentStatus === 'Pending' && (
-                        <Button 
-                            variant="outline" 
-                            className="w-full"
-                            onClick={() => handleUpdateStatus(kyc._id, 'In-Review')}
-                            disabled={processingId !== null}
-                        >
-                            Mark as In-Review
-                        </Button>
-                    )}
-
-                    <Button 
-                      variant="outline" 
-                      className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
-                      onClick={() => setRejectingId(kyc._id)}
-                      disabled={kyc.currentStatus === 'Rejected' || processingId !== null}
-                    >
-                      Reject Document
-                    </Button>
-                  </>
-                )}
+              <div className="p-6 w-full md:w-48 bg-gray-50 flex flex-col justify-center border-l border-gray-200">
+                <a 
+                  href={`/admin/kyc/${kyc._id}`}
+                  className="w-full text-center px-4 py-2 border border-blue-600 text-blue-600 rounded-md text-sm font-medium hover:bg-blue-50 transition-colors"
+                >
+                  Review Document
+                </a>
               </div>
             </div>
           ))

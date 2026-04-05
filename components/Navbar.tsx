@@ -39,7 +39,7 @@ export const Navbar = () => {
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
               {isLoggedIn ? (
                 <>
-                  <NavLink href="/my" active={isActive("/my")}>Dashboard</NavLink>
+                  <NavLink href="/my/overview" active={isActive("/my/overview")}>Dashboard</NavLink>
                   <NavLink href="/my/accounts" active={isActive("/my/accounts")}>Accounts</NavLink>
                   <NavLink href="/my/cards" active={isActive("/my/cards")}>Cards</NavLink>
                 </>
@@ -127,7 +127,7 @@ export const Navbar = () => {
           <div className="pt-2 pb-3 space-y-1">
             {isLoggedIn ? (
               <>
-                <MobileNavLink href="/my" active={isActive("/my")}>Dashboard</MobileNavLink>
+                <MobileNavLink href="/my/overview" active={isActive("/my/overview")}>Dashboard</MobileNavLink>
                 <MobileNavLink href="/my/accounts" active={isActive("/my/accounts")}>Accounts</MobileNavLink>
                 <MobileNavLink href="/my/cards" active={isActive("/my/cards")}>Cards</MobileNavLink>
               </>

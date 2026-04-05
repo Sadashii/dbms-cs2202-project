@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
         // Fetch KYCs. Custom sorting: Pending and In-Review first, then by date.
         const kycRecords = await KYC.find()
-            .populate({ path: 'userId', select: 'email name' })
+            .populate({ path: 'userId', select: 'email firstName lastName' })
             .sort({ currentStatus: -1, createdAt: -1 }) 
             .lean();
 

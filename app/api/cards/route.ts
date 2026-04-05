@@ -3,37 +3,32 @@ import dbConnect from "@/lib/mongodb";
 import Card from "@/models/Cards";
 import Account from "@/models/Accounts";
 import mongoose from "mongoose";
-import jwt from "jsonwebtoken";
 import crypto from "crypto";
-
-const verifyAuth = (req: Request) => {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return null;
-    try {
-        const token = authHeader.split(" ")[1];
-        return jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { userId: string, role: string };
-    } catch (error) {
-        return null;
-    }
-};
+import { verifyAuth } from "@/lib/auth";
+import { headers } from "next/headers";
+import { createAuditLog } from "@/lib/audit";
+import * as bcrypt from "bcryptjs";
 
 export async function GET(req: Request) {
     try {
-        const decoded = verifyAuth(req);
+        const decoded = verifyAuth(await headers());
         if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
         await dbConnect();
         const cards = await Card.find({ userId: decoded.userId }).lean();
         
         // Format decimals safely
-        const formattedCards = cards.map(card => ({
+        const formattedCards = cards.map((card: any) => ({
             ...card,
             limits: {
                 dailyWithdrawalLimit: parseFloat(card.limits?.dailyWithdrawalLimit?.toString() || "50000"),
                 dailyOnlineLimit: parseFloat(card.limits?.dailyOnlineLimit?.toString() || "100000"),
                 contactlessLimit: parseFloat(card.limits?.contactlessLimit?.toString() || "5000"),
                 outstandingAmount: parseFloat(card.limits?.outstandingAmount?.toString() || "0"),
-            }
+                creditLimit: parseFloat(card.limits?.creditLimit?.toString() || "0"),
+            },
+            isOnlineEnabled: card.isOnlineEnabled ?? true,
+            isInternationalEnabled: card.isInternationalEnabled ?? false
         }));
 
         return NextResponse.json({ cards: formattedCards }, { status: 200 });
@@ -44,24 +39,25 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const decoded = verifyAuth(req);
+        const decoded = verifyAuth(await headers());
         if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
         await dbConnect();
         const body = await req.json();
         
-        // Force it to Debit or Credit
-        let { cardType, cardNetwork } = body;
+        let { cardType, cardNetwork, accountId, creditLimit } = body;
         if (!cardType || cardType === 'Virtual') cardType = 'Debit';
         if (!cardNetwork) cardNetwork = 'Visa';
 
-        // BYPASS: Generate a mock Account ID if you don't have one
-        let accountId = new mongoose.Types.ObjectId();
-        try {
+        // Check if accountId is provided for Debit, or find default
+        if (cardType === 'Debit' && !accountId) {
              const account = await Account.findOne({ userId: decoded.userId });
              if (account) accountId = account._id;
-        } catch(e) {
-             // Ignore account fetch errors
+             else return NextResponse.json({ message: "No active account found to link the debit card." }, { status: 400 });
+        }
+
+        if (cardType === 'Credit' && !creditLimit) {
+            return NextResponse.json({ message: "Credit limit is required for credit cards." }, { status: 400 });
         }
 
         // Mock PCI Data
@@ -78,7 +74,7 @@ export async function POST(req: Request) {
         const newCard = await Card.create({
             cardReference: `CRD-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
             userId: decoded.userId,
-            accountId: accountId,
+            accountId: accountId || new mongoose.Types.ObjectId(), // Fallback for Credit if no account
             cardType: cardType,
             cardNetwork: cardNetwork,
             tokenizedNumber,
@@ -91,42 +87,107 @@ export async function POST(req: Request) {
             limits: {
                 dailyWithdrawalLimit: 50000,
                 dailyOnlineLimit: 100000,
-                contactlessLimit: 5000
+                contactlessLimit: 5000,
+                creditLimit: cardType === 'Credit' ? creditLimit : undefined
             }
         });
 
-        // Note: Removed AuditLog creation here to prevent Enum crashes
+        // Log the action
+        await createAuditLog({
+            userId: decoded.userId,
+            userRole: decoded.role,
+            actionType: 'CARD_ISSUED',
+            category: 'Financial',
+            severity: 'Medium',
+            resource: 'Card',
+            resourceId: newCard._id,
+            description: `New ${cardType} ${cardNetwork} card issued`,
+            currentStatus: 'Success',
+            payload: {
+                newState: JSON.stringify({
+                    cardReference: newCard.cardReference,
+                    cardType,
+                    cardNetwork,
+                    maskedNumber,
+                    accountId,
+                    creditLimit
+                }),
+            },
+        });
+
         return NextResponse.json({ message: "Card issued successfully.", card: newCard }, { status: 201 });
     } catch (error: any) {
+        console.error("Card POST Error:", error);
         return NextResponse.json({ message: error.message || "Failed to create card in DB." }, { status: 500 });
     }
 }
 
 export async function PATCH(req: Request) {
     try {
-        const decoded = verifyAuth(req);
+        const decoded = verifyAuth(await headers());
         if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
         await dbConnect();
         const body = await req.json();
-        const { cardId, action, data } = body;
+        const { cardId, action, data, value } = body;
 
-        const card = await Card.findOne({ _id: cardId, userId: decoded.userId });
+        const card = await Card.findOne({ _id: cardId, userId: decoded.userId }).select("+pinHash");
         if (!card) return NextResponse.json({ message: "Card not found." }, { status: 404 });
 
-        if (action === "TOGGLE_STATUS") {
+        const prevState = card.currentStatus;
+        const prevLimits = JSON.parse(JSON.stringify(card.limits));
+
+        if (action === 'TOGGLE_STATUS') {
             card.currentStatus = card.currentStatus === 'Active' ? 'Blocked' : 'Active';
-        } else if (action === "UPDATE_LIMITS") {
+        } else if (action === 'TOGGLE_FEATURE') {
+            const { feature } = data;
+            if (feature === 'online') {
+                card.isOnlineEnabled = !card.isOnlineEnabled;
+            } else if (feature === 'international') {
+                card.isInternationalEnabled = !card.isInternationalEnabled;
+            } else {
+                return NextResponse.json({ message: "Invalid feature." }, { status: 400 });
+            }
+            await card.save();
+            return NextResponse.json({ message: `Feature updated successfully.` });
+        }
+
+        if (action === "UPDATE_LIMITS") {
             card.limits.dailyOnlineLimit = data.onlineLimit;
             card.limits.dailyWithdrawalLimit = data.atmLimit;
             card.limits.contactlessLimit = data.contactlessLimit;
+        } else if (action === "DELETE_CARD") {
+            // Requirement: if frozen, add a new state, don't actually delete from db
+            // If already frozen (Blocked/Stolen etc), move to 'Closed'
+            card.currentStatus = 'Closed';
         } else {
             return NextResponse.json({ message: "Invalid action." }, { status: 400 });
         }
 
         await card.save();
-        return NextResponse.json({ message: "Card updated successfully." }, { status: 200 });
+
+        // Log the action
+        await createAuditLog({
+            userId: decoded.userId,
+            userRole: decoded.role,
+            actionType: action === 'DELETE_CARD' ? 'CARD_DELETED' : 'CARD_STATUS_CHANGED',
+            category: 'Operational',
+            severity: 'Medium',
+            resource: 'Card',
+            resourceId: cardId,
+            description: action === 'TOGGLE_STATUS' 
+                ? `Card status changed from ${prevState} to ${card.currentStatus}`
+                : action === 'DELETE_CARD' ? `Card ${card.cardReference} marked as Closed` : `Card limits updated`,
+            currentStatus: 'Success',
+            payload: {
+                previousState: JSON.stringify({ status: prevState, limits: prevLimits }),
+                newState: JSON.stringify({ status: card.currentStatus, limits: card.limits }),
+            },
+        });
+
+        return NextResponse.json({ message: "Card updated successfully.", card }, { status: 200 });
     } catch (error: any) {
+        console.error("Card PATCH Error:", error);
         return NextResponse.json({ message: error.message || "Internal server error." }, { status: 500 });
     }
 }

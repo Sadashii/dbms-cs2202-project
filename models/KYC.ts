@@ -114,12 +114,12 @@ const KYCSchema = new Schema<IKYC>({
 // --- Middleware / Hooks ---
 
 // Automatically track KYC lifecycle changes
-KYCSchema.pre('save', function(next) {
+KYCSchema.pre('save', async function() {
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,
             remarks: this.metadata?.rejectionReason || `Status changed to ${this.currentStatus}`,
-            updatedBy: this.metadata?.verifiedBy, // Will be undefined if done by system, which is fine
+            updatedBy: this.metadata?.verifiedBy,
             updatedAt: new Date()
         });
         
@@ -128,7 +128,6 @@ KYCSchema.pre('save', function(next) {
             this.verifiedAt = new Date();
         }
     }
-    
 });
 
 // --- Indexes ---

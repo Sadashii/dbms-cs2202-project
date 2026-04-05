@@ -13,7 +13,7 @@ const WEBHOOK_SECRET = process.env.GATEWAY_WEBHOOK_SECRET || "whsec_test_secret"
 export async function POST(req: Request) {
     try {
         const rawBody = await req.text(); // Must read as raw text for signature verification
-        const signature = headers().get("x-webhook-signature"); // e.g., Stripe-Signature or Razorpay-Signature
+        const signature = (await headers()).get("x-webhook-signature"); // e.g., Stripe-Signature or Razorpay-Signature
 
         if (!signature) {
             return NextResponse.json({ message: "Missing signature" }, { status: 401 });

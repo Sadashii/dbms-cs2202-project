@@ -2,43 +2,45 @@ import mongoose, { Schema, Document, Types } from 'mongoose';
 
 // 1. Define the TypeScript interface
 export interface ICard extends Document {
-    cardReference: string;  
+    cardReference: string;
     userId: Types.ObjectId;
-    accountId: Types.ObjectId; 
-    
+    accountId: Types.ObjectId;
+
     cardType: 'Debit' | 'Credit' | 'Virtual';
     cardNetwork: 'Visa' | 'MasterCard' | 'RuPay' | 'Amex';
-    
+
     // PCI-DSS Secure Data
-    tokenizedNumber: string;      
-    maskedNumber: string;    
+    tokenizedNumber: string;
+    maskedNumber: string;
     expiryDate: Date;
-    cvvHash: string;             
-    pinHash: string;         
-    
+    cvvHash: string;
+    pinHash: string;
+
     // Financial Limits & Capping
     limits: {
         dailyWithdrawalLimit: Types.Decimal128;
         dailyOnlineLimit: Types.Decimal128;
         contactlessLimit: Types.Decimal128;
-        creditLimit?: Types.Decimal128;      
-        outstandingAmount?: Types.Decimal128; 
+        creditLimit?: Types.Decimal128;
+        outstandingAmount?: Types.Decimal128;
     };
 
     currency: 'INR' | 'USD' | 'EUR';
-    currentStatus: 'Inactive' | 'Active' | 'Frozen' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired';
-    
+    currentStatus: 'Inactive' | 'Active' | 'Frozen' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired' | 'Closed';
+    isOnlineEnabled: boolean;
+    isInternationalEnabled: boolean;
+
     metadata?: {
         issuedAt: Date;
         activatedAt?: Date;
-        ipAddress?: string; 
-        failureAttempts: number; 
+        ipAddress?: string;
+        failureAttempts: number;
     };
 
     statusHistory: Array<{
-        state: 'Inactive' | 'Active' | 'Frozen' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired';
+        state: 'Inactive' | 'Active' | 'Frozen' | 'Blocked' | 'Lost' | 'Stolen' | 'Expired' | 'Closed';
         reason?: string;
-        updatedBy?: Types.ObjectId; 
+        updatedBy?: Types.ObjectId;
         updatedAt: Date;
     }>;
 
@@ -48,67 +50,67 @@ export interface ICard extends Document {
 
 // 2. Define the Schema
 const CardSchema = new Schema<ICard>({
-    cardReference: { 
-        type: String, 
-        unique: true, 
+    cardReference: {
+        type: String,
+        unique: true,
         required: true,
         immutable: true,
         uppercase: true,
         trim: true
     },
-    userId: { 
-        type: Schema.Types.ObjectId, 
-        ref: 'User', 
+    userId: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
         required: true,
         index: true,
-        immutable: true 
+        immutable: true
     },
-    accountId: { 
-        type: Schema.Types.ObjectId, 
-        ref: 'Account', 
+    accountId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Account',
         required: true,
         index: true,
-        immutable: true 
+        immutable: true
     },
-    cardType: { 
-        type: String, 
-        enum: ['Debit', 'Credit', 'Virtual'], 
-        required: true,
-        immutable: true 
-    },
-    cardNetwork: { 
-        type: String, 
-        enum: ['Visa', 'MasterCard', 'RuPay', 'Amex'], 
-        required: true,
-        immutable: true 
-    },
-    tokenizedNumber: { 
-        type: String, 
-        required: true, 
-        unique: true,
-        immutable: true,
-        select: false 
-    },
-    maskedNumber: { 
-        type: String, 
+    cardType: {
+        type: String,
+        enum: ['Debit', 'Credit', 'Virtual'],
         required: true,
         immutable: true
     },
-    expiryDate: { 
-        type: Date, 
+    cardNetwork: {
+        type: String,
+        enum: ['Visa', 'MasterCard', 'RuPay', 'Amex'],
         required: true,
-        immutable: true 
+        immutable: true
     },
-    cvvHash: { 
-        type: String, 
+    tokenizedNumber: {
+        type: String,
+        required: true,
+        unique: true,
+        immutable: true,
+        select: false
+    },
+    maskedNumber: {
+        type: String,
+        required: true,
+        immutable: true
+    },
+    expiryDate: {
+        type: Date,
+        required: true,
+        immutable: true
+    },
+    cvvHash: {
+        type: String,
         required: true,
         immutable: true,
-        select: false 
+        select: false
     },
-    pinHash: { 
-        type: String, 
+    pinHash: {
+        type: String,
         required: true,
-        select: false 
+        select: false
     },
     limits: {
         dailyWithdrawalLimit: { type: Schema.Types.Decimal128, default: 50000.00, min: 0 },
@@ -123,12 +125,14 @@ const CardSchema = new Schema<ICard>({
         enum: ['INR', 'USD', 'EUR'],
         immutable: true
     },
-    currentStatus: { 
-        type: String, 
-        enum: ['Inactive', 'Active', 'Frozen', 'Blocked', 'Lost', 'Stolen', 'Expired'], 
+    currentStatus: {
+        type: String,
+        enum: ['Inactive', 'Active', 'Frozen', 'Blocked', 'Lost', 'Stolen', 'Expired', 'Closed'],
         default: 'Inactive',
         index: true
     },
+    isOnlineEnabled: { type: Boolean, default: true },
+    isInternationalEnabled: { type: Boolean, default: false },
     metadata: {
         issuedAt: { type: Date, default: Date.now, immutable: true },
         activatedAt: { type: Date },
@@ -136,24 +140,24 @@ const CardSchema = new Schema<ICard>({
         failureAttempts: { type: Number, default: 0, min: 0 }
     },
     statusHistory: [{
-        state: { 
+        state: {
             type: String,
-            enum: ['Inactive', 'Active', 'Frozen', 'Blocked', 'Lost', 'Stolen', 'Expired'],
+            enum: ['Inactive', 'Active', 'Frozen', 'Blocked', 'Lost', 'Stolen', 'Expired', 'Closed'],
             required: true
         },
         reason: { type: String },
         updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
         updatedAt: { type: Date, default: Date.now }
     }]
-}, { 
+}, {
     timestamps: true,
-    optimisticConcurrency: true 
+    optimisticConcurrency: true
 });
 
 // --- Validation / Hooks ---
 
-// 1. Cross-field validation for Credit vs Debit (Synchronous, NO next() needed)
-CardSchema.pre('validate', function() {
+// 1. Cross-field validation for Credit vs Debit
+CardSchema.pre('validate', async function () {
     if (this.cardType !== 'Credit') {
         if (this.limits?.creditLimit != null) {
             this.invalidate('limits.creditLimit', 'Only Credit cards can have a credit limit.');
@@ -164,15 +168,16 @@ CardSchema.pre('validate', function() {
     }
 });
 
-// 2. Automatically track card lifecycle changes (Synchronous, NO next() needed)
-CardSchema.pre('save', function() {
+// 2. Automatically track card lifecycle changes
+CardSchema.pre('save', async function () {
     if (this.isModified('currentStatus')) {
+        const lastEntry = this.statusHistory[this.statusHistory.length - 1];
         this.statusHistory.push({
             state: this.currentStatus,
-            updatedBy: this.statusHistory[this.statusHistory.length - 1]?.updatedBy, 
+            updatedBy: lastEntry?.updatedBy,
             updatedAt: new Date()
         });
-        
+
         // Auto-set activation date if status changes to Active for the first time
         if (this.currentStatus === 'Active' && (!this.metadata || !this.metadata.activatedAt)) {
             if (!this.metadata) {

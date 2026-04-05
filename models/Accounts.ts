@@ -71,14 +71,13 @@ const AccountSchema = new Schema<IAccount>({
     optimisticConcurrency: true 
 });
 
-AccountSchema.pre('save', function(next) {
+AccountSchema.pre('save', async function() {
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,
             updatedAt: new Date()
         });
     }
-    
 });
 
 AccountSchema.index({ userId: 1, currentStatus: 1 });

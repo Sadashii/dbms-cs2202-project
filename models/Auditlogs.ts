@@ -8,9 +8,13 @@ export interface IAuditLog extends Document {
     userRole: string; 
     
     actionType: 
-        | 'AUTH_LOGIN' | 'AUTH_LOGOUT' | 'AUTH_PASSWORD_CHANGE' 
-        | 'TRANSACTION_INITIATED' | 'TRANSACTION_COMPLETED' 
-        | 'ACCOUNT_FROZEN' | 'KYC_VERIFIED' | 'LOAN_APPROVED';
+        | 'AUTH_LOGIN' | 'AUTH_LOGOUT' | 'AUTH_PASSWORD_CHANGE' | 'AUTH_PASSWORD_RESET'
+        | 'TRANSACTION_INITIATED' | 'TRANSACTION_COMPLETED' | 'TRANSACTION_FAILED'
+        | 'ACCOUNT_REQUESTED' | 'ACCOUNT_CREATED' | 'ACCOUNT_REJECTED' | 'ACCOUNT_FROZEN' | 'ACCOUNT_UNFROZEN'
+        | 'KYC_SUBMITTED' | 'KYC_VERIFIED' | 'KYC_REJECTED'
+        | 'LOAN_APPLIED' | 'LOAN_APPROVED' | 'LOAN_REJECTED'
+        | 'CARD_REQUESTED' | 'CARD_ISSUED' | 'CARD_REJECTED' | 'CARD_STATUS_CHANGED' | 'CARD_DELETED' | 'CARD_EXPENSE' | 'CARD_REPAYMENT'
+        | 'SUPPORT_TICKET_CREATED' | 'SUPPORT_TICKET_REPLY' | 'SUPPORT_TICKET_RESOLVED';
     
     category: 'Security' | 'Financial' | 'Operational' | 'Administrative';
     severity: 'Low' | 'Medium' | 'High' | 'Critical';
@@ -132,21 +136,19 @@ const AuditLogSchema = new Schema<IAuditLog>({
 // --- Middleware & Hooks ---
 
 // 1. Cryptographic Sealing
-AuditLogSchema.pre('validate', function(next) {
+AuditLogSchema.pre('validate', async function() {
     if (this.isNew && !this.logHash) {
         // Create a hash of the core log data to prove it hasn't been altered via direct DB access
         const dataToHash = `${this.logReference}|${this.userId}|${this.actionType}|${this.currentStatus}|${this.createdAt?.toISOString()}`;
         this.logHash = crypto.createHash('sha256').update(dataToHash).digest('hex');
     }
-    
 });
 
 // 2. Strict Immutability Enforcement
-AuditLogSchema.pre('save', function(next) {
+AuditLogSchema.pre('save', async function() {
     if (!this.isNew) {
         throw new Error('Audit logs are strictly append-only and cannot be updated.');
     }
-    
 });
 
 // --- Indexes ---

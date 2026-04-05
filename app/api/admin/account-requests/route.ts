@@ -19,14 +19,22 @@ export async function GET(req: NextRequest) {
         await dbConnect();
 
         const requests = await AccountRequest.find()
-            .populate({ path: 'userId', select: 'name email' })
+            .populate({ path: 'userId', select: 'firstName lastName email' })
             .sort({ createdAt: -1 })
             .lean();
 
         const enhancedRequests = await Promise.all(
             requests.map(async (request) => {
-                const userKycs = await KYC.find({ userId: request.userId._id })
-                    .select('kycReference documentType currentStatus attachments')
+                const fileUrls = [
+                    request.kycDocuments?.panCardFileUrl,
+                    request.kycDocuments?.aadharFileUrl
+                ].filter(Boolean);
+
+                const userKycs = await KYC.find({ 
+                    userId: request.userId._id,
+                    'attachments.fileUrl': { $in: fileUrls }
+                })
+                    .select('kycReference documentType currentStatus attachments documentDetails verifiedAt metadata createdAt updatedAt')
                     .lean();
 
                 return {

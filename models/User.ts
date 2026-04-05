@@ -99,30 +99,28 @@ const UserSchema = new Schema<IUser>({
     optimisticConcurrency: true 
 });
 
-UserSchema.pre('save', function(next) {
+UserSchema.pre('save', async function() {
     if (this.isModified('addresses')) {
         const primaryCount = this.addresses.filter(a => a.isPrimary).length;
         if (primaryCount > 1) {
-throw new Error('A user can only have one primary address.');        }
+            throw new Error('A user can only have one primary address.');
+        }
     }
-    
 });
 
-UserSchema.pre('save', function(next) {
+UserSchema.pre('save', async function() {
     if (this.isModified('passwords') && this.passwords.length > 3) {
         this.passwords = this.passwords.slice(-3);
     }
-    
 });
 
-UserSchema.pre('save', function(next) {
+UserSchema.pre('save', async function() {
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,
             updatedAt: new Date()
         });
     }
-    
 });
 
 export default mongoose.models.User || mongoose.model<IUser>("User", UserSchema);

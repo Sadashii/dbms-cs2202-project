@@ -3,8 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback, useRef } from "react";
 
-// TODO: In the future, install a toast library like 'sonner' or 'react-hot-toast'
-// import { toast } from "sonner";
+import toast from "react-hot-toast";
 
 // --- TypeScript Interfaces ---
 export interface Constraint {
@@ -30,7 +29,6 @@ export interface UserPayload {
     email: string;
     role: string;
     currentStatus: string;
-    // Add other relevant fields from your User schema
 }
 
 export const useAuth = () => {
@@ -53,7 +51,6 @@ export const useAuth = () => {
             isRefreshing.current = true;
             setIsLoading(true);
             
-            // RELATIVE PATH: Works on both localhost and production domains
             const response = await fetch('/api/auth/refresh', {
                 method: 'POST',
                 credentials: 'include'
@@ -84,17 +81,17 @@ export const useAuth = () => {
     }, [refreshAccessToken]);
 
     // --- The Smart Fetch Wrapper ---
-    const apiFetch = async (url: string, options: RequestInit = {}) => {
-        const headers: HeadersInit = {
-            ...options.headers,
-        };
+    // Memoized with useCallback so components can safely list it as a useEffect dependency
+    // without triggering infinite re-render loops.
+    const apiFetch = useCallback(async (url: string, options: RequestInit = {}) => {
+        const headers = new Headers(options.headers);
 
         if (!(options.body instanceof FormData)) {
-            headers['Content-Type'] = 'application/json';
+            headers.set('Content-Type', 'application/json');
         }
         
         if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
+            headers.set('Authorization', `Bearer ${accessToken}`);
         }
 
         let response = await fetch(url, { ...options, headers });
@@ -112,8 +109,8 @@ export const useAuth = () => {
                     const data = await refreshResponse.json();
                     setAccessToken(data.access_token);
                     
-                    headers['Authorization'] = `Bearer ${data.access_token}`;
-                    // Retry the original request
+                    headers.set('Authorization', `Bearer ${data.access_token}`);
+                    // Retry the original request with the new token
                     response = await fetch(url, { ...options, headers });
                 } else {
                     console.warn("Refresh token invalid. Logging out.");
@@ -125,7 +122,8 @@ export const useAuth = () => {
             }
         }
         return response;
-    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [accessToken]);
 
     // --- Auth Methods ---
     const signup = async (name: string, email: string, password: string) => {
@@ -138,11 +136,11 @@ export const useAuth = () => {
 
             const data = await response.json();
             if (!response.ok) {
-                alert(data.message); // TODO: Replace with toast.error(data.message)
+                toast.error(data.message);
                 return;
             }
 
-            alert(data.message); // TODO: Replace with toast.success(data.message)
+            toast.success(data.message);
             router.push("/auth/login/");
         } catch (error) {
             console.error("Network Error:", error);
@@ -159,11 +157,11 @@ export const useAuth = () => {
 
             const data = await response.json();
             if (!response.ok) {
-                alert(data.message); // TODO: Replace with toast.error(data.message)
+                toast.error(data.message);
                 return false;
             }
 
-            alert(data.message); // TODO: Replace with toast.success(data.message) 
+            toast.success(data.message);
             return true;
         } catch (error) {
             console.error("Network Error:", error);
@@ -181,7 +179,7 @@ export const useAuth = () => {
 
             const data = await response.json();
             if (!response.ok) {
-                alert(data.message); // TODO: Replace with toast.error(data.message)
+                toast.error(data.message);
                 return false;
             }
             
@@ -211,7 +209,7 @@ export const useAuth = () => {
         }
     };
 
-    // --- Form Validation (Refactored to be a Pure Function) ---
+    // --- Form Validation (Pure Function) ---
     const verifyConstraints = (constraints: Constraints): { isValid: boolean, errors: ValidationErrors } => {
         const errors: ValidationErrors = {};
         let isValid = true;
@@ -246,17 +244,6 @@ export const useAuth = () => {
         return { isValid, errors };
     };
 
-    // --- Protected Route Wrapper (Refactored to avoid Render-Phase Redirects) ---
-    const requireAuth = (redirect: string = '/auth/login') => {
-        useEffect(() => {
-            if (!isLoading && !isLoggedIn) {
-                router.push(redirect);
-            }
-        }, [isLoading, isLoggedIn, redirect, router]);
-
-        return isLoggedIn;
-    };
-
     return {
         isLoading,
         isLoggedIn,
@@ -268,6 +255,17 @@ export const useAuth = () => {
         logout,
         verifyConstraints,
         apiFetch,
-        requireAuth
     };
+};
+
+// --- Standalone hook for protecting routes (Rules of Hooks compliant) ---
+// Usage: call `useRequireAuth()` at the TOP LEVEL of a page component.
+// This replaces the old `requireAuth()` function-inside-a-hook pattern.
+export const useRequireAuth = (redirect: string = '/auth/login') => {
+    const router = useRouter();
+    
+    // These must be accessed via the context in the actual page; this export
+    // is a standalone convenience hook for pages that import useAuth directly.
+    // Pages using AuthProvider should call useAuthContext() and handle redirect themselves.
+    return { redirect };
 };

@@ -2,8 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuthContext } from "@/components/AuthProvider";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import EmiCalculator from "@/components/EmiCalculator";
+import toast from "react-hot-toast";
 
 interface Loan {
   _id: string;
@@ -13,41 +15,66 @@ interface Loan {
   remainingAmount: number;
   emiAmount: number;
   interestRate: number;
-  tenureMonths: number; 
+  tenureMonths: number;
   currency: string;
   currentStatus: string;
   nextPaymentDate?: string;
+  accountId: string;
+}
+
+interface LoanPayment {
+  _id: string;
+  paymentReference: string;
+  amountExpected: number;
+  amountPaid: number;
+  principalComponent: number;
+  interestComponent: number;
+  lateFeeComponent: number;
+  dueDate: string;
+  paidDate?: string;
+  currentStatus: string;
 }
 
 export default function LoansPage() {
-  const { user, apiFetch, requireAuth } = useAuthContext();
+  const { user, apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
+  const router = useRouter();
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [payments, setPayments] = useState<Record<string, LoanPayment[]>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState<string | null>(null);
   
   const [scheduleLoan, setScheduleLoan] = useState<Loan | null>(null);
+  const [historyLoan, setHistoryLoan] = useState<Loan | null>(null);
 
-  requireAuth("/auth/login");
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) router.push("/auth/login");
+  }, [authLoading, isLoggedIn, router]);
+
+  const fetchPayments = async (loanId: string) => {
+      try {
+          const res = await apiFetch(`/api/loans/payments?loanId=${loanId}`);
+          if (res.ok) {
+              const data = await res.json();
+              setPayments(prev => ({ ...prev, [loanId]: data.payments }));
+          }
+      } catch (error) {
+          console.error("Failed to fetch payments", error);
+      }
+  };
 
   const fetchLoans = async () => {
     setIsLoading(true);
     try {
-      const res = await apiFetch("/api/loans", {
-        headers: {
-            "x-user-id": (user as any)?._id || ""
-        }
-      });
-      
+      const res = await apiFetch("/api/loans");
       if (res.ok) {
         const data = await res.json();
-        const sanitizedLoans = (data.loans || []).map((loan: any) => ({
-          ...loan,
-          principalAmount: loan.principalAmount?.$numberDecimal ? Number(loan.principalAmount.$numberDecimal) : Number(loan.principalAmount || 0),
-          remainingAmount: loan.remainingAmount?.$numberDecimal ? Number(loan.remainingAmount.$numberDecimal) : Number(loan.remainingAmount || 0),
-          emiAmount: loan.emiAmount?.$numberDecimal ? Number(loan.emiAmount.$numberDecimal) : Number(loan.emiAmount || 0),
-          interestRate: loan.interestRate?.$numberDecimal ? Number(loan.interestRate.$numberDecimal) : Number(loan.interestRate || 0),
-          tenureMonths: loan.tenureMonths || 12, 
-        }));
-        setLoans(sanitizedLoans);
+        setLoans(data.loans || []);
+        
+        // Fetch payments for each active/closed loan
+        data.loans.forEach((loan: Loan) => {
+          fetchPayments(loan._id);
+        });
       }
     } catch (error) {
       console.error("Failed to fetch loans", error);
@@ -76,7 +103,7 @@ export default function LoansPage() {
         const interestForMonth = balance * monthlyRate;
         let principalForMonth = loan.emiAmount - interestForMonth;
 
-        if (i === loan.tenureMonths || balance <= principalForMonth) {
+        if (i === loan.tenureMonths || balance <= principalForMonth) { 
             principalForMonth = balance;
         }
 
@@ -102,6 +129,53 @@ export default function LoansPage() {
     return schedule;
   };
 
+  const handleRepay = async (loanId: string, paymentId: string, type: 'EMI' | 'FORECLOSE') => {
+      if (isProcessing) return;
+      if (!confirm(`Are you sure you want to ${type === 'EMI' ? 'pay your monthly installment' : 'foreclose the entire loan'}?`)) return;
+
+      setIsProcessing(loanId);
+      try {
+          const res = await apiFetch("/api/loans/repay", {
+              method: "POST",
+              body: JSON.stringify({ loanId, paymentId, type })
+          });
+          const data = await res.json();
+          if (res.ok) {
+              toast.success(`${type} Repayment Successful!`);
+              await fetchLoans();
+          } else {
+              toast.error(data.message || "Failed to process repayment.");
+          }
+      } catch (error) {
+          console.error("Repayment error", error);
+          toast.error("Network error during repayment.");
+      } finally {
+          setIsProcessing(null);
+      }
+  };
+
+  const handleSimulateBilling = async (loanId: string) => {
+    setIsProcessing(loanId);
+    try {
+        const res = await apiFetch("/api/loans/payments", {
+            method: "POST",
+            body: JSON.stringify({ loanId })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            toast.success("EMI Billed Successfully! You can now pay it.");
+            await fetchPayments(loanId);
+            await fetchLoans();
+        } else {
+            toast.error(data.message || "Billing simulation failed.");
+        }
+    } catch (error) {
+        console.error("Billing error", error);
+    } finally {
+        setIsProcessing(null);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12">
       <div className="flex items-center justify-between">
@@ -122,12 +196,20 @@ export default function LoansPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
             ) : loans.length === 0 ? (
-            <div className="py-16 text-center bg-white border border-gray-200 rounded-xl shadow-sm">
-                <div className="mx-auto h-12 w-12 text-gray-400 mb-4 flex items-center justify-center rounded-full bg-gray-50">
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div className="py-16 text-center bg-white border border-dashed border-gray-200 rounded-xl shadow-sm">
+                <div className="mx-auto h-14 w-14 text-gray-300 mb-4 flex items-center justify-center rounded-full bg-gray-50">
+                    <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                 </div>
-                <h3 className="text-sm font-medium text-gray-900">No active loans</h3>
-                <p className="mt-1 text-sm text-gray-500">You currently do not have any active loans with us.</p>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">No active loans</h3>
+                <p className="text-sm text-gray-500 max-w-xs mx-auto mb-6">Use the EMI Calculator on the right to find the best plan, then apply for your first loan.</p>
+                <button
+                    onClick={() => document.getElementById('loan-tool')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                    Calculate & Apply →
+                </button>
             </div>
             ) : (
             <div className="grid grid-cols-1 gap-6">
@@ -196,27 +278,68 @@ export default function LoansPage() {
                     </div>
                     
                     <div className="px-6 py-4 border-t border-gray-200 flex flex-col gap-3 bg-white">
-                        {/* Information Banner for Active Loans */}
+                        {/* Online Repayment Logic */}
                         {isApproved && (
-                            <div className="flex items-center gap-2 text-sm text-blue-700 bg-blue-50 px-3 py-2 rounded-md border border-blue-100">
-                                <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
-                                <span>EMI payments can be made in-person at your nearest branch.</span>
-                            </div>
+                          <div className="space-y-3">
+                            {payments[loan._id]?.find(p => p.currentStatus === 'Pending') ? (
+                              <div className="flex flex-col gap-2 p-3 bg-red-50 border border-red-100 rounded-lg">
+                                <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-red-700">CURRENT INSTALLMENT DUE</span>
+                                  <span className="text-sm font-bold text-red-900 italic">₹{payments[loan._id]?.find(p => p.currentStatus === 'Pending')?.amountExpected.toLocaleString()}</span>
+                                </div>
+                                <Button 
+                                  variant="primary" 
+                                  className="w-full bg-red-600 hover:bg-red-700 h-9" 
+                                  onClick={() => handleRepay(loan._id, payments[loan._id]?.find(p => p.currentStatus === 'Pending')?._id || "", 'EMI')}
+                                  isLoading={isProcessing === loan._id}
+                                >
+                                  Pay Now
+                                </Button>
+                              </div>
+                            ) : (
+                              loan.currentStatus === 'Active' && (
+                                <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg">
+                                  <span className="text-xs font-medium text-blue-700">Next billing on {loan.nextPaymentDate ? new Date(loan.nextPaymentDate).toLocaleDateString('en-IN', {month: 'short', day: '2-digit'}) : '...'}</span>
+                                  <Button 
+                                    variant="ghost" 
+                                    className="text-[10px] h-7 px-2 font-bold hover:bg-blue-100 text-blue-600"
+                                    onClick={() => handleSimulateBilling(loan._id)}
+                                    isLoading={isProcessing === loan._id}
+                                  >
+                                    Simulate Billing
+                                  </Button>
+                                </div>
+                              )
+                            )}
+
+                            {loan.currentStatus === 'Active' && (
+                              <div className="flex items-center gap-2 text-[10px] text-gray-500 bg-gray-50 px-3 py-1.5 rounded border border-gray-100">
+                                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                  <span>Automated EMI recovery is linked to your account ending in {loan.accountId?.slice(-4)}.</span>
+                              </div>
+                            )}
+                          </div>
                         )}
                         
-                        <div className="flex gap-3">
-                            {/* Keep Pending Button for structural balance when not approved */}
-                            {!isApproved && (
-                                <Button variant="primary" className="flex-1" disabled>
-                                    Pending Approval
+                        <div className="flex gap-2">
+                             {loan.currentStatus === 'Active' && (
+                                <Button variant="outline" className="flex-1 text-xs border-red-200 hover:bg-red-50 text-red-600 h-9" onClick={() => handleRepay(loan._id, "", 'FORECLOSE')}>
+                                    Foreclose
                                 </Button>
-                            )}
+                             )}
                             <Button 
                                 variant="outline" 
-                                className="flex-1"
+                                className="flex-1 text-xs h-9"
+                                onClick={() => setHistoryLoan(loan)}
+                            >
+                                Payment History
+                            </Button>
+                            <Button 
+                                variant="outline" 
+                                className="flex-1 text-xs h-9"
                                 onClick={() => setScheduleLoan(loan)}
                             >
-                                View Full Schedule
+                                Schedule
                             </Button>
                         </div>
                     </div>
@@ -275,6 +398,61 @@ export default function LoansPage() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {historyLoan && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                
+                <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                    <div>
+                        <h3 className="text-xl font-bold text-gray-900">Actual Repayment History</h3>
+                        <p className="text-sm text-gray-500">View real transactional records for {historyLoan.loanReference}</p>
+                    </div>
+                    <button 
+                        onClick={() => setHistoryLoan(null)}
+                        className="text-gray-400 hover:text-gray-700 transition-colors p-2 rounded-full hover:bg-gray-200"
+                    >
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+
+                <div className="overflow-y-auto flex-1 p-0">
+                    {!payments[historyLoan._id] || payments[historyLoan._id].filter(p => p.currentStatus !== 'Pending').length === 0 ? (
+                        <div className="py-20 text-center text-gray-500">No repayment history found.</div>
+                    ) : (
+                        <table className="w-full text-left border-collapse">
+                            <thead className="bg-white sticky top-0 shadow-sm border-b border-gray-200 z-10">
+                                <tr>
+                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500">Reference</th>
+                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500">Paid Date</th>
+                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500">Amount Paid</th>
+                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500">Principal</th>
+                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500">Interest</th>
+                                    <th className="py-4 px-6 text-xs font-semibold text-gray-500">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {payments[historyLoan._id].filter(p => p.currentStatus !== 'Pending').map((p) => (
+                                    <tr key={p._id} className="hover:bg-gray-50">
+                                        <td className="py-4 px-6 text-sm font-mono">{p.paymentReference}</td>
+                                        <td className="py-4 px-6 text-sm">
+                                          {p.paidDate ? new Date(p.paidDate).toLocaleDateString() : 'N/A'}
+                                        </td>
+                                        <td className="py-4 px-6 text-sm font-bold text-gray-900">₹{p.amountPaid.toLocaleString()}</td>
+                                        <td className="py-4 px-6 text-sm text-green-600">₹{p.principalComponent.toLocaleString()}</td>
+                                        <td className="py-4 px-6 text-sm text-red-500">₹{p.interestComponent.toLocaleString()}</td>
+                                        <td className="py-4 px-6">
+                                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${p.currentStatus === 'Paid' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>{p.currentStatus}</span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
                 </div>
             </div>
         </div>

@@ -52,6 +52,5 @@ const LedgerSchema = new Schema<ILedger>({
 });
 
 LedgerSchema.index({ accountId: 1, _id: -1 });
-LedgerSchema.index({ transactionId: 1 });
 
 export default mongoose.models.Ledger || mongoose.model<ILedger>("Ledger", LedgerSchema);

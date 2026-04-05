@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuthContext } from "@/components/AuthProvider";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import toast from "react-hot-toast";
 
 interface Account {
   _id: string;
@@ -17,9 +19,15 @@ interface Account {
 
 export default function AccountsPage() {
   // Removed accessToken since apiFetch handles it natively
-  const { apiFetch, requireAuth } = useAuthContext();
+  const { apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
+  const router = useRouter();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [kycs, setKycs] = useState<any[]>([]); // New state for KYC document status
+  const [accountRequest, setAccountRequest] = useState<any>(null); // New state for global request
 
   // Transfer Modal State
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -29,6 +37,9 @@ export default function AccountsPage() {
   const [toAccountNumber, setToAccountNumber] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
+  const [saveBeneficiary, setSaveBeneficiary] = useState(false);
+  const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
+  const [beneficiaryNickName, setBeneficiaryNickName] = useState("");
 
   // Account Request & KYC Modal State
   const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
@@ -45,17 +56,22 @@ export default function AccountsPage() {
   
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
-  requireAuth("/auth/login");
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) router.push("/auth/login");
+  }, [authLoading, isLoggedIn, router]);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = async (p = page) => {
     try {
       setIsLoading(true);
-      const res = await apiFetch("/api/accounts");
+      const res = await apiFetch(`/api/accounts?page=${p}&limit=9`);
       if (res.ok) {
         const data = await res.json();
         setAccounts(data.accounts);
-        if (data.accounts.length > 0) {
-          setFromAccountId(data.accounts[0]._id); 
+        setTotalPages(data.pagination?.totalPages ?? 1);
+        setTotal(data.pagination?.total ?? data.accounts.length);
+        if (data.accounts.length > 0 && !fromAccountId) {
+          setFromAccountId(data.accounts[0]._id);
         }
       }
     } catch (error) {
@@ -65,9 +81,38 @@ export default function AccountsPage() {
     }
   };
 
+  const fetchKycs = async () => {
+    try {
+      const res = await apiFetch("/api/kyc");
+      if (res.ok) {
+        const data = await res.json();
+        setKycs(data.documents || []);
+        setAccountRequest(data.request);
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const fetchBeneficiaries = async () => {
+    try {
+      const res = await apiFetch("/api/beneficiaries");
+      if (res.ok) {
+        const data = await res.json();
+        setBeneficiaries(data.beneficiaries || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
   useEffect(() => {
-    fetchAccounts();
-  }, [apiFetch]);
+    if (isLoggedIn) {
+      fetchAccounts(page);
+      fetchKycs();
+      fetchBeneficiaries();
+    }
+  }, [apiFetch, page, isLoggedIn]);
+
+  const fetchHistory = (account: Account) => {
+    router.push(`/my/accounts/${account._id}`);
+  };
 
   const handleTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,11 +135,26 @@ export default function AccountsPage() {
       if (!res.ok) {
         setTransferError(data.message || "Transfer failed.");
       } else {
+        // Option to save beneficiary
+        if (saveBeneficiary && beneficiaryNickName) {
+           await apiFetch("/api/beneficiaries", {
+              method: "POST",
+              body: JSON.stringify({
+                  nickName: beneficiaryNickName,
+                  accountNumber: toAccountNumber,
+                  accountName: "VaultPay User" // Basic name if unknown
+              })
+           });
+           fetchBeneficiaries();
+        }
+
         setIsTransferModalOpen(false);
         setToAccountNumber("");
         setAmount("");
         setMemo("");
-        alert(`Transfer Successful! Ref ID: ${data.referenceId}`); 
+        setBeneficiaryNickName("");
+        setSaveBeneficiary(false);
+        toast.success(`Transfer Successful! Ref ID: ${data.referenceId}`); 
         fetchAccounts();
       }
     } catch (err) {
@@ -104,10 +164,10 @@ export default function AccountsPage() {
     }
   };
 
-  const handleRequestAccount = async (e: React.FormEvent) => {
+    const handleRequestAccount = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!panFile || !signatureFile || !aadharFile) {
-        alert("Please upload your PAN Card, Aadhar Card, and Signature.");
+    if (!panFile && !signatureFile && !aadharFile) {
+        toast.error("Please upload the documents you wish to submit.");
         return;
     }
     
@@ -116,16 +176,18 @@ export default function AccountsPage() {
     try {
         const formData = new FormData();
         formData.append("accountType", newAccountType);
-        formData.append("panNumber", panNumber);
-        formData.append("aadharNumber", aadharNumber);
+        if (panNumber) formData.append("panNumber", panNumber);
+        if (aadharNumber) formData.append("aadharNumber", aadharNumber);
         
-        formData.append("panCard", panFile);
-        formData.append("aadhar", aadharFile);
-        formData.append("signature", signatureFile);
+        if (panFile) formData.append("panCard", panFile);
+        if (aadharFile) formData.append("aadhar", aadharFile);
+        if (signatureFile) formData.append("signature", signatureFile);
 
-        // Using apiFetch instead of native fetch!
+        // Detect if this is a remediation (PATCH) or a new request (POST)
+        const method = (accountRequest && accountRequest.currentStatus !== 'Approved') ? "PATCH" : "POST";
+
         const response = await apiFetch("/api/account-requests", {
-            method: "POST",
+            method: method,
             body: formData,
         });
 
@@ -134,11 +196,13 @@ export default function AccountsPage() {
             throw new Error(errorData.message || "Failed to submit request");
         }
 
+        toast.success(method === "PATCH" ? "Documents re-submitted for review." : "Registration submitted successfully.");
         setKycStatus("pending");
+        fetchKycs(); // Refresh status tracking
         
     } catch (error: any) {
         console.error("Failed to submit KYC:", error);
-        alert(error.message || "Failed to submit account request.");
+        toast.error(error.message || "Failed to submit account request.");
     } finally {
         setIsSubmittingKYC(false);
     }
@@ -173,6 +237,50 @@ export default function AccountsPage() {
         </div>
       </div>
 
+      {/* KYC & Account Request Status Tracking */}
+      {accountRequest && (accountRequest.currentStatus !== 'Approved') && (
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-sm mb-6">
+              <div className="flex items-center justify-between mb-4">
+                  <div>
+                      <h2 className="text-lg font-bold text-blue-900">Account Request Status: {accountRequest.currentStatus.replace('_', ' ')}</h2>
+                      <p className="text-sm text-blue-700">Tracking progress for your {accountRequest.accountType} account.</p>
+                  </div>
+                  <div className="flex gap-2">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {accountRequest.currentStatus}
+                      </span>
+                  </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {['PAN', 'Aadhar', 'Signature'].map(type => {
+                      const kyc = kycs.find(k => k.documentType === type) || (type === 'Signature' ? { currentStatus: 'Pending' } : null);
+                      const status = kyc?.currentStatus || 'Not Submitted';
+                      
+                      return (
+                          <div key={type} className="bg-white p-4 rounded-lg border border-blue-100 flex flex-col justify-between">
+                              <div>
+                                  <p className="text-xs font-bold text-gray-400 uppercase mb-1">{type} Document</p>
+                                  <div className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${status === 'Verified' ? 'bg-green-500' : status === 'Rejected' ? 'bg-red-500' : 'bg-orange-500'}`}></span>
+                                      <p className="text-sm font-semibold text-gray-900">{status}</p>
+                                  </div>
+                              </div>
+                              {status === 'Rejected' && (
+                                  <div className="mt-3">
+                                      <p className="text-[10px] text-red-600 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
+                                      <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto" onClick={() => setIsNewAccountModalOpen(true)}>
+                                          Fix & Re-upload
+                                      </Button>
+                                  </div>
+                              )}
+                          </div>
+                      );
+                  })}
+              </div>
+          </div>
+      )}
+
       {/* Accounts Grid */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
@@ -180,8 +288,17 @@ export default function AccountsPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : accounts.length === 0 ? (
-          <div className="col-span-full py-10 text-center text-gray-500 bg-white border border-gray-200 rounded-xl shadow-sm">
-            No accounts found. Please register for a new account above.
+          <div className="col-span-full py-16 text-center bg-white border border-dashed border-gray-200 rounded-xl shadow-sm">
+            <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+              </svg>
+            </div>
+            <h3 className="text-base font-semibold text-gray-900 mb-1">No accounts yet</h3>
+            <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">Submit your KYC documents to get started. Our team typically reviews applications within 1 business day.</p>
+            <Button onClick={() => setIsNewAccountModalOpen(true)} variant="primary">
+              Register for New Account
+            </Button>
           </div>
         ) : (
           accounts.map((acc) => (
@@ -203,10 +320,19 @@ export default function AccountsPage() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-500 mb-1">Available Balance</p>
-                  <p className="text-3xl font-bold text-gray-900">
+                  <p className="text-3xl font-bold text-gray-900 mb-4">
                     {acc.currency === 'INR' ? '₹' : acc.currency === 'USD' ? '$' : '€'}
                     {acc.balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </p>
+                  
+                  <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-2">
+                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-gray-600" onClick={() => fetchHistory(acc)}>
+                        History
+                    </Button>
+                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => router.push(`/my/accounts/statement/${acc._id}`)}>
+                        Statement
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -214,6 +340,35 @@ export default function AccountsPage() {
         )}
       </div>
 
+      {/* Pagination Controls */}
+      {!isLoading && totalPages > 1 && (
+        <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-3 shadow-sm">
+          <p className="text-sm text-gray-500">
+            {total} account{total !== 1 ? "s" : ""} total
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page === 1}
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              className="py-1 h-auto text-xs"
+            >
+              ← Previous
+            </Button>
+            <span className="text-sm text-gray-600 px-2">{page} / {totalPages}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              className="py-1 h-auto text-xs"
+            >
+              Next →
+            </Button>
+          </div>
+        </div>
+      )}
       {/* Account Request & KYC Modal */}
       <Modal
         isOpen={isNewAccountModalOpen}
@@ -363,15 +518,41 @@ export default function AccountsPage() {
             </select>
           </div>
 
-          <Input
-            label="Recipient Account Number"
-            type="text"
-            value={toAccountNumber}
-            onChange={(e) => setToAccountNumber(e.target.value.replace(/\D/g, ''))}
-            required
-            disabled={isTransferring}
-            placeholder="e.g., 0987654321"
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Account</label>
+            <div className="space-y-3">
+                {beneficiaries.length > 0 && (
+                    <select
+                        className="w-full border border-blue-200 rounded-md px-3 py-2 bg-blue-50 text-blue-800 text-sm focus:ring-blue-500 outline-none"
+                        onChange={(e) => {
+                            const b = beneficiaries.find(x => x._id === e.target.value);
+                            if (b) {
+                                setToAccountNumber(b.accountNumber);
+                                setBeneficiaryNickName(b.nickName);
+                            }
+                        }}
+                        disabled={isTransferring}
+                    >
+                        <option value="">Select Saved Payee (Optional)</option>
+                        {beneficiaries.map(b => (
+                            <option key={b._id} value={b._id}>{b.nickName} - {b.accountNumber}</option>
+                        ))}
+                    </select>
+                )}
+                <Input
+                    type="text"
+                    value={toAccountNumber}
+                    onChange={(e) => {
+                        setToAccountNumber(e.target.value.replace(/\D/g, ''));
+                        // Reset selection if typing manually
+                        setSaveBeneficiary(true);
+                    }}
+                    required
+                    disabled={isTransferring}
+                    placeholder="Enter recipient account number"
+                />
+            </div>
+          </div>
 
           <Input
             label="Amount"
@@ -394,6 +575,32 @@ export default function AccountsPage() {
             placeholder="e.g., Rent Payment"
             maxLength={50}
           />
+
+          {!beneficiaries.some(b => b.accountNumber === toAccountNumber) && toAccountNumber && (
+              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+                  <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        id="save-ben" 
+                        checked={saveBeneficiary} 
+                        onChange={(e) => setSaveBeneficiary(e.target.checked)}
+                        className="rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <label htmlFor="save-ben" className="text-sm font-medium text-gray-700">Save this Payee for later?</label>
+                  </div>
+                  {saveBeneficiary && (
+                       <Input
+                        label="Payee Nickname"
+                        type="text"
+                        value={beneficiaryNickName}
+                        onChange={(e) => setBeneficiaryNickName(e.target.value)}
+                        placeholder="e.g., Landlord"
+                        maxLength={20}
+                        required
+                    />
+                  )}
+              </div>
+          )}
 
           <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 mt-6">
             <Button 

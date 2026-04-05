@@ -111,7 +111,7 @@ const ScheduledPaymentSchema = new Schema<IScheduledPayment>({
 });
 
 // Middleware to track status history
-ScheduledPaymentSchema.pre('save', function(next) {
+ScheduledPaymentSchema.pre('save', async function() {
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,
@@ -119,7 +119,6 @@ ScheduledPaymentSchema.pre('save', function(next) {
             updatedAt: new Date()
         });
     }
-    
 });
 
 // Optimized indexes for the background cron job to find what to pay today

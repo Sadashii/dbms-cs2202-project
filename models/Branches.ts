@@ -149,25 +149,21 @@ const BranchSchema = new Schema<IBranch>({
 // --- Validation & Middleware ---
 
 // Automatically track status history
-BranchSchema.pre('save', function(next) {
+BranchSchema.pre('save', async function() {
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,
-            // Inherit the updatedBy from the array push in the service layer, 
-            // otherwise leave blank. Defaulting to managerId was a security risk.
             updatedBy: this.statusHistory[this.statusHistory.length - 1]?.updatedBy, 
             updatedAt: new Date()
         });
     }
-    
 });
 
 // Cross-field Validation
-BranchSchema.pre('validate', function(next) {
+BranchSchema.pre('validate', async function() {
     if (this.branchType === 'ATM_Only' && this.metadata?.vaultCapacity == null) {
-        // You might want specific business rules here, e.g., ATMs must have a tracked capacity
+        // ATM-specific validation rules can be added here
     }
-    
 });
 
 // --- Indexes ---

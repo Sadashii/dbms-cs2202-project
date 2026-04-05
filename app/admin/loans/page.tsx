@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuthContext } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
 
 export default function AdminLoansPage() {
     const { apiFetch } = useAuthContext();
@@ -49,10 +50,10 @@ export default function AdminLoansPage() {
                 // Refresh the list - the approved loan will disappear from here 
                 // because this list only shows "Applied" loans.
                 fetchPending(); 
-                alert(`Loan ${status} successfully!`);
+                toast.success(`Loan ${status} successfully!`);
             }
         } catch (err) {
-            alert("Action failed. Check console.");
+            toast.error("Action failed. Check console.");
         }
     };
 

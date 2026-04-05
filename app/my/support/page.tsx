@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import toast from "react-hot-toast";
 
 interface Complaint {
   _id: string;
@@ -18,7 +20,8 @@ interface Complaint {
 }
 
 export default function SupportPage() {
-  const { apiFetch, requireAuth } = useAuthContext();
+  const { apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
+  const router = useRouter();
   const [tickets, setTickets] = useState<Complaint[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -31,7 +34,10 @@ export default function SupportPage() {
   const [category, setCategory] = useState("Account");
   const [description, setDescription] = useState("");
 
-  requireAuth("/auth/login");
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) router.push("/auth/login");
+  }, [authLoading, isLoggedIn, router]);
 
   const fetchTickets = async () => {
     try {
@@ -66,12 +72,12 @@ export default function SupportPage() {
         setIsModalOpen(false);
         setSubject("");
         setDescription("");
-        alert("Support ticket created successfully."); // Replace with Toast
+        toast.success("Support ticket created successfully.");
         fetchTickets();
       }
     } catch (error) {
       console.error(error);
-      alert("Failed to create ticket.");
+      toast.error("Failed to create ticket.");
     } finally {
       setIsSubmitting(false);
     }
@@ -123,7 +129,11 @@ export default function SupportPage() {
                 </tr>
               ) : (
                 tickets.map((ticket) => (
-                  <tr key={ticket._id} className="hover:bg-gray-50 cursor-pointer transition-colors">
+                  <tr 
+                    key={ticket._id} 
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/my/support/${ticket.ticketId}`)}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-500">{ticket.ticketId}</td>
                     <td className="px-6 py-4 text-sm font-medium text-gray-900">{ticket.subject}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ticket.category}</td>

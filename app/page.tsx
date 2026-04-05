@@ -33,7 +33,7 @@ export default function LandingPage() {
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 {!isLoading && (
                   isLoggedIn ? (
-                    <Link href="/my">
+                    <Link href="/my/overview">
                       <Button size="lg" className="px-8 shadow-md">
                         Go to Dashboard
                       </Button>

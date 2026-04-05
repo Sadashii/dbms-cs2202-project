@@ -12,20 +12,6 @@
   }
 }
 
-/* ... rest of your custom scrollbar utilities ... */
-
-@layer base {
-  /* Smooth scrolling for anchor links */
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* Prevent blue tap highlight on mobile devices for a more native app feel */
-  body {
-    -webkit-tap-highlight-color: transparent;
-  }
-}
-
 @layer utilities {
   /* * Utility to completely hide the scrollbar but keep functionality.
    * Useful for horizontal tag lists or mobile navigation.

@@ -112,12 +112,13 @@ const ComplaintSchema = new Schema<IComplaint>({
 });
 
 // Middleware to track status history and resolution time
-ComplaintSchema.pre('save', function(next) {
+ComplaintSchema.pre('save', async function() {
     if (this.isModified('currentStatus')) {
+        // updatedBy should be explicitly set on the document by the controller before .save()
+        const lastEntry = this.statusHistory[this.statusHistory.length - 1];
         this.statusHistory.push({
             state: this.currentStatus,
-            // updatedBy should ideally be injected into the document before .save() by the controller.
-            updatedBy: this.statusHistory[this.statusHistory.length - 1]?.updatedBy, 
+            updatedBy: lastEntry?.updatedBy, 
             updatedAt: new Date()
         });
 
@@ -129,7 +130,6 @@ ComplaintSchema.pre('save', function(next) {
             this.resolvedAt = undefined;
         }
     }
-    
 });
 
 // Optimized indexes for support dashboard

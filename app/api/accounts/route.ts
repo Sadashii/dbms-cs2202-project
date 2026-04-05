@@ -2,19 +2,7 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import Account from "@/models/Accounts";
-import jwt from "jsonwebtoken";
-
-// Helper function to verify auth token
-const verifyAuth = (reqHeaders: Headers) => {
-    const authHeader = reqHeaders.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return null;
-    try {
-        const token = authHeader.split(" ")[1];
-        return jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { userId: string, role: string };
-    } catch (error) {
-        return null;
-    }
-};
+import { verifyAuth } from "@/lib/auth";
 
 export async function GET(req: Request) {
     try {
@@ -25,19 +13,39 @@ export async function GET(req: Request) {
 
         await dbConnect();
 
-        // Fetch accounts belonging to the authenticated user
-        // Using .select() to avoid sending unnecessary heavy data to the frontend
-        const accounts = await Account.find({ userId: decoded.userId })
-            .select("accountNumber accountType balance currency currentStatus createdAt")
-            .lean();
+        // --- Pagination ---
+        const url = new URL(req.url);
+        const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
+        const limit = Math.min(50, Math.max(1, parseInt(url.searchParams.get("limit") || "20")));
+        const skip = (page - 1) * limit;
 
-        // Convert Decimal128 to standard numbers/strings for JSON serialization
-        const formattedAccounts = accounts.map(acc => ({
+        const [accounts, total] = await Promise.all([
+            Account.find({ userId: decoded.userId })
+                .select("accountNumber accountType balance currency currentStatus createdAt")
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Account.countDocuments({ userId: decoded.userId }),
+        ]);
+
+        // Convert Decimal128 to standard numbers for JSON serialization
+        const formattedAccounts = accounts.map((acc) => ({
             ...acc,
-            balance: acc.balance ? parseFloat(acc.balance.toString()) : 0.00
+            balance: acc.balance ? parseFloat(acc.balance.toString()) : 0.0,
         }));
 
-        return NextResponse.json({ accounts: formattedAccounts }, { status: 200 });
+        return NextResponse.json({
+            accounts: formattedAccounts,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page * limit < total,
+                hasPrevPage: page > 1,
+            },
+        }, { status: 200 });
 
     } catch (error: any) {
         console.error("Accounts Fetch Error:", error);

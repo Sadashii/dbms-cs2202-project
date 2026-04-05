@@ -5,10 +5,11 @@ import AccountRequest from "@/models/AccountRequests";
 import KYC from "@/models/KYC";
 import Accounts from "@/models/Accounts";
 import { verifyAuth } from "@/lib/auth";
+import { createAuditLog } from "@/lib/audit";
 
 export async function PATCH(
     req: NextRequest,
-    context: { params: { id: string } }
+    context: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect()
@@ -55,7 +56,7 @@ export async function PATCH(
 
         const newAccountNumber = Math.floor(1000000000 + Math.random() * 9000000000).toString();
 
-        await Accounts.create({
+        const newAccount = await Accounts.create({
             userId: accountReq.userId,
             accountNumber: newAccountNumber,
             accountType: accountReq.accountType,
@@ -63,6 +64,26 @@ export async function PATCH(
             currency: "INR",
             currentStatus: "Active",
             branchId: null
+        });
+
+        // Log the account creation
+        await createAuditLog({
+            userId: decoded.userId,
+            userRole: decoded.role,
+            actionType: 'ACCOUNT_CREATED',
+            category: 'Administrative',
+            severity: 'Medium',
+            resource: 'Account',
+            resourceId: newAccount._id,
+            description: `New ${accountReq.accountType} account created for user ${accountReq.userId}`,
+            currentStatus: 'Success',
+            payload: {
+                newState: JSON.stringify({
+                    accountNumber: newAccountNumber,
+                    accountType: accountReq.accountType,
+                    userId: accountReq.userId,
+                }),
+            },
         });
 
         return NextResponse.json({ message: "Account Request Approved and Account Created" }, { status: 200 });

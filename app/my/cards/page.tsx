@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { useAuthContext } from "@/components/AuthProvider";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
+import toast from "react-hot-toast";
 
 interface Card {
   _id: string;
@@ -14,16 +16,42 @@ interface Card {
   expiryDate: string;
   currentStatus: string;
   currency: string;
+  accountId: string;
+  isOnlineEnabled: boolean;
+  isInternationalEnabled: boolean;
   limits: {
     dailyWithdrawalLimit: number;
     dailyOnlineLimit: number;
     contactlessLimit: number;
     outstandingAmount?: number;
+    creditLimit?: number;
   };
 }
 
+interface Account {
+  _id: string;
+  accountNumber: string;
+  accountType: string;
+  balance: number;
+}
+
+interface CardTransaction {
+  _id: string;
+  entryType: 'Debit' | 'Credit';
+  amount: number;
+  balanceAfter: number;
+  memo: string;
+  createdAt: string;
+  transaction: {
+    referenceId: string;
+    type: string;
+    currentStatus: string;
+  }
+}
+
 export default function EnhancedCardsPage() {
-  const { apiFetch, requireAuth, user } = useAuthContext();
+  const { apiFetch, user, isLoading: authLoading, isLoggedIn } = useAuthContext();
+  const router = useRouter();
   const [cards, setCards] = useState<Card[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -35,26 +63,51 @@ export default function EnhancedCardsPage() {
   // Flip Animation State
   const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
   
-  // Toggle States
-  const [isOnlineTxnEnabled, setIsOnlineTxnEnabled] = useState(true);
-  const [isIntlTxnEnabled, setIsIntlTxnEnabled] = useState(false);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
+  const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
+
+  // Toggle Processing State
+  const [isUpdatingFeature, setIsUpdatingFeature] = useState(false);
 
   // Modal States
   const [isRequestModalOpen, setIsRequestModalOpen] = useState(false);
   const [isLimitModalOpen, setIsLimitModalOpen] = useState(false);
+  const [isExpenseModalOpen, setIsExpenseModalOpen] = useState(false);
+  const [isRepayModalOpen, setIsRepayModalOpen] = useState(false);
   
   // Forms & Generation
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSubmittingLimits, setIsSubmittingLimits] = useState(false);
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
+  const [isSubmittingRepay, setIsSubmittingRepay] = useState(false);
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+  const [isSubmittingPin, setIsSubmittingPin] = useState(false);
+  const [newPin, setNewPin] = useState("");
   
   const [newCardType, setNewCardType] = useState("Debit");
   const [newCardNetwork, setNewCardNetwork] = useState("Visa");
+  const [linkAccountId, setLinkAccountId] = useState("");
+  const [newCreditLimit, setNewCreditLimit] = useState("50000");
 
   const [onlineLimit, setOnlineLimit] = useState("");
   const [atmLimit, setAtmLimit] = useState("");
   const [contactlessLimit, setContactlessLimit] = useState("");
 
-  requireAuth("/auth/login");
+  const [expenseAmount, setExpenseAmount] = useState("");
+  const [expenseMerchant, setExpenseMerchant] = useState("");
+  const [isOnlineExpense, setIsOnlineExpense] = useState(false);
+  const [isInternationalExpense, setIsInternationalExpense] = useState(false);
+  const [isContactlessExpense, setIsContactlessExpense] = useState(false);
+  const [isATMExpense, setIsATMExpense] = useState(false);
+
+  const [repayAmount, setRepayAmount] = useState("");
+  const [repaySourceAccountId, setRepaySourceAccountId] = useState("");
+
+  // Redirect unauthenticated users
+  useEffect(() => {
+    if (!authLoading && !isLoggedIn) router.push("/auth/login");
+  }, [authLoading, isLoggedIn, router]);
 
   const fetchCards = async (autoSelectLatest = false) => {
     try {
@@ -62,7 +115,7 @@ export default function EnhancedCardsPage() {
       const res = await apiFetch("/api/cards");
       if (res.ok) {
         const data = await res.json();
-        const validCards = (data.cards || []).filter((c: Card) => c.cardType === 'Debit' || c.cardType === 'Credit');
+        const validCards = (data.cards || []); 
         
         setCards(validCards);
         
@@ -84,9 +137,47 @@ export default function EnhancedCardsPage() {
     }
   };
 
+  const fetchAccounts = async () => {
+    try {
+      const res = await apiFetch("/api/accounts");
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data.accounts || []);
+        if (data.accounts?.length > 0) {
+            setLinkAccountId(data.accounts[0]._id);
+            setRepaySourceAccountId(data.accounts[0]._id);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch accounts", error);
+    }
+  };
+
+  const fetchCardTransactions = async (cardId: string) => {
+      try {
+          setIsTransactionsLoading(true);
+          const res = await apiFetch(`/api/cards/${cardId}/transactions`);
+          if (res.ok) {
+              const data = await res.json();
+              setCardTransactions(data.transactions || []);
+          }
+      } catch (error) {
+          console.error("Failed to fetch card transactions", error);
+      } finally {
+          setIsTransactionsLoading(false);
+      }
+  };
+
   useEffect(() => {
     fetchCards();
+    fetchAccounts();
   }, [apiFetch]);
+
+  useEffect(() => {
+     if (selectedCard && activeTab === 'transactions') {
+         fetchCardTransactions(selectedCard._id);
+     }
+  }, [selectedCard, activeTab]);
 
   // Handle click to select OR flip if already selected
   const handleCardClick = (card: Card) => {
@@ -105,7 +196,12 @@ export default function EnhancedCardsPage() {
     try {
       const res = await apiFetch("/api/cards", {
         method: "POST",
-        body: JSON.stringify({ cardType: newCardType, cardNetwork: newCardNetwork })
+        body: JSON.stringify({ 
+            cardType: newCardType, 
+            cardNetwork: newCardNetwork, 
+            accountId: newCardType === 'Debit' ? linkAccountId : undefined,
+            creditLimit: newCardType === 'Credit' ? parseFloat(newCreditLimit) : undefined
+        })
       });
       
       const data = await res.json();
@@ -113,10 +209,10 @@ export default function EnhancedCardsPage() {
         setIsRequestModalOpen(false); 
         await fetchCards(true); 
       } else {
-        alert(`Server Error: ${data.message || "Unknown error occurred"}`);
+        toast.error(`Server Error: ${data.message || "Unknown error occurred"}`);
       }
     } catch (error: any) {
-      alert(`Network Error: ${error.message}`);
+      toast.error(`Network Error: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
@@ -145,12 +241,42 @@ export default function EnhancedCardsPage() {
         setIsLimitModalOpen(false);
         await fetchCards(); 
       } else {
-        alert("Failed to update limits.");
+        toast.error("Failed to update limits.");
       }
     } catch (error) {
       console.error("Limit update failed", error);
     } finally {
       setIsSubmittingLimits(false);
+    }
+  };
+
+  const handleUpdatePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCard) return;
+
+    setIsSubmittingPin(true);
+    try {
+      const res = await apiFetch("/api/cards", {
+        method: "PATCH",
+        body: JSON.stringify({ 
+          cardId: selectedCard._id, 
+          action: "CHANGE_PIN", 
+          value: newPin
+        })
+      });
+
+      if (res.ok) {
+        toast.success("PIN updated successfully.");
+        setIsPinModalOpen(false);
+        setNewPin("");
+      } else {
+        const d = await res.json();
+        toast.error(d.message || "Failed to update PIN.");
+      }
+    } catch (error) {
+       toast.error("Failed to update PIN.");
+    } finally {
+      setIsSubmittingPin(false);
     }
   };
 
@@ -177,12 +303,141 @@ export default function EnhancedCardsPage() {
     }
   };
 
+  const handleToggleFeature = async (feature: 'online' | 'international') => {
+      if (!selectedCard || isUpdatingFeature) return;
+      
+      setIsUpdatingFeature(true);
+      try {
+          const res = await apiFetch("/api/cards", {
+              method: "PATCH",
+              body: JSON.stringify({
+                  cardId: selectedCard._id,
+                  action: "TOGGLE_FEATURE",
+                  data: { feature }
+              })
+          });
+          if (res.ok) {
+              await fetchCards();
+              toast.success(`${feature.charAt(0).toUpperCase() + feature.slice(1)} setting updated.`);
+          } else {
+              toast.error("Failed to update feature.");
+          }
+      } catch (error) {
+          console.error("Feature toggle failed", error);
+      } finally {
+          setIsUpdatingFeature(false);
+      }
+  };
+
+  const handleDeleteCard = async (cardId: string) => {
+      const cardToDelete = cards.find(c => c._id === cardId);
+      if (!cardToDelete) return;
+
+      // Enforcement: Debit only if frozen, Credit only if frozen and zero balance
+      if (cardToDelete.currentStatus !== 'Blocked') {
+          toast.error("Card must be Frozen before it can be deleted.");
+          return;
+      }
+
+      if (cardToDelete.cardType === 'Credit' && (cardToDelete.limits?.outstandingAmount || 0) > 0) {
+          toast.error("Credit cards must have zero outstanding balance before deletion.");
+          return;
+      }
+
+    if (!confirm("Are you sure you want to permanently delete this card?")) return;
+
+    try {
+      const res = await apiFetch("/api/cards", {
+        method: "PATCH",
+        body: JSON.stringify({ cardId, action: "DELETE_CARD" })
+      });
+      if (res.ok) {
+        toast.success("Card deleted successfully.");
+        fetchCards();
+      } else {
+        toast.error("Failed to delete card.");
+      }
+    } catch (error) {
+      console.error("Deletion failed", error);
+    }
+  };
+
+  const handleCreateExpense = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedCard) return;
+      setIsSubmittingExpense(true);
+      try {
+          const res = await apiFetch("/api/cards/expense", {
+              method: "POST",
+              body: JSON.stringify({
+                  cardId: selectedCard._id,
+                  amount: parseFloat(expenseAmount),
+                  merchant: expenseMerchant,
+                  isOnline: isOnlineExpense,
+                  isInternational: isInternationalExpense,
+                  isContactless: isContactlessExpense,
+                  isATM: isATMExpense
+              })
+          });
+          const data = await res.json();
+          if (res.ok) {
+              toast.success("Expense simulated!");
+              setIsExpenseModalOpen(false);
+              setExpenseAmount("");
+              setExpenseMerchant("");
+              fetchCards();
+              if (activeTab === 'transactions') fetchCardTransactions(selectedCard._id);
+          } else {
+              toast.error(data.message || "Failed to create expense.");
+          }
+      } catch (error) {
+          console.error("Expense failed", error);
+      } finally {
+          setIsSubmittingExpense(false);
+      }
+  };
+
+  const handleRepayCreditCard = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedCard) return;
+      setIsSubmittingRepay(true);
+      try {
+          const res = await apiFetch("/api/cards/repay", {
+              method: "POST",
+              body: JSON.stringify({
+                  cardId: selectedCard._id,
+                  accountId: repaySourceAccountId,
+                  amount: parseFloat(repayAmount)
+              })
+          });
+          const data = await res.json();
+          if (res.ok) {
+              toast.success("Repayment successful!");
+              setIsRepayModalOpen(false);
+              setRepayAmount("");
+              fetchCards();
+              if (activeTab === 'transactions') fetchCardTransactions(selectedCard._id);
+          } else {
+              toast.error(data.message || "Repayment failed.");
+          }
+      } catch (error) {
+          console.error("Repayment failed", error);
+      } finally {
+          setIsSubmittingRepay(false);
+      }
+  };
+
   const filteredCards = cards.filter(c => 
-    c.maskedNumber.includes(searchQuery) || c.cardNetwork.toLowerCase().includes(searchQuery.toLowerCase())
+    c.currentStatus !== 'Closed' && (c.maskedNumber.includes(searchQuery) || c.cardNetwork.toLowerCase().includes(searchQuery.toLowerCase()))
   );
+
+  const debitCards = filteredCards.filter(c => c.cardType === 'Debit');
+  const creditCards = filteredCards.filter(c => c.cardType === 'Credit');
+  const virtualCards = filteredCards.filter(c => c.cardType === 'Virtual');
 
   const getCardStyle = (type: string, network: string, isBlocked: boolean) => {
     if (isBlocked) return "bg-gray-800 opacity-75 grayscale";
+    if (type === 'Virtual') return "bg-gradient-to-tr from-cyan-900 via-teal-900 to-emerald-950 text-cyan-50 border border-cyan-800/50";
     if (type === 'Credit') {
       if (network === 'Amex') return "bg-gradient-to-br from-slate-800 via-gray-900 to-black text-amber-50";
       return "bg-gradient-to-tr from-purple-900 via-indigo-900 to-slate-900 text-white";
@@ -223,59 +478,101 @@ export default function EnhancedCardsPage() {
             <h3 className="font-semibold text-gray-900">Your Wallet</h3>
             <p className="text-xs text-gray-400 mb-2">Tap a selected card to flip and view CVV.</p>
             
-            <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2 pb-4">
-              {filteredCards.map((card) => {
-                const isSelected = selectedCard?._id === card._id;
-                const isFlipped = flippedCardId === card._id;
-
-                return (
-                  <div key={card._id} className="relative h-48 [perspective:1000px] cursor-pointer group" onClick={() => handleCardClick(card)}>
-                    {/* The 3D Flipping Container */}
-                    <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
-                      
-                      {/* --- FRONT FACE --- */}
-                      <div className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-6 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
-                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-white/0 opacity-50 z-0"></div>
-                        <div className="absolute -top-16 -right-16 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl z-0"></div>
-                        <div className="absolute top-0 left-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-card-shimmer pointer-events-none z-10"></div>
-                        
-                        <div className="flex justify-between items-start z-20">
-                          <div className="flex items-center gap-2">
-                            <svg className="w-8 h-6 text-yellow-300/80" viewBox="0 0 40 30" fill="currentColor">
-                              <path d="M4,0 C1.790861,0 0,1.790861 0,4 L0,26 C0,28.209139 1.790861,30 4,30 L36,30 C38.209139,30 40,28.209139 40,26 L40,4 C40,1.790861 38.209139,0 36,0 L4,0 Z M12,2 L28,2 L28,8 L12,8 L12,2 Z M30,2 L38,2 L38,10 L30,10 L30,2 Z M2,2 L10,2 L10,10 L2,10 L2,2 Z M2,12 L10,12 L10,18 L2,18 L2,12 Z M30,12 L38,12 L38,18 L30,18 L30,12 Z M12,22 L28,22 L28,28 L12,28 L12,22 Z M30,20 L38,20 L38,28 L30,28 L30,20 Z M2,20 L10,20 L10,28 L2,28 L2,20 Z" />
-                            </svg>
-                          </div>
-                          <div className="font-black italic text-xl tracking-wider">{card.cardNetwork}</div>
-                        </div>
-                        <div className="z-20">
-                          <div className="font-mono text-lg tracking-[0.15em] mb-2 flex justify-between items-center">
-                            <span>{card.maskedNumber}</span>
-                            <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded uppercase tracking-widest">{card.cardType}</span>
-                          </div>
-                          <div className="flex justify-between items-end">
-                            <div className="font-medium text-sm tracking-wide">{user?.firstName || "Card Holder"}</div>
-                            <div className="font-mono text-sm tracking-wider">{new Date(card.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })}</div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* --- BACK FACE --- */}
-                      <div className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl overflow-hidden flex flex-col shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
-                         <div className="w-full h-12 bg-black/80 mt-6"></div>
-                         <div className="px-6 mt-4">
-                             <div className="w-full h-10 bg-white/90 rounded flex items-center justify-end px-4 text-black font-mono font-bold">
-                                 CVV: {card._id.slice(-3).replace(/[a-z]/gi, '7')} {/* Pseudo-random CVV based on ID */}
+            <div className="space-y-6 max-h-[600px] overflow-y-auto custom-scrollbar pr-2 pb-4">
+              {/* --- DEBIT CARDS SECTION --- */}
+              {debitCards.length > 0 && (
+                <div className="space-y-3">
+                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Debit Cards</h4>
+                   {debitCards.map((card) => {
+                       const isSelected = selectedCard?._id === card._id;
+                       const isFlipped = flippedCardId === card._id;
+                       return (
+                          <div key={card._id} className="relative h-44 [perspective:1000px] cursor-pointer group" onClick={() => handleCardClick(card)}>
+                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                                <div className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
+                                   <div className="flex justify-between items-start z-20">
+                                      <div className="font-bold text-xs opacity-80">{card.cardNetwork}</div>
+                                      <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded uppercase tracking-widest">{card.cardType}</span>
+                                   </div>
+                                   <div className="z-20 font-mono text-sm tracking-widest">{card.maskedNumber}</div>
+                                   <div className="flex justify-between items-end z-20">
+                                      <div className="text-[10px] uppercase font-bold text-white/70">{user?.firstName}</div>
+                                      <div className="text-[9px] text-white/60 font-mono italic">{new Date(card.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })}</div>
+                                   </div>
+                                </div>
+                                <div className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
+                                   <p className="text-[10px] text-center opacity-80">Tap to flip back</p>
+                                   <div className="font-mono text-xs font-bold bg-white/20 px-3 py-1 rounded mt-2">CVV: ***</div>
+                                </div>
                              </div>
-                             <p className="text-[9px] text-white/60 mt-3 text-center leading-tight">
-                               Found this card? Please return to VaultPay Bank. Issued subject to terms and conditions. Call 1-800-VAULT for support.
-                             </p>
-                         </div>
-                      </div>
+                          </div>
+                       );
+                   })}
+                </div>
+              )}
 
-                    </div>
-                  </div>
-                );
-              })}
+              {/* --- CREDIT CARDS SECTION --- */}
+              {creditCards.length > 0 && (
+                <div className="space-y-3">
+                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Credit Cards</h4>
+                   {creditCards.map((card) => {
+                       const isSelected = selectedCard?._id === card._id;
+                       const isFlipped = flippedCardId === card._id;
+                       return (
+                          <div key={card._id} className="relative h-44 [perspective:1000px] cursor-pointer group" onClick={() => handleCardClick(card)}>
+                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                                <div className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
+                                   <div className="flex justify-between items-start z-20">
+                                      <div className="font-bold text-xs opacity-80">{card.cardNetwork}</div>
+                                      <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded uppercase tracking-widest">{card.cardType}</span>
+                                   </div>
+                                   <div className="z-20 font-mono text-sm tracking-widest">{card.maskedNumber}</div>
+                                   <div className="flex justify-between items-end z-20">
+                                      <div className="text-[10px] uppercase font-bold text-white/70">{user?.firstName}</div>
+                                      <div className="text-[9px] text-white/60 font-mono italic">{new Date(card.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })}</div>
+                                   </div>
+                                </div>
+                                <div className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
+                                   <p className="text-[10px] text-center opacity-80 font-mono">Outstanding: ₹{card.limits?.outstandingAmount?.toLocaleString()}</p>
+                                </div>
+                             </div>
+                          </div>
+                       );
+                   })}
+                </div>
+              )}
+
+              {/* --- VIRTUAL CARDS SECTION --- */}
+              {virtualCards.length > 0 && (
+                <div className="space-y-3">
+                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Virtual Cards</h4>
+                   {virtualCards.map((card) => {
+                       const isSelected = selectedCard?._id === card._id;
+                       const isFlipped = flippedCardId === card._id;
+                       return (
+                          <div key={card._id} className="relative h-44 [perspective:1000px] cursor-pointer group" onClick={() => handleCardClick(card)}>
+                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                                <div className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
+                                   <div className="flex justify-between items-start z-20">
+                                      <div className="font-bold text-xs opacity-80">{card.cardNetwork}</div>
+                                      <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded uppercase tracking-widest">{card.cardType}</span>
+                                   </div>
+                                   <div className="z-20 font-mono text-sm tracking-widest">{card.maskedNumber}</div>
+                                   <div className="flex justify-between items-end z-20">
+                                      <div className="text-[10px] uppercase font-bold text-white/70">{user?.firstName}</div>
+                                      <div className="text-[9px] text-white/60 font-mono italic">{new Date(card.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })}</div>
+                                   </div>
+                                </div>
+                                <div className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
+                                   <p className="text-[10px] text-center opacity-80">Virtual Security Enabled</p>
+                                   <div className="font-mono text-xs font-bold bg-white/20 px-3 py-1 rounded mt-2">CVV: ***</div>
+                                </div>
+                             </div>
+                          </div>
+                       );
+                   })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -289,12 +586,29 @@ export default function EnhancedCardsPage() {
                     <p className="text-sm text-gray-500 font-mono">Ending in {selectedCard.maskedNumber.slice(-4)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${selectedCard.currentStatus === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${selectedCard.currentStatus === 'Active' ? 'bg-green-100 text-green-700' : selectedCard.currentStatus === 'Closed' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-700'}`}>
                       {selectedCard.currentStatus}
                     </span>
-                    <button onClick={() => handleToggleStatus(selectedCard._id, selectedCard.currentStatus)} className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition-colors">
-                      {selectedCard.currentStatus === 'Active' ? 'Freeze Card' : 'Unfreeze Card'}
-                    </button>
+                    {selectedCard.currentStatus !== 'Closed' && (
+                      <div className="flex gap-4">
+                        <button onClick={() => handleToggleStatus(selectedCard._id, selectedCard.currentStatus)} className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors uppercase tracking-wider">
+                          {selectedCard.currentStatus === 'Active' ? 'Freeze' : 'Unfreeze'}
+                        </button>
+                        
+                        {/* Conditional Delete Button */}
+                        <button 
+                            onClick={() => handleDeleteCard(selectedCard._id)} 
+                            className={`text-xs font-bold transition-colors uppercase tracking-wider ${
+                                selectedCard.currentStatus === 'Blocked' 
+                                ? (selectedCard.cardType === 'Credit' && (selectedCard.limits?.outstandingAmount || 0) > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-800')
+                                : 'text-gray-300 cursor-not-allowed'
+                            }`}
+                            title={selectedCard.currentStatus !== 'Blocked' ? "Freeze card first" : (selectedCard.cardType === 'Credit' && (selectedCard.limits?.outstandingAmount || 0) > 0 ? "Clear balance first" : "")}
+                        >
+                          Permanent Delete
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -307,25 +621,40 @@ export default function EnhancedCardsPage() {
                   {activeTab === "controls" && (
                     <div className="space-y-6 animate-fade-in">
                       
-                      {/* --- OVERDUE BILLS SECTION (CREDIT CARDS ONLY) --- */}
+                      {/* --- CREDIT CARD STATS & REPAYMENT --- */}
                       {selectedCard.cardType === 'Credit' && (
-                        <div className="bg-red-50 p-5 rounded-xl border border-red-200 shadow-sm animate-slide-in-from-bottom">
-                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                            <div>
-                              <h4 className="text-base font-bold text-red-900 uppercase tracking-wider flex items-center gap-2">
-                                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                Overdue Bill
-                              </h4>
-                              <p className="text-xs text-red-700 mt-1">Payment was due on the 1st of this month.</p>
-                            </div>
-                            <div className="flex items-center gap-4">
-                               <div className="text-right">
-                                 <p className="font-bold text-red-900 text-2xl">₹ {(selectedCard.limits?.outstandingAmount || 14500).toLocaleString()}</p>
-                               </div>
-                               <Button variant="danger" size="sm" className="shadow-md whitespace-nowrap">Pay Now</Button>
-                            </div>
-                          </div>
+                        <div className="bg-indigo-900 border border-indigo-700 p-6 rounded-2xl text-white shadow-lg animate-fade-in relative overflow-hidden">
+                           <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
+                           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                              <div className="space-y-1">
+                                 <p className="text-indigo-200 text-xs font-bold uppercase tracking-widest">Total Outstanding</p>
+                                 <h3 className="text-3xl font-black">₹ {selectedCard.limits?.outstandingAmount?.toLocaleString()}</h3>
+                                 <p className="text-indigo-200/60 text-[10px] font-mono">Limit: ₹ {selectedCard.limits?.creditLimit?.toLocaleString()}</p>
+                              </div>
+                              <div className="flex gap-3 w-full md:w-auto">
+                                 <Button onClick={() => setIsRepayModalOpen(true)} className="flex-1 md:flex-none bg-emerald-500 text-white hover:bg-emerald-400 font-bold border-none shadow-lg shadow-emerald-900/20">Make Repayment</Button>
+                                 <Button onClick={() => setIsExpenseModalOpen(true)} className="flex-1 md:flex-none bg-indigo-700 hover:bg-indigo-600 text-white font-bold border-indigo-500 border">Create Expense</Button>
+                              </div>
+                           </div>
+                           
+                           {/* Progress Bar for Credit Limit */}
+                           <div className="mt-6 w-full h-1.5 bg-indigo-950 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-1000" 
+                                style={{ width: `${Math.min(100, ((selectedCard.limits?.outstandingAmount || 0) / (selectedCard.limits?.creditLimit || 1)) * 100)}%` }}
+                              ></div>
+                           </div>
                         </div>
+                      )}
+
+                      {/* --- DEBIT CARD QUICK ACTIONS --- */}
+                      {selectedCard.cardType === 'Debit' && selectedCard.currentStatus === 'Active' && (
+                         <div className="flex gap-4">
+                            <Button variant="secondary" onClick={() => setIsExpenseModalOpen(true)} className="flex-1 bg-white border-gray-200 text-gray-900 hover:bg-gray-50 shadow-sm flex items-center justify-center gap-2">
+                               <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                               Create Dummy Expense
+                            </Button>
+                         </div>
                       )}
 
                       <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
@@ -365,31 +694,40 @@ export default function EnhancedCardsPage() {
                           
                           {/* FULLY FUNCTIONAL TOGGLE 1 */}
                           <div 
-                            className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                            onClick={() => setIsOnlineTxnEnabled(!isOnlineTxnEnabled)}
+                            className={`flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${isUpdatingFeature ? 'opacity-50 pointer-events-none' : ''}`}
+                            onClick={() => handleToggleFeature('online')}
                           >
                             <div>
-                              <p className="text-sm font-semibold text-gray-900">Online Transactions</p>
-                              <p className="text-xs text-gray-500">Allow payments on e-commerce sites.</p>
+                               <p className="text-sm font-semibold text-gray-900">Online Transactions</p>
+                               <p className="text-xs text-gray-500">Allow payments on e-commerce sites.</p>
                             </div>
-                            <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${isOnlineTxnEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                               <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow transition-transform duration-300 ${isOnlineTxnEnabled ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                            <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${selectedCard.isOnlineEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                               <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow transition-transform duration-300 ${selectedCard.isOnlineEnabled ? 'translate-x-6' : 'translate-x-1'}`}></div>
                             </div>
                           </div>
 
-                          {/* FULLY FUNCTIONAL TOGGLE 2 */}
                           <div 
-                            className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                            onClick={() => setIsIntlTxnEnabled(!isIntlTxnEnabled)}
-                          >
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">International Usage</p>
-                              <p className="text-xs text-gray-500">Allow transactions in foreign currencies.</p>
-                            </div>
-                            <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${isIntlTxnEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
-                               <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow transition-transform duration-300 ${isIntlTxnEnabled ? 'translate-x-6' : 'translate-x-1'}`}></div>
-                            </div>
-                          </div>
+                             className={`flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${isUpdatingFeature ? 'opacity-50 pointer-events-none' : ''}`}
+                             onClick={() => handleToggleFeature('international')}
+                           >
+                             <div>
+                                <p className="text-sm font-semibold text-gray-900">International Usage</p>
+                                <p className="text-xs text-gray-500">Allow transactions in foreign currencies.</p>
+                             </div>
+                             <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${selectedCard.isInternationalEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow transition-transform duration-300 ${selectedCard.isInternationalEnabled ? 'translate-x-6' : 'translate-x-1'}`}></div>
+                             </div>
+                           </div>
+
+                           <div className="p-4 bg-blue-50/30 rounded-xl border border-blue-100/50 mt-4">
+                              <div className="flex justify-between items-center">
+                                 <div>
+                                    <p className="text-sm font-bold text-gray-900">Virtual Security PIN</p>
+                                    <p className="text-[10px] text-gray-500">Enable/Change your 4-digit card PIN.</p>
+                                 </div>
+                                 <Button size="sm" variant="outline" className="text-xs h-8 border-blue-200 text-blue-700" onClick={() => setIsPinModalOpen(true)}>Set New PIN</Button>
+                              </div>
+                           </div>
 
                         </div>
                       </div>
@@ -398,9 +736,45 @@ export default function EnhancedCardsPage() {
 
                   {activeTab === "transactions" && (
                      <div className="animate-fade-in space-y-4">
-                       <div className="text-center p-6 text-gray-500 border border-gray-100 rounded-xl bg-white shadow-sm">
-                         No recent transactions found for this card.
-                       </div>
+                       {isTransactionsLoading ? (
+                          <div className="py-10 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+                       ) : cardTransactions.length === 0 ? (
+                          <div className="text-center p-10 text-gray-500 border border-gray-100 rounded-xl bg-white shadow-sm">
+                            <p className="font-medium">No recent transactions found.</p>
+                            <p className="text-xs mt-1">Simulate an expense to see it here.</p>
+                          </div>
+                       ) : (
+                          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                             <table className="w-full text-left border-collapse">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                   <tr>
+                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Merchant/Memo</th>
+                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
+                                   </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                   {cardTransactions.map((tx) => (
+                                      <tr key={tx._id} className="hover:bg-gray-50/50 transition-colors">
+                                         <td className="px-6 py-4">
+                                            <p className="text-xs text-gray-900 font-medium">{new Date(tx.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
+                                            <p className="text-[9px] text-gray-400">{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                         </td>
+                                         <td className="px-6 py-4">
+                                            <p className="text-xs text-gray-900 font-semibold">{tx.memo}</p>
+                                            <p className="text-[9px] text-gray-400 font-mono uppercase">{tx.transaction?.referenceId}</p>
+                                         </td>
+                                         <td className="px-6 py-4 text-right">
+                                            <p className={`text-sm font-bold ${tx.entryType === 'Debit' ? 'text-red-600' : 'text-green-600'}`}>
+                                               {tx.entryType === 'Debit' ? '-' : '+'} ₹ {tx.amount.toLocaleString()}
+                                            </p>
+                                         </td>
+                                      </tr>
+                                   ))}
+                                </tbody>
+                             </table>
+                          </div>
+                       )}
                      </div>
                   )}
                 </div>
@@ -417,17 +791,34 @@ export default function EnhancedCardsPage() {
             <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={newCardType} onChange={(e) => setNewCardType(e.target.value)} disabled={isGenerating}>
               <option value="Debit">Debit Card</option>
               <option value="Credit">Credit Card</option>
+              <option value="Virtual">Virtual One-Time Card</option>
             </select>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Card Network</label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={newCardNetwork} onChange={(e) => setNewCardNetwork(e.target.value)} disabled={isGenerating}>
+            <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" value={newCardNetwork} onChange={(e) => setNewCardNetwork(e.target.value)} disabled={isGenerating}>
               <option value="Visa">Visa</option>
               <option value="MasterCard">MasterCard</option>
               <option value="Amex">American Express</option>
               <option value="RuPay">RuPay</option>
             </select>
           </div>
+          
+          {newCardType === 'Debit' ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Link to Account</label>
+              <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" value={linkAccountId} onChange={(e) => setLinkAccountId(e.target.value)} disabled={isGenerating}>
+                {accounts.map(acc => (
+                  <option key={acc._id} value={acc._id}>{acc.accountNumber} ({acc.accountType}) - ₹{acc.balance.toLocaleString()}</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit</label>
+              <Input type="number" placeholder="Enter desired limit" value={newCreditLimit} onChange={(e) => setNewCreditLimit(e.target.value)} disabled={isGenerating} />
+            </div>
+          )}
           <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
             <Button type="button" variant="ghost" onClick={() => setIsRequestModalOpen(false)} disabled={isGenerating}>Cancel</Button>
             <Button type="button" variant="primary" onClick={handleRequestCard} isLoading={isGenerating}>Generate Card</Button>
@@ -443,6 +834,88 @@ export default function EnhancedCardsPage() {
             <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
                 <Button type="button" variant="ghost" onClick={() => setIsLimitModalOpen(false)} disabled={isSubmittingLimits}>Cancel</Button>
                 <Button type="submit" variant="primary" isLoading={isSubmittingLimits}>Save Changes</Button>
+            </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isExpenseModalOpen} onClose={() => !isSubmittingExpense && setIsExpenseModalOpen(false)} title="Simulate Card Expense">
+        <form onSubmit={handleCreateExpense} className="space-y-4">
+            <p className="text-xs text-gray-500 mb-4">This will simulate a transaction using your {selectedCard?.cardType} card.</p>
+            <Input label="Merchant Name" placeholder="e.g. Amazon, Starbucks" value={expenseMerchant} onChange={(e) => setExpenseMerchant(e.target.value)} required disabled={isSubmittingExpense} />
+            <Input label="Amount (₹)" type="number" placeholder="0.00" value={expenseAmount} onChange={(e) => setExpenseAmount(e.target.value)} required disabled={isSubmittingExpense} />
+            
+            <div className="grid grid-cols-2 gap-4 pt-2">
+                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isOnlineExpense} onChange={(e) => {
+                        setIsOnlineExpense(e.target.checked);
+                        if (e.target.checked) { setIsATMExpense(false); setIsContactlessExpense(false); }
+                    }} />
+                    <span className="text-xs font-semibold text-gray-700">Online?</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isInternationalExpense} onChange={(e) => setIsInternationalExpense(e.target.checked)} />
+                    <span className="text-xs font-semibold text-gray-700">International?</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isContactlessExpense} onChange={(e) => {
+                        setIsContactlessExpense(e.target.checked);
+                        if (e.target.checked) { setIsOnlineExpense(false); setIsATMExpense(false); }
+                    }} />
+                    <span className="text-xs font-semibold text-gray-700">Contactless?</span>
+                </label>
+                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isATMExpense} onChange={(e) => {
+                        setIsATMExpense(e.target.checked);
+                        if (e.target.checked) { setIsOnlineExpense(false); setIsContactlessExpense(false); }
+                    }} />
+                    <span className="text-xs font-semibold text-gray-700">ATM?</span>
+                </label>
+            </div>
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+                <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} disabled={isSubmittingExpense}>Cancel</Button>
+                <Button type="submit" variant="primary" isLoading={isSubmittingExpense}>Confirm Transaction</Button>
+            </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isRepayModalOpen} onClose={() => !isSubmittingRepay && setIsRepayModalOpen(false)} title="Credit Card Repayment">
+        <form onSubmit={handleRepayCreditCard} className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg mb-4">
+               <p className="text-xs text-blue-700 font-bold uppercase tracking-wider mb-1">Current Outstanding</p>
+               <p className="text-2xl font-black text-blue-900">₹ {selectedCard?.limits?.outstandingAmount?.toLocaleString() || "0"}</p>
+            </div>
+            <div>
+               <label className="block text-sm font-medium text-gray-700 mb-1">Pay From Account</label>
+               <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" value={repaySourceAccountId} onChange={(e) => setRepaySourceAccountId(e.target.value)} disabled={isSubmittingRepay}>
+                  {accounts.map(acc => (
+                     <option key={acc._id} value={acc._id}>{acc.accountNumber} - ₹{acc.balance.toLocaleString()}</option>
+                  ))}
+               </select>
+            </div>
+            <Input label="Repayment Amount (₹)" type="number" placeholder="Enter amount to pay" value={repayAmount} onChange={(e) => setRepayAmount(e.target.value)} required disabled={isSubmittingRepay} />
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+                <Button type="button" variant="ghost" onClick={() => setIsRepayModalOpen(false)} disabled={isSubmittingRepay}>Cancel</Button>
+                <Button type="submit" variant="primary" isLoading={isSubmittingRepay}>Process Payment</Button>
+            </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={isPinModalOpen} onClose={() => !isSubmittingPin && setIsPinModalOpen(false)} title="Update Card PIN">
+        <form onSubmit={handleUpdatePin} className="space-y-4">
+             <p className="text-xs text-gray-500">Set a new 4-digit PIN for your transactions.</p>
+             <Input 
+                label="New 4-Digit PIN" 
+                type="password" 
+                maxLength={4} 
+                placeholder="****" 
+                value={newPin} 
+                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))} 
+                required 
+                disabled={isSubmittingPin} 
+            />
+             <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+                <Button type="button" variant="ghost" onClick={() => setIsPinModalOpen(false)} disabled={isSubmittingPin}>Cancel</Button>
+                <Button type="submit" variant="primary" isLoading={isSubmittingPin}>Update PIN</Button>
             </div>
         </form>
       </Modal>

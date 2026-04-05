@@ -6,34 +6,36 @@ import dbConnect from "@/lib/mongodb";
 import Account from "@/models/Accounts";
 import Transaction from "@/models/Transactions";
 import Ledger from "@/models/Ledger";
-import jwt from "jsonwebtoken";
+import { verifyAuth } from "@/lib/auth";
+import { z } from "zod";
+import { createAuditLog } from "@/lib/audit";
 
-const verifyAuth = (reqHeaders: Headers) => {
-    const authHeader = reqHeaders.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) return null;
-    try {
-        return jwt.verify(authHeader.split(" ")[1], process.env.JWT_ACCESS_SECRET!) as { userId: string, role: string };
-    } catch (error) {
-        return null;
-    }
-};
+const TransferSchema = z.object({
+    fromAccountId: z.string().min(1, "Source account is required"),
+    toAccountNumber: z.string().min(1, "Recipient account number is required"),
+    amount: z.number({ message: "Amount must be a number" }).positive("Amount must be greater than zero").max(10_000_000, "Amount exceeds maximum transfer limit"),
+    memo: z.string().max(200, "Memo is too long").optional(),
+});
 
 export async function POST(req: Request) {
     const decoded = verifyAuth(await headers());
     if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
+    // Establish DB connection BEFORE starting a session
+    await dbConnect();
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        await dbConnect();
-        const body = await req.json();
-        const { fromAccountId, toAccountNumber, amount, memo } = body;
-
-        const transferAmount = parseFloat(amount);
-        if (isNaN(transferAmount) || transferAmount <= 0) {
-            throw new Error("Invalid transfer amount.");
+        const rawBody = await req.json();
+        const parseResult = TransferSchema.safeParse(rawBody);
+        if (!parseResult.success) {
+            return NextResponse.json(
+                { message: parseResult.error.issues[0].message },
+                { status: 400 }
+            );
         }
+        const { fromAccountId, toAccountNumber, amount: transferAmount, memo } = parseResult.data;
 
         // 1. Fetch Sender Account & Lock it for the duration of the transaction
         const senderAccount = await Account.findOne({ 
@@ -102,7 +104,26 @@ export async function POST(req: Request) {
 
         // 6. Commit Transaction (Everything is saved to DB permanently)
         await session.commitTransaction();
-        session.endSession();
+
+        // Log successful transaction
+        await createAuditLog({
+            userId: decoded.userId,
+            userRole: decoded.role,
+            actionType: "TRANSACTION_COMPLETED",
+            category: "Financial",
+            severity: "Medium",
+            resource: "Transaction",
+            resourceId: newTransaction[0]._id,
+            description: `Sent ₹${transferAmount} to ${toAccountNumber}`,
+            currentStatus: "Success",
+            payload: {
+                newState: JSON.stringify({
+                    referenceId: newTransaction[0].referenceId,
+                    amount: transferAmount,
+                    currency: senderAccount.currency,
+                }),
+            },
+        });
 
         return NextResponse.json({ 
             message: "Transfer completed successfully.", 
@@ -113,7 +134,22 @@ export async function POST(req: Request) {
     } catch (error: any) {
         // IF ANYTHING FAILS, ROLLBACK ALL CHANGES
         await session.abortTransaction();
-        session.endSession();
+        
+        // Log failed transaction attempt
+        await createAuditLog({
+            userId: decoded.userId,
+            userRole: decoded.role,
+            actionType: "TRANSACTION_FAILED",
+            category: "Financial",
+            severity: "High",
+            resource: "Transaction",
+            description: `Failed transaction to ${error.message}`,
+            currentStatus: "Failure",
+            payload: {
+                previousState: JSON.stringify({ amount: error.message }),
+            },
+        });
+
         console.error("Transaction Error:", error.message);
         
         // Don't expose deep database errors to the frontend
@@ -122,5 +158,7 @@ export async function POST(req: Request) {
             : "Transaction failed due to an internal error. Please try again.";
 
         return NextResponse.json({ message: userFriendlyMessage }, { status: 400 });
+    } finally {
+        session.endSession();
     }
 }

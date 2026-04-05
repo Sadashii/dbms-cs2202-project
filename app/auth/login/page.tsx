@@ -26,7 +26,7 @@ export default function LoginPage() {
   // Redirect to dashboard if already logged in
   useEffect(() => {
     if (isLoggedIn) {
-      router.push("/my");
+      router.push("/my/overview");
     }
   }, [isLoggedIn, router]);
 
@@ -126,7 +126,7 @@ export default function LoginPage() {
 
     const success = await verifyLogin(email, password, otpString);
     if (success) {
-      router.push("/my"); // Navigate to secure dashboard on success
+      router.push("/my/overview"); // Navigate to secure dashboard on success
     } else {
       setErrors({ otp: "Invalid OTP. Please try again." });
     }

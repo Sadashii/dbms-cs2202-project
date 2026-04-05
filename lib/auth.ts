@@ -1,5 +1,4 @@
-// lib/auth.ts
-import jwt from "jsonwebtoken";
+import * as jwt from "jsonwebtoken";
 
 export const verifyAuth = (reqHeaders: Headers) => {
     const authHeader = reqHeaders.get("authorization");
@@ -8,8 +7,6 @@ export const verifyAuth = (reqHeaders: Headers) => {
 
     try {
         const token = authHeader.split(" ")[1];
-        console.log(jwt.verify(token, process.env.JWT_ACCESS_SECRET!));
-
         return jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { userId: string, role: string };
     } catch {
         return null;

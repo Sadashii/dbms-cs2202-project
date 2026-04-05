@@ -5,7 +5,7 @@ import Session from "@/models/Session";
 
 export async function POST() {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const refreshToken = cookieStore.get("refresh_token")?.value;
 
         if (refreshToken) {

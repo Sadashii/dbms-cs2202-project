@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { headers } from "next/headers";
 import { cookies } from "next/headers";
 import { createHmac } from "crypto";
 import dbConnect from "@/lib/mongodb";
@@ -6,6 +7,9 @@ import User from "@/models/User";
 import Session from "@/models/Session";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { z } from "zod";
+import { checkRateLimit } from "@/lib/rateLimit";
+import { createAuditLog } from "@/lib/audit";
 
 const SERVER_SECRET = process.env.OTP_SECRET || "my-otp-secret";
 
@@ -20,11 +24,35 @@ export function generateHashTimeOTP(bcryptHash: string, windowOffset: number = 0
     return otp.toString().padStart(6, '0');
 }
 
+const LoginSchema = z.object({
+    process: z.enum(["generateotp", "verifyotp"]),
+    email: z.string().email("Invalid email address").toLowerCase(),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    otp: z.string().length(6).optional(),
+});
+
 export async function POST(req: Request) {
     try {
+        // Rate limit: 10 attempts per IP per 15 minutes
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "login", 10, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { message: "Too many login attempts. Please try again in 15 minutes." },
+                { status: 429 }
+            );
+        }
+
         await dbConnect();
-        const body = await req.json();
-        const { process: requestprocess, email, password, otp } = body;
+        const rawBody = await req.json();
+        const parseResult = LoginSchema.safeParse(rawBody);
+        if (!parseResult.success) {
+            return NextResponse.json(
+                { message: parseResult.error.issues[0].message },
+                { status: 400 }
+            );
+        }
+        const { process: requestprocess, email, password, otp } = parseResult.data;
 
         // 1. Authenticate User Credentials
         // We must explicitly .select('+passwords') because we set select: false in the Schema
@@ -98,6 +126,26 @@ export async function POST(req: Request) {
                 role: user.role,
                 currentStatus: user.currentStatus,
             };
+
+            // Log the successful login
+            await createAuditLog({
+                userId: user._id,
+                userRole: user.role,
+                actionType: "AUTH_LOGIN",
+                category: "Security",
+                severity: "Low",
+                resource: "Auth",
+                resourceId: user._id,
+                description: `Successful login for user ${user.email}`,
+                currentStatus: "Success",
+                payload: {
+                    newState: JSON.stringify({
+                        email: user.email,
+                        role: user.role,
+                        lastLogin: new Date().toISOString(),
+                    }),
+                },
+            });
 
             return NextResponse.json({ 
                 message: "Authentication successful.", 
