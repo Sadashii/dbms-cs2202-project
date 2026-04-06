@@ -182,10 +182,8 @@ export default function EnhancedCardsPage() {
   // Handle click to select OR flip if already selected
   const handleCardClick = (card: Card) => {
     if (selectedCard?._id === card._id) {
-        // Flip it!
         setFlippedCardId(prev => prev === card._id ? null : card._id);
     } else {
-        // Select it and reset flip
         setSelectedCard(card);
         setFlippedCardId(null);
     }
@@ -333,7 +331,6 @@ export default function EnhancedCardsPage() {
       const cardToDelete = cards.find(c => c._id === cardId);
       if (!cardToDelete) return;
 
-      // Enforcement: Debit only if frozen, Credit only if frozen and zero balance
       if (cardToDelete.currentStatus !== 'Blocked') {
           toast.error("Card must be Frozen before it can be deleted.");
           return;
@@ -449,11 +446,11 @@ export default function EnhancedCardsPage() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in">
+    <div className="max-w-7xl mx-auto space-y-8 animate-fade-in transition-colors">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Cards</h1>
-          <p className="text-gray-500">Manage your Debit and Credit limits and features.</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white transition-colors">My Cards</h1>
+          <p className="text-gray-500 dark:text-gray-400 transition-colors">Manage your Debit and Credit limits and features.</p>
         </div>
         <div className="flex gap-3">
           <Button variant="primary" onClick={() => setIsRequestModalOpen(true)} className="shadow-md">
@@ -463,11 +460,11 @@ export default function EnhancedCardsPage() {
       </header>
 
       {isLoading ? (
-        <div className="py-20 flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>
+        <div className="py-20 flex justify-center"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 dark:border-blue-400"></div></div>
       ) : cards.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center shadow-sm">
-          <h3 className="text-xl font-bold text-gray-900">Your Wallet is Empty</h3>
-          <p className="text-gray-500 mt-2 mb-8 max-w-md mx-auto">Click the button below to generate a brand new Debit or Credit Card.</p>
+        <div className="bg-white dark:bg-slate-900 border-2 border-dashed border-gray-200 dark:border-slate-800 rounded-2xl p-16 text-center shadow-sm transition-colors">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">Your Wallet is Empty</h3>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 mb-8 max-w-md mx-auto">Click the button below to generate a brand new Debit or Credit Card.</p>
           <Button variant="primary" size="lg" onClick={() => setIsRequestModalOpen(true)}>Request a Card</Button>
         </div>
       ) : (
@@ -475,20 +472,20 @@ export default function EnhancedCardsPage() {
           
           {/* Card List */}
           <div className="lg:col-span-1 space-y-4">
-            <h3 className="font-semibold text-gray-900">Your Wallet</h3>
-            <p className="text-xs text-gray-400 mb-2">Tap a selected card to flip and view CVV.</p>
+            <h3 className="font-semibold text-gray-900 dark:text-white transition-colors">Your Wallet</h3>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mb-2 transition-colors">Tap a selected card to flip and view CVV.</p>
             
-            <div className="space-y-6 max-h-[600px] overflow-y-auto custom-scrollbar pr-2 pb-4">
+            <div className="space-y-6 max-h-[600px] overflow-y-auto overflow-x-hidden custom-scrollbar px-4 py-4 -mx-4">
               {/* --- DEBIT CARDS SECTION --- */}
               {debitCards.length > 0 && (
                 <div className="space-y-3">
-                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Debit Cards</h4>
+                   <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Debit Cards</h4>
                    {debitCards.map((card) => {
                        const isSelected = selectedCard?._id === card._id;
                        const isFlipped = flippedCardId === card._id;
                        return (
                           <div key={card._id} className="relative h-44 [perspective:1000px] cursor-pointer group" onClick={() => handleCardClick(card)}>
-                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-slate-950 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
                                 <div className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
                                    <div className="flex justify-between items-start z-20">
                                       <div className="font-bold text-xs opacity-80">{card.cardNetwork}</div>
@@ -514,13 +511,13 @@ export default function EnhancedCardsPage() {
               {/* --- CREDIT CARDS SECTION --- */}
               {creditCards.length > 0 && (
                 <div className="space-y-3">
-                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Credit Cards</h4>
+                   <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Credit Cards</h4>
                    {creditCards.map((card) => {
                        const isSelected = selectedCard?._id === card._id;
                        const isFlipped = flippedCardId === card._id;
                        return (
                           <div key={card._id} className="relative h-44 [perspective:1000px] cursor-pointer group" onClick={() => handleCardClick(card)}>
-                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-slate-950 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
                                 <div className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
                                    <div className="flex justify-between items-start z-20">
                                       <div className="font-bold text-xs opacity-80">{card.cardNetwork}</div>
@@ -545,13 +542,13 @@ export default function EnhancedCardsPage() {
               {/* --- VIRTUAL CARDS SECTION --- */}
               {virtualCards.length > 0 && (
                 <div className="space-y-3">
-                   <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Virtual Cards</h4>
+                   <h4 className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest pl-1">Virtual Cards</h4>
                    {virtualCards.map((card) => {
                        const isSelected = selectedCard?._id === card._id;
                        const isFlipped = flippedCardId === card._id;
                        return (
                           <div key={card._id} className="relative h-44 [perspective:1000px] cursor-pointer group" onClick={() => handleCardClick(card)}>
-                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 ring-offset-2 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
+                             <div className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? '[transform:rotateY(180deg)]' : ''} ${isSelected ? 'ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-slate-950 rounded-2xl shadow-xl scale-[1.02]' : 'hover:scale-[1.01]'}`}>
                                 <div className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === 'Blocked')}`}>
                                    <div className="flex justify-between items-start z-20">
                                       <div className="font-bold text-xs opacity-80">{card.cardNetwork}</div>
@@ -577,21 +574,21 @@ export default function EnhancedCardsPage() {
           </div>
 
           {/* Details Pane */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden flex flex-col">
+          <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden flex flex-col transition-colors">
             {selectedCard && (
               <>
-                <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                <div className="px-6 py-5 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50 transition-colors">
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">{selectedCard.cardNetwork} {selectedCard.cardType}</h2>
-                    <p className="text-sm text-gray-500 font-mono">Ending in {selectedCard.maskedNumber.slice(-4)}</p>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white transition-colors">{selectedCard.cardNetwork} {selectedCard.cardType}</h2>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 font-mono transition-colors">Ending in {selectedCard.maskedNumber.slice(-4)}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${selectedCard.currentStatus === 'Active' ? 'bg-green-100 text-green-700' : selectedCard.currentStatus === 'Closed' ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${selectedCard.currentStatus === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : selectedCard.currentStatus === 'Closed' ? 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                       {selectedCard.currentStatus}
                     </span>
                     {selectedCard.currentStatus !== 'Closed' && (
                       <div className="flex gap-4">
-                        <button onClick={() => handleToggleStatus(selectedCard._id, selectedCard.currentStatus)} className="text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors uppercase tracking-wider">
+                        <button onClick={() => handleToggleStatus(selectedCard._id, selectedCard.currentStatus)} className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors uppercase tracking-wider">
                           {selectedCard.currentStatus === 'Active' ? 'Freeze' : 'Unfreeze'}
                         </button>
                         
@@ -600,8 +597,8 @@ export default function EnhancedCardsPage() {
                             onClick={() => handleDeleteCard(selectedCard._id)} 
                             className={`text-xs font-bold transition-colors uppercase tracking-wider ${
                                 selectedCard.currentStatus === 'Blocked' 
-                                ? (selectedCard.cardType === 'Credit' && (selectedCard.limits?.outstandingAmount || 0) > 0 ? 'text-gray-300 cursor-not-allowed' : 'text-red-600 hover:text-red-800')
-                                : 'text-gray-300 cursor-not-allowed'
+                                ? (selectedCard.cardType === 'Credit' && (selectedCard.limits?.outstandingAmount || 0) > 0 ? 'text-gray-300 dark:text-gray-600 cursor-not-allowed' : 'text-red-600 dark:text-red-500 hover:text-red-800 dark:hover:text-red-400')
+                                : 'text-gray-300 dark:text-gray-600 cursor-not-allowed'
                             }`}
                             title={selectedCard.currentStatus !== 'Blocked' ? "Freeze card first" : (selectedCard.cardType === 'Credit' && (selectedCard.limits?.outstandingAmount || 0) > 0 ? "Clear balance first" : "")}
                         >
@@ -612,12 +609,12 @@ export default function EnhancedCardsPage() {
                   </div>
                 </div>
 
-                <div className="flex border-b border-gray-200 bg-white">
-                  <button onClick={() => setActiveTab("controls")} className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'controls' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Settings & Controls</button>
-                  <button onClick={() => setActiveTab("transactions")} className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'transactions' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>Recent Transactions</button>
+                <div className="flex border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
+                  <button onClick={() => setActiveTab("controls")} className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'controls' ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Settings & Controls</button>
+                  <button onClick={() => setActiveTab("transactions")} className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'transactions' ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Recent Transactions</button>
                 </div>
                 
-                <div className="p-6 flex-1 overflow-y-auto bg-gray-50/30">
+                <div className="p-6 flex-1 overflow-y-auto bg-gray-50/30 dark:bg-slate-900/50 transition-colors">
                   {activeTab === "controls" && (
                     <div className="space-y-6 animate-fade-in">
                       
@@ -650,21 +647,21 @@ export default function EnhancedCardsPage() {
                       {/* --- DEBIT CARD QUICK ACTIONS --- */}
                       {selectedCard.cardType === 'Debit' && selectedCard.currentStatus === 'Active' && (
                          <div className="flex gap-4">
-                            <Button variant="secondary" onClick={() => setIsExpenseModalOpen(true)} className="flex-1 bg-white border-gray-200 text-gray-900 hover:bg-gray-50 shadow-sm flex items-center justify-center gap-2">
-                               <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <Button variant="secondary" onClick={() => setIsExpenseModalOpen(true)} className="flex-1 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700/50 shadow-sm flex items-center justify-center gap-2 transition-colors">
+                               <svg className="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                Create Dummy Expense
                             </Button>
                          </div>
                       )}
 
-                      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4 border-b border-gray-100 pb-4">
+                      <div className="bg-white dark:bg-slate-800/50 p-5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm transition-colors">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4 border-b border-gray-100 dark:border-slate-700 pb-4">
                           <div>
-                            <h4 className="text-base font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
-                              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                            <h4 className="text-base font-bold text-gray-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                              <svg className="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
                               Spending Limits
                             </h4>
-                            <p className="text-xs text-gray-500 mt-1">Control your daily transaction caps.</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Control your daily transaction caps.</p>
                           </div>
                           <Button variant="primary" size="sm" onClick={() => openLimitModal(selectedCard)} className="bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center gap-2">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
@@ -673,59 +670,59 @@ export default function EnhancedCardsPage() {
                         </div>
                         
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                          <div className="border border-blue-100 rounded-xl p-4 bg-blue-50/50">
-                            <p className="text-xs text-gray-500 mb-1 font-medium">Daily Online</p>
-                            <p className="font-bold text-gray-900 text-xl">₹ {selectedCard.limits?.dailyOnlineLimit?.toLocaleString() || "100,000"}</p>
+                          <div className="border border-blue-100 dark:border-blue-800/30 rounded-xl p-4 bg-blue-50/50 dark:bg-blue-900/20 transition-colors">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Daily Online</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-xl">₹ {selectedCard.limits?.dailyOnlineLimit?.toLocaleString() || "100,000"}</p>
                           </div>
-                          <div className="border border-indigo-100 rounded-xl p-4 bg-indigo-50/50">
-                            <p className="text-xs text-gray-500 mb-1 font-medium">Daily ATM</p>
-                            <p className="font-bold text-gray-900 text-xl">₹ {selectedCard.limits?.dailyWithdrawalLimit?.toLocaleString() || "50,000"}</p>
+                          <div className="border border-indigo-100 dark:border-indigo-800/30 rounded-xl p-4 bg-indigo-50/50 dark:bg-indigo-900/20 transition-colors">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Daily ATM</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-xl">₹ {selectedCard.limits?.dailyWithdrawalLimit?.toLocaleString() || "50,000"}</p>
                           </div>
-                          <div className="border border-teal-100 rounded-xl p-4 bg-teal-50/50">
-                            <p className="text-xs text-gray-500 mb-1 font-medium">Contactless</p>
-                            <p className="font-bold text-gray-900 text-xl">₹ {selectedCard.limits?.contactlessLimit?.toLocaleString() || "5,000"}</p>
+                          <div className="border border-teal-100 dark:border-teal-800/30 rounded-xl p-4 bg-teal-50/50 dark:bg-teal-900/20 transition-colors">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 font-medium">Contactless</p>
+                            <p className="font-bold text-gray-900 dark:text-white text-xl">₹ {selectedCard.limits?.contactlessLimit?.toLocaleString() || "5,000"}</p>
                           </div>
                         </div>
                       </div>
 
-                      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                        <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-4">Security Features</h4>
+                      <div className="bg-white dark:bg-slate-800/50 p-5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm transition-colors">
+                        <h4 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Security Features</h4>
                         <div className="space-y-3">
                           
                           {/* FULLY FUNCTIONAL TOGGLE 1 */}
                           <div 
-                            className={`flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${isUpdatingFeature ? 'opacity-50 pointer-events-none' : ''}`}
+                            className={`flex items-center justify-between p-3 border border-gray-100 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isUpdatingFeature ? 'opacity-50 pointer-events-none' : ''}`}
                             onClick={() => handleToggleFeature('online')}
                           >
                             <div>
-                               <p className="text-sm font-semibold text-gray-900">Online Transactions</p>
-                               <p className="text-xs text-gray-500">Allow payments on e-commerce sites.</p>
+                               <p className="text-sm font-semibold text-gray-900 dark:text-white">Online Transactions</p>
+                               <p className="text-xs text-gray-500 dark:text-gray-400">Allow payments on e-commerce sites.</p>
                             </div>
-                            <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${selectedCard.isOnlineEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                            <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${selectedCard.isOnlineEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-600'}`}>
                                <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow transition-transform duration-300 ${selectedCard.isOnlineEnabled ? 'translate-x-6' : 'translate-x-1'}`}></div>
                             </div>
                           </div>
 
                           <div 
-                             className={`flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer ${isUpdatingFeature ? 'opacity-50 pointer-events-none' : ''}`}
+                             className={`flex items-center justify-between p-3 border border-gray-100 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isUpdatingFeature ? 'opacity-50 pointer-events-none' : ''}`}
                              onClick={() => handleToggleFeature('international')}
                            >
                              <div>
-                                <p className="text-sm font-semibold text-gray-900">International Usage</p>
-                                <p className="text-xs text-gray-500">Allow transactions in foreign currencies.</p>
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white">International Usage</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">Allow transactions in foreign currencies.</p>
                              </div>
-                             <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${selectedCard.isInternationalEnabled ? 'bg-blue-600' : 'bg-gray-300'}`}>
+                             <div className={`w-11 h-6 rounded-full relative shadow-inner transition-colors duration-300 ${selectedCard.isInternationalEnabled ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-600'}`}>
                                 <div className={`w-4 h-4 bg-white rounded-full absolute top-1 shadow transition-transform duration-300 ${selectedCard.isInternationalEnabled ? 'translate-x-6' : 'translate-x-1'}`}></div>
                              </div>
                            </div>
 
-                           <div className="p-4 bg-blue-50/30 rounded-xl border border-blue-100/50 mt-4">
+                           <div className="p-4 bg-blue-50/30 dark:bg-blue-900/20 rounded-xl border border-blue-100/50 dark:border-blue-800/30 mt-4 transition-colors">
                               <div className="flex justify-between items-center">
                                  <div>
-                                    <p className="text-sm font-bold text-gray-900">Virtual Security PIN</p>
-                                    <p className="text-[10px] text-gray-500">Enable/Change your 4-digit card PIN.</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white">Virtual Security PIN</p>
+                                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Enable/Change your 4-digit card PIN.</p>
                                  </div>
-                                 <Button size="sm" variant="outline" className="text-xs h-8 border-blue-200 text-blue-700" onClick={() => setIsPinModalOpen(true)}>Set New PIN</Button>
+                                 <Button size="sm" variant="outline" className="text-xs h-8 border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-400 dark:bg-transparent dark:hover:bg-slate-800" onClick={() => setIsPinModalOpen(true)}>Set New PIN</Button>
                               </div>
                            </div>
 
@@ -737,35 +734,35 @@ export default function EnhancedCardsPage() {
                   {activeTab === "transactions" && (
                      <div className="animate-fade-in space-y-4">
                        {isTransactionsLoading ? (
-                          <div className="py-10 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
+                          <div className="py-10 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div></div>
                        ) : cardTransactions.length === 0 ? (
-                          <div className="text-center p-10 text-gray-500 border border-gray-100 rounded-xl bg-white shadow-sm">
+                          <div className="text-center p-10 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800/50 shadow-sm transition-colors">
                             <p className="font-medium">No recent transactions found.</p>
                             <p className="text-xs mt-1">Simulate an expense to see it here.</p>
                           </div>
                        ) : (
-                          <div className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm">
+                          <div className="bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 rounded-xl overflow-hidden shadow-sm transition-colors">
                              <table className="w-full text-left border-collapse">
-                                <thead className="bg-gray-50 border-b border-gray-100">
+                                <thead className="bg-gray-50 dark:bg-slate-800/80 border-b border-gray-100 dark:border-slate-700 transition-colors">
                                    <tr>
-                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Date</th>
-                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider">Merchant/Memo</th>
-                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 uppercase tracking-wider text-right">Amount</th>
+                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</th>
+                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Merchant/Memo</th>
+                                      <th className="px-6 py-3 text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider text-right">Amount</th>
                                    </tr>
                                 </thead>
-                                <tbody className="divide-y divide-gray-50">
+                                <tbody className="divide-y divide-gray-50 dark:divide-slate-700/50">
                                    {cardTransactions.map((tx) => (
-                                      <tr key={tx._id} className="hover:bg-gray-50/50 transition-colors">
+                                      <tr key={tx._id} className="hover:bg-gray-50/50 dark:hover:bg-slate-700/50 transition-colors">
                                          <td className="px-6 py-4">
-                                            <p className="text-xs text-gray-900 font-medium">{new Date(tx.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
-                                            <p className="text-[9px] text-gray-400">{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                            <p className="text-xs text-gray-900 dark:text-gray-100 font-medium">{new Date(tx.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</p>
+                                            <p className="text-[9px] text-gray-400 dark:text-gray-500">{new Date(tx.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
                                          </td>
                                          <td className="px-6 py-4">
-                                            <p className="text-xs text-gray-900 font-semibold">{tx.memo}</p>
-                                            <p className="text-[9px] text-gray-400 font-mono uppercase">{tx.transaction?.referenceId}</p>
+                                            <p className="text-xs text-gray-900 dark:text-gray-100 font-semibold">{tx.memo}</p>
+                                            <p className="text-[9px] text-gray-400 dark:text-gray-500 font-mono uppercase">{tx.transaction?.referenceId}</p>
                                          </td>
                                          <td className="px-6 py-4 text-right">
-                                            <p className={`text-sm font-bold ${tx.entryType === 'Debit' ? 'text-red-600' : 'text-green-600'}`}>
+                                            <p className={`text-sm font-bold ${tx.entryType === 'Debit' ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                                {tx.entryType === 'Debit' ? '-' : '+'} ₹ {tx.amount.toLocaleString()}
                                             </p>
                                          </td>
@@ -784,19 +781,20 @@ export default function EnhancedCardsPage() {
         </div>
       )}
 
+      {/* MODALS */}
       <Modal isOpen={isRequestModalOpen} onClose={() => !isGenerating && setIsRequestModalOpen(false)} title="Create New Card">
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Card Type</label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500" value={newCardType} onChange={(e) => setNewCardType(e.target.value)} disabled={isGenerating}>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Card Type</label>
+            <select className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-colors" value={newCardType} onChange={(e) => setNewCardType(e.target.value)} disabled={isGenerating}>
               <option value="Debit">Debit Card</option>
               <option value="Credit">Credit Card</option>
               <option value="Virtual">Virtual One-Time Card</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Card Network</label>
-            <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" value={newCardNetwork} onChange={(e) => setNewCardNetwork(e.target.value)} disabled={isGenerating}>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Card Network</label>
+            <select className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition-colors" value={newCardNetwork} onChange={(e) => setNewCardNetwork(e.target.value)} disabled={isGenerating}>
               <option value="Visa">Visa</option>
               <option value="MasterCard">MasterCard</option>
               <option value="Amex">American Express</option>
@@ -806,8 +804,8 @@ export default function EnhancedCardsPage() {
           
           {newCardType === 'Debit' ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Link to Account</label>
-              <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" value={linkAccountId} onChange={(e) => setLinkAccountId(e.target.value)} disabled={isGenerating}>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Link to Account</label>
+              <select className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition-colors" value={linkAccountId} onChange={(e) => setLinkAccountId(e.target.value)} disabled={isGenerating}>
                 {accounts.map(acc => (
                   <option key={acc._id} value={acc._id}>{acc.accountNumber} ({acc.accountType}) - ₹{acc.balance.toLocaleString()}</option>
                 ))}
@@ -815,11 +813,11 @@ export default function EnhancedCardsPage() {
             </div>
           ) : (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Credit Limit</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Credit Limit</label>
               <Input type="number" placeholder="Enter desired limit" value={newCreditLimit} onChange={(e) => setNewCreditLimit(e.target.value)} disabled={isGenerating} />
             </div>
           )}
-          <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+          <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-800 mt-4 transition-colors">
             <Button type="button" variant="ghost" onClick={() => setIsRequestModalOpen(false)} disabled={isGenerating}>Cancel</Button>
             <Button type="button" variant="primary" onClick={handleRequestCard} isLoading={isGenerating}>Generate Card</Button>
           </div>
@@ -831,7 +829,7 @@ export default function EnhancedCardsPage() {
             <Input label="Daily Online Limit" type="number" value={onlineLimit} onChange={(e) => setOnlineLimit(e.target.value)} required disabled={isSubmittingLimits} />
             <Input label="Daily ATM Limit" type="number" value={atmLimit} onChange={(e) => setAtmLimit(e.target.value)} required disabled={isSubmittingLimits} />
             <Input label="Contactless Limit" type="number" value={contactlessLimit} onChange={(e) => setContactlessLimit(e.target.value)} required disabled={isSubmittingLimits} />
-            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-800 mt-4 transition-colors">
                 <Button type="button" variant="ghost" onClick={() => setIsLimitModalOpen(false)} disabled={isSubmittingLimits}>Cancel</Button>
                 <Button type="submit" variant="primary" isLoading={isSubmittingLimits}>Save Changes</Button>
             </div>
@@ -840,38 +838,38 @@ export default function EnhancedCardsPage() {
 
       <Modal isOpen={isExpenseModalOpen} onClose={() => !isSubmittingExpense && setIsExpenseModalOpen(false)} title="Simulate Card Expense">
         <form onSubmit={handleCreateExpense} className="space-y-4">
-            <p className="text-xs text-gray-500 mb-4">This will simulate a transaction using your {selectedCard?.cardType} card.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 transition-colors">This will simulate a transaction using your {selectedCard?.cardType} card.</p>
             <Input label="Merchant Name" placeholder="e.g. Amazon, Starbucks" value={expenseMerchant} onChange={(e) => setExpenseMerchant(e.target.value)} required disabled={isSubmittingExpense} />
             <Input label="Amount (₹)" type="number" placeholder="0.00" value={expenseAmount} onChange={(e) => setExpenseAmount(e.target.value)} required disabled={isSubmittingExpense} />
             
             <div className="grid grid-cols-2 gap-4 pt-2">
-                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isOnlineExpense} onChange={(e) => {
+                <label className="flex items-center gap-3 p-3 border border-gray-100 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 focus:ring-blue-500" checked={isOnlineExpense} onChange={(e) => {
                         setIsOnlineExpense(e.target.checked);
                         if (e.target.checked) { setIsATMExpense(false); setIsContactlessExpense(false); }
                     }} />
-                    <span className="text-xs font-semibold text-gray-700">Online?</span>
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Online?</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isInternationalExpense} onChange={(e) => setIsInternationalExpense(e.target.checked)} />
-                    <span className="text-xs font-semibold text-gray-700">International?</span>
+                <label className="flex items-center gap-3 p-3 border border-gray-100 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 focus:ring-blue-500" checked={isInternationalExpense} onChange={(e) => setIsInternationalExpense(e.target.checked)} />
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">International?</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isContactlessExpense} onChange={(e) => {
+                <label className="flex items-center gap-3 p-3 border border-gray-100 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 focus:ring-blue-500" checked={isContactlessExpense} onChange={(e) => {
                         setIsContactlessExpense(e.target.checked);
                         if (e.target.checked) { setIsOnlineExpense(false); setIsATMExpense(false); }
                     }} />
-                    <span className="text-xs font-semibold text-gray-700">Contactless?</span>
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Contactless?</span>
                 </label>
-                <label className="flex items-center gap-3 p-3 border border-gray-100 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded" checked={isATMExpense} onChange={(e) => {
+                <label className="flex items-center gap-3 p-3 border border-gray-100 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 rounded bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 focus:ring-blue-500" checked={isATMExpense} onChange={(e) => {
                         setIsATMExpense(e.target.checked);
                         if (e.target.checked) { setIsOnlineExpense(false); setIsContactlessExpense(false); }
                     }} />
-                    <span className="text-xs font-semibold text-gray-700">ATM?</span>
+                    <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">ATM?</span>
                 </label>
             </div>
-            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-800 mt-4 transition-colors">
                 <Button type="button" variant="ghost" onClick={() => setIsExpenseModalOpen(false)} disabled={isSubmittingExpense}>Cancel</Button>
                 <Button type="submit" variant="primary" isLoading={isSubmittingExpense}>Confirm Transaction</Button>
             </div>
@@ -880,20 +878,20 @@ export default function EnhancedCardsPage() {
 
       <Modal isOpen={isRepayModalOpen} onClose={() => !isSubmittingRepay && setIsRepayModalOpen(false)} title="Credit Card Repayment">
         <form onSubmit={handleRepayCreditCard} className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg mb-4">
-               <p className="text-xs text-blue-700 font-bold uppercase tracking-wider mb-1">Current Outstanding</p>
-               <p className="text-2xl font-black text-blue-900">₹ {selectedCard?.limits?.outstandingAmount?.toLocaleString() || "0"}</p>
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg mb-4 transition-colors">
+               <p className="text-xs text-blue-700 dark:text-blue-400 font-bold uppercase tracking-wider mb-1">Current Outstanding</p>
+               <p className="text-2xl font-black text-blue-900 dark:text-blue-100">₹ {selectedCard?.limits?.outstandingAmount?.toLocaleString() || "0"}</p>
             </div>
             <div>
-               <label className="block text-sm font-medium text-gray-700 mb-1">Pay From Account</label>
-               <select className="w-full border border-gray-300 rounded-md px-3 py-2 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm" value={repaySourceAccountId} onChange={(e) => setRepaySourceAccountId(e.target.value)} disabled={isSubmittingRepay}>
+               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Pay From Account</label>
+               <select className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition-colors" value={repaySourceAccountId} onChange={(e) => setRepaySourceAccountId(e.target.value)} disabled={isSubmittingRepay}>
                   {accounts.map(acc => (
                      <option key={acc._id} value={acc._id}>{acc.accountNumber} - ₹{acc.balance.toLocaleString()}</option>
                   ))}
                </select>
             </div>
             <Input label="Repayment Amount (₹)" type="number" placeholder="Enter amount to pay" value={repayAmount} onChange={(e) => setRepayAmount(e.target.value)} required disabled={isSubmittingRepay} />
-            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+            <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-800 mt-4 transition-colors">
                 <Button type="button" variant="ghost" onClick={() => setIsRepayModalOpen(false)} disabled={isSubmittingRepay}>Cancel</Button>
                 <Button type="submit" variant="primary" isLoading={isSubmittingRepay}>Process Payment</Button>
             </div>
@@ -902,7 +900,7 @@ export default function EnhancedCardsPage() {
 
       <Modal isOpen={isPinModalOpen} onClose={() => !isSubmittingPin && setIsPinModalOpen(false)} title="Update Card PIN">
         <form onSubmit={handleUpdatePin} className="space-y-4">
-             <p className="text-xs text-gray-500">Set a new 4-digit PIN for your transactions.</p>
+             <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors">Set a new 4-digit PIN for your transactions.</p>
              <Input 
                 label="New 4-Digit PIN" 
                 type="password" 
@@ -913,7 +911,7 @@ export default function EnhancedCardsPage() {
                 required 
                 disabled={isSubmittingPin} 
             />
-             <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-4">
+             <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-800 mt-4 transition-colors">
                 <Button type="button" variant="ghost" onClick={() => setIsPinModalOpen(false)} disabled={isSubmittingPin}>Cancel</Button>
                 <Button type="submit" variant="primary" isLoading={isSubmittingPin}>Update PIN</Button>
             </div>

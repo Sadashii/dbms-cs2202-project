@@ -18,7 +18,6 @@ interface Account {
 }
 
 export default function AccountsPage() {
-  // Removed accessToken since apiFetch handles it natively
   const { apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
   const router = useRouter();
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -26,8 +25,8 @@ export default function AccountsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [kycs, setKycs] = useState<any[]>([]); // New state for KYC document status
-  const [accountRequest, setAccountRequest] = useState<any>(null); // New state for global request
+  const [kycs, setKycs] = useState<any[]>([]); 
+  const [accountRequest, setAccountRequest] = useState<any>(null); 
 
   // Transfer Modal State
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -50,10 +49,8 @@ export default function AccountsPage() {
   // File & Document Data States
   const [panFile, setPanFile] = useState<File | null>(null);
   const [panNumber, setPanNumber] = useState("");
-  
   const [aadharFile, setAadharFile] = useState<File | null>(null);
   const [aadharNumber, setAadharNumber] = useState("");
-  
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
   // Redirect unauthenticated users
@@ -135,14 +132,13 @@ export default function AccountsPage() {
       if (!res.ok) {
         setTransferError(data.message || "Transfer failed.");
       } else {
-        // Option to save beneficiary
         if (saveBeneficiary && beneficiaryNickName) {
            await apiFetch("/api/beneficiaries", {
               method: "POST",
               body: JSON.stringify({
                   nickName: beneficiaryNickName,
                   accountNumber: toAccountNumber,
-                  accountName: "VaultPay User" // Basic name if unknown
+                  accountName: "VaultPay User" 
               })
            });
            fetchBeneficiaries();
@@ -183,7 +179,6 @@ export default function AccountsPage() {
         if (aadharFile) formData.append("aadhar", aadharFile);
         if (signatureFile) formData.append("signature", signatureFile);
 
-        // Detect if this is a remediation (PATCH) or a new request (POST)
         const method = (accountRequest && accountRequest.currentStatus !== 'Approved') ? "PATCH" : "POST";
 
         const response = await apiFetch("/api/account-requests", {
@@ -198,7 +193,7 @@ export default function AccountsPage() {
 
         toast.success(method === "PATCH" ? "Documents re-submitted for review." : "Registration submitted successfully.");
         setKycStatus("pending");
-        fetchKycs(); // Refresh status tracking
+        fetchKycs(); 
         
     } catch (error: any) {
         console.error("Failed to submit KYC:", error);
@@ -221,14 +216,15 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in">
+    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in transition-colors">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Your Accounts</h1>
-          <p className="text-sm text-gray-500">Manage your balances and execute transfers.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Your Accounts</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Manage your balances and execute transfers.</p>
         </div>
         <div className="flex gap-3">
-            <Button onClick={() => setIsNewAccountModalOpen(true)} variant="outline">
+            {/* Added dark mode classes for the outline button specifically, assuming primary handles itself */}
+            <Button onClick={() => setIsNewAccountModalOpen(true)} variant="outline" className="dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">
                 Register for New Account
             </Button>
             <Button onClick={() => setIsTransferModalOpen(true)} variant="primary">
@@ -239,14 +235,14 @@ export default function AccountsPage() {
 
       {/* KYC & Account Request Status Tracking */}
       {accountRequest && (accountRequest.currentStatus !== 'Approved') && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-sm mb-6">
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm mb-6 transition-colors">
               <div className="flex items-center justify-between mb-4">
                   <div>
-                      <h2 className="text-lg font-bold text-blue-900">Account Request Status: {accountRequest.currentStatus.replace('_', ' ')}</h2>
-                      <p className="text-sm text-blue-700">Tracking progress for your {accountRequest.accountType} account.</p>
+                      <h2 className="text-lg font-bold text-blue-900 dark:text-blue-400">Account Request Status: {accountRequest.currentStatus.replace('_', ' ')}</h2>
+                      <p className="text-sm text-blue-700 dark:text-blue-300">Tracking progress for your {accountRequest.accountType} account.</p>
                   </div>
                   <div className="flex gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === 'Rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'}`}>
                           {accountRequest.currentStatus}
                       </span>
                   </div>
@@ -258,18 +254,18 @@ export default function AccountsPage() {
                       const status = kyc?.currentStatus || 'Not Submitted';
                       
                       return (
-                          <div key={type} className="bg-white p-4 rounded-lg border border-blue-100 flex flex-col justify-between">
+                          <div key={type} className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-blue-100 dark:border-slate-800 flex flex-col justify-between transition-colors">
                               <div>
-                                  <p className="text-xs font-bold text-gray-400 uppercase mb-1">{type} Document</p>
+                                  <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{type} Document</p>
                                   <div className="flex items-center gap-2">
                                       <span className={`w-2 h-2 rounded-full ${status === 'Verified' ? 'bg-green-500' : status === 'Rejected' ? 'bg-red-500' : 'bg-orange-500'}`}></span>
-                                      <p className="text-sm font-semibold text-gray-900">{status}</p>
+                                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{status}</p>
                                   </div>
                               </div>
                               {status === 'Rejected' && (
                                   <div className="mt-3">
-                                      <p className="text-[10px] text-red-600 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
-                                      <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto" onClick={() => setIsNewAccountModalOpen(true)}>
+                                      <p className="text-[10px] text-red-600 dark:text-red-400 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
+                                      <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800" onClick={() => setIsNewAccountModalOpen(true)}>
                                           Fix & Re-upload
                                       </Button>
                                   </div>
@@ -285,51 +281,51 @@ export default function AccountsPage() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading ? (
           <div className="col-span-full py-10 flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
           </div>
         ) : accounts.length === 0 ? (
-          <div className="col-span-full py-16 text-center bg-white border border-dashed border-gray-200 rounded-xl shadow-sm">
-            <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="col-span-full py-16 text-center bg-white dark:bg-slate-900 border border-dashed border-gray-200 dark:border-slate-700 rounded-xl shadow-sm transition-colors">
+            <div className="mx-auto w-16 h-16 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-blue-400 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
               </svg>
             </div>
-            <h3 className="text-base font-semibold text-gray-900 mb-1">No accounts yet</h3>
-            <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">Submit your KYC documents to get started. Our team typically reviews applications within 1 business day.</p>
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No accounts yet</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">Submit your KYC documents to get started. Our team typically reviews applications within 1 business day.</p>
             <Button onClick={() => setIsNewAccountModalOpen(true)} variant="primary">
               Register for New Account
             </Button>
           </div>
         ) : (
           accounts.map((acc) => (
-            <div key={acc._id} className="bg-white overflow-hidden rounded-xl shadow-sm border border-gray-200 relative">
+            <div key={acc._id} className="bg-white dark:bg-slate-900 overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 relative transition-colors">
               {acc.currentStatus !== 'Active' && (
-                <div className="absolute top-0 right-0 bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-bl-lg z-10">
+                <div className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/80 text-red-800 dark:text-red-200 text-xs font-bold px-2 py-1 rounded-bl-lg z-10">
                   {acc.currentStatus}
                 </div>
               )}
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">{acc.accountType}</h3>
-                    <p className="text-sm font-mono text-gray-500">{acc.accountNumber}</p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{acc.accountType}</h3>
+                    <p className="text-sm font-mono text-gray-500 dark:text-gray-400">{acc.accountNumber}</p>
                   </div>
-                  <div className="h-10 w-10 bg-blue-50 rounded-full flex items-center justify-center border border-blue-100">
-                    <span className="text-blue-700 font-bold text-xs">{acc.currency}</span>
+                  <div className="h-10 w-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center border border-blue-100 dark:border-blue-800/50 transition-colors">
+                    <span className="text-blue-700 dark:text-blue-400 font-bold text-xs">{acc.currency}</span>
                   </div>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 mb-1">Available Balance</p>
-                  <p className="text-3xl font-bold text-gray-900 mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Available Balance</p>
+                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
                     {acc.currency === 'INR' ? '₹' : acc.currency === 'USD' ? '$' : '€'}
                     {acc.balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                   </p>
                   
-                  <div className="pt-4 border-t border-gray-100 grid grid-cols-2 gap-2">
-                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-gray-600" onClick={() => fetchHistory(acc)}>
+                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800 grid grid-cols-2 gap-2 transition-colors">
+                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-gray-600 dark:text-gray-300 dark:border-slate-700 dark:hover:bg-slate-800" onClick={() => fetchHistory(acc)}>
                         History
                     </Button>
-                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-blue-600 border-blue-100 hover:bg-blue-50" onClick={() => router.push(`/my/accounts/statement/${acc._id}`)}>
+                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={() => router.push(`/my/accounts/statement/${acc._id}`)}>
                         Statement
                     </Button>
                   </div>
@@ -342,8 +338,8 @@ export default function AccountsPage() {
 
       {/* Pagination Controls */}
       {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 px-5 py-3 shadow-sm">
-          <p className="text-sm text-gray-500">
+        <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 px-5 py-3 shadow-sm transition-colors">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
             {total} account{total !== 1 ? "s" : ""} total
           </p>
           <div className="flex items-center gap-2">
@@ -352,23 +348,24 @@ export default function AccountsPage() {
               size="sm"
               disabled={page === 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="py-1 h-auto text-xs"
+              className="py-1 h-auto text-xs dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
             >
               ← Previous
             </Button>
-            <span className="text-sm text-gray-600 px-2">{page} / {totalPages}</span>
+            <span className="text-sm text-gray-600 dark:text-gray-400 px-2">{page} / {totalPages}</span>
             <Button
               variant="outline"
               size="sm"
               disabled={page >= totalPages}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              className="py-1 h-auto text-xs"
+              className="py-1 h-auto text-xs dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
             >
               Next →
             </Button>
           </div>
         </div>
       )}
+
       {/* Account Request & KYC Modal */}
       <Modal
         isOpen={isNewAccountModalOpen}
@@ -378,13 +375,13 @@ export default function AccountsPage() {
       >
         {kycStatus === "pending" ? (
             <div className="py-8 text-center space-y-4 animate-fade-in">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 mb-4">
-                    <svg className="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50 mb-4 transition-colors">
+                    <svg className="h-8 w-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900">KYC Pending</h3>
-                <p className="text-sm text-gray-500 px-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">KYC Pending</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
                     Your account request and documents have been submitted successfully. Please wait while our compliance team verifies your details.
                 </p>
                 <div className="pt-6">
@@ -396,9 +393,9 @@ export default function AccountsPage() {
         ) : (
             <form onSubmit={handleRequestAccount} className="space-y-5">
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Account Type</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Type</label>
                     <select
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:ring-blue-500 focus:border-blue-500 outline-none"
+                        className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                         value={newAccountType}
                         onChange={(e) => setNewAccountType(e.target.value)}
                         disabled={isSubmittingKYC}
@@ -409,11 +406,11 @@ export default function AccountsPage() {
                     </select>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-4 max-h-[50vh] overflow-y-auto">
-                    <h4 className="text-sm font-semibold text-gray-900 border-b border-gray-200 pb-2">Mandatory KYC Details</h4>
+                <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border border-gray-200 dark:border-slate-700 space-y-4 max-h-[50vh] overflow-y-auto transition-colors">
+                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700 pb-2">Mandatory KYC Details</h4>
                     
                     {/* PAN Input Group */}
-                    <div className="space-y-3 pb-4 border-b border-gray-200">
+                    <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-slate-700">
                         <Input
                             label="PAN Number"
                             type="text"
@@ -424,20 +421,20 @@ export default function AccountsPage() {
                             placeholder="ABCDE1234F"
                         />
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">PAN Card Image</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PAN Card Image</label>
                             <input
                                 type="file"
                                 accept="image/*,.pdf"
                                 onChange={(e) => setPanFile(e.target.files?.[0] || null)}
                                 required
                                 disabled={isSubmittingKYC}
-                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                                className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
                             />
                         </div>
                     </div>
 
                     {/* Aadhar Input Group */}
-                    <div className="space-y-3 pb-4 border-b border-gray-200">
+                    <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-slate-700">
                         <Input
                             label="Aadhar Number"
                             type="text"
@@ -449,33 +446,33 @@ export default function AccountsPage() {
                             maxLength={12}
                         />
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Aadhar Card Image</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aadhar Card Image</label>
                             <input
                                 type="file"
                                 accept="image/*,.pdf"
                                 onChange={(e) => setAadharFile(e.target.files?.[0] || null)}
                                 required
                                 disabled={isSubmittingKYC}
-                                className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                                className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
                             />
                         </div>
                     </div>
 
                     {/* Signature Input Group */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Signature Image</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signature Image</label>
                         <input
                             type="file"
                             accept="image/*"
                             onChange={(e) => setSignatureFile(e.target.files?.[0] || null)}
                             required
                             disabled={isSubmittingKYC}
-                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                            className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
                         />
                     </div>
                 </div>
 
-                <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 mt-6">
+                <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-slate-700 mt-6">
                     <Button type="button" variant="ghost" onClick={closeKycModal} disabled={isSubmittingKYC}>
                         Cancel
                     </Button>
@@ -496,15 +493,15 @@ export default function AccountsPage() {
       >
         <form onSubmit={handleTransfer} className="space-y-4">
           {transferError && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-md text-sm border border-red-200">
+            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-3 rounded-md text-sm border border-red-200 dark:border-red-800/30">
               {transferError}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">From Account</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Account</label>
             <select
-              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm outline-none"
+              className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm outline-none transition-colors"
               value={fromAccountId}
               onChange={(e) => setFromAccountId(e.target.value)}
               required
@@ -519,11 +516,11 @@ export default function AccountsPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Recipient Account</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recipient Account</label>
             <div className="space-y-3">
                 {beneficiaries.length > 0 && (
                     <select
-                        className="w-full border border-blue-200 rounded-md px-3 py-2 bg-blue-50 text-blue-800 text-sm focus:ring-blue-500 outline-none"
+                        className="w-full border border-blue-200 dark:border-blue-800/50 rounded-md px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-sm focus:ring-blue-500 outline-none transition-colors"
                         onChange={(e) => {
                             const b = beneficiaries.find(x => x._id === e.target.value);
                             if (b) {
@@ -544,7 +541,6 @@ export default function AccountsPage() {
                     value={toAccountNumber}
                     onChange={(e) => {
                         setToAccountNumber(e.target.value.replace(/\D/g, ''));
-                        // Reset selection if typing manually
                         setSaveBeneficiary(true);
                     }}
                     required
@@ -577,16 +573,16 @@ export default function AccountsPage() {
           />
 
           {!beneficiaries.some(b => b.accountNumber === toAccountNumber) && toAccountNumber && (
-              <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+              <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border border-gray-200 dark:border-slate-700 space-y-3 transition-colors">
                   <div className="flex items-center gap-2">
                       <input 
                         type="checkbox" 
                         id="save-ben" 
                         checked={saveBeneficiary} 
                         onChange={(e) => setSaveBeneficiary(e.target.checked)}
-                        className="rounded text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-blue-600 focus:ring-blue-500"
                       />
-                      <label htmlFor="save-ben" className="text-sm font-medium text-gray-700">Save this Payee for later?</label>
+                      <label htmlFor="save-ben" className="text-sm font-medium text-gray-700 dark:text-gray-300">Save this Payee for later?</label>
                   </div>
                   {saveBeneficiary && (
                        <Input
@@ -602,7 +598,7 @@ export default function AccountsPage() {
               </div>
           )}
 
-          <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 mt-6">
+          <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-slate-700 mt-6">
             <Button 
               type="button" 
               variant="ghost" 

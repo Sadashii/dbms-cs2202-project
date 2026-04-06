@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -99,7 +98,6 @@ const navigationSections: NavSection[] = [
   },
 ];
 
-// Helper to determine if a section should be shown based on user role
 function canUserSeeSection(userRole: string, sectionRole: string): boolean {
   const roles = ["Customer", "Employee", "Manager", "Admin"];
   const userRank = roles.indexOf(userRole);
@@ -124,18 +122,18 @@ function NavList({ pathname, userRole, onNavClick }: {
             {/* [role] tag header */}
             <div className="px-3 mb-2 flex items-center justify-between">
               <span className={`text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded border 
-                ${section.color === "blue" ? "bg-blue-50 text-blue-600 border-blue-100" : ""}
-                ${section.color === "amber" ? "bg-amber-50 text-amber-600 border-amber-100" : ""}
-                ${section.color === "indigo" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : ""}
-                ${section.color === "rose" ? "bg-rose-50 text-rose-600 border-rose-100" : ""}
+                ${section.color === "blue" ? "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-800/30" : ""}
+                ${section.color === "amber" ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-800/30" : ""}
+                ${section.color === "indigo" ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-800/30" : ""}
+                ${section.color === "rose" ? "bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-100 dark:border-rose-800/30" : ""}
               `}>
                 [{section.role}] Options
               </span>
               <div className={`h-[1px] flex-1 ml-3 
-                ${section.color === "blue" ? "bg-blue-50" : ""}
-                ${section.color === "amber" ? "bg-amber-50" : ""}
-                ${section.color === "indigo" ? "bg-indigo-50" : ""}
-                ${section.color === "rose" ? "bg-rose-50" : ""}
+                ${section.color === "blue" ? "bg-blue-50 dark:bg-blue-900/20" : ""}
+                ${section.color === "amber" ? "bg-amber-50 dark:bg-amber-900/20" : ""}
+                ${section.color === "indigo" ? "bg-indigo-50 dark:bg-indigo-900/20" : ""}
+                ${section.color === "rose" ? "bg-rose-50 dark:bg-rose-900/20" : ""}
               `} />
             </div>
 
@@ -148,8 +146,8 @@ function NavList({ pathname, userRole, onNavClick }: {
                   onClick={onNavClick}
                   className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative
                     ${isActive 
-                      ? "bg-slate-50 text-gray-900 shadow-sm border border-slate-100" 
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-slate-50 dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm border border-slate-100 dark:border-slate-800" 
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
                     }
                   `}
                 >
@@ -159,17 +157,17 @@ function NavList({ pathname, userRole, onNavClick }: {
                       ${section.color === "blue" ? "bg-blue-600 shadow-[0_0_8px_rgba(37,99,235,0.4)]" : ""}
                       ${section.color === "amber" ? "bg-amber-600 shadow-[0_0_8px_rgba(217,119,6,0.4)]" : ""}
                       ${section.color === "indigo" ? "bg-indigo-600 shadow-[0_0_8px_rgba(79,70,229,0.4)]" : ""}
-                      ${section.color === "rose" ? "bg-rose-600 shadow-[0_0_8_rgba(225,29,72,0.4)]" : ""}
+                      ${section.color === "rose" ? "bg-rose-600 shadow-[0_0_8px_rgba(225,29,72,0.4)]" : ""}
                     `} />
                   )}
 
                   <div className={`mr-3 flex-shrink-0 transition-all duration-200 p-1.5 rounded-md
                     ${isActive 
-                      ? `${section.color === "blue" ? "bg-blue-100 text-blue-600" : ""}
-                         ${section.color === "amber" ? "bg-amber-100 text-amber-600" : ""}
-                         ${section.color === "indigo" ? "bg-indigo-100 text-indigo-600" : ""}
-                         ${section.color === "rose" ? "bg-rose-100 text-rose-600" : ""}`
-                      : "text-gray-400 group-hover:text-gray-500"
+                      ? `${section.color === "blue" ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" : ""}
+                         ${section.color === "amber" ? "bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400" : ""}
+                         ${section.color === "indigo" ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400" : ""}
+                         ${section.color === "rose" ? "bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400" : ""}`
+                      : "text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300"
                     }
                   `}>
                     {item.icon}
@@ -202,12 +200,12 @@ export const Sidebar = () => {
   if (!user) return null;
 
   const statusFooter = (
-    <div className="flex-shrink-0 p-4 border-t border-gray-100 bg-slate-50/50">
+    <div className="flex-shrink-0 p-4 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
       <div className="flex items-center gap-3">
-        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse ring-4 ring-green-50" />
+        <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse ring-4 ring-green-50 dark:ring-green-900/30" />
         <div>
-          <p className="text-[11px] font-bold text-gray-900 uppercase tracking-tighter">System Health</p>
-          <p className="text-[10px] text-gray-500 font-medium">Operational · Core Online</p>
+          <p className="text-[11px] font-bold text-gray-900 dark:text-gray-200 uppercase tracking-tighter">System Health</p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">Operational · Core Online</p>
         </div>
       </div>
     </div>
@@ -229,13 +227,13 @@ export const Sidebar = () => {
       )}
 
       {/* Mobile Drawer */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-slate-950 shadow-2xl transform transition-transform duration-300 ease-in-out md:hidden flex flex-col ${isMobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-slate-800">
           <div className="flex flex-col">
-            <span className="text-xl font-black text-gray-900 tracking-tighter">VaultPay</span>
-            <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{user.role} ACCESS</span>
+            <span className="text-xl font-black text-gray-900 dark:text-white tracking-tighter">VaultPay</span>
+            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">{user.role} ACCESS</span>
           </div>
-          <button onClick={() => setIsMobileOpen(false)} className="text-gray-400 hover:text-gray-700">{Icons.Close}</button>
+          <button onClick={() => setIsMobileOpen(false)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">{Icons.Close}</button>
         </div>
         <div className="flex-1 overflow-y-auto py-6">
           <NavList pathname={pathname} userRole={user.role} onNavClick={() => setIsMobileOpen(false)} />
@@ -244,7 +242,7 @@ export const Sidebar = () => {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-gray-100 h-[calc(100vh-4rem)] sticky top-16 shrink-0 shadow-[1px_0_0_rgb(0,0,0,0.02)]">
+      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-950 border-r border-gray-100 dark:border-slate-800 h-[calc(100vh-4rem)] sticky top-16 shrink-0 shadow-[1px_0_0_rgb(0,0,0,0.02)] transition-colors">
         <div className="flex flex-col flex-grow pt-4 pb-4 overflow-y-auto custom-scrollbar">
           <NavList pathname={pathname} userRole={user.role} />
         </div>
