@@ -67,7 +67,9 @@ export async function POST(req: Request) {
         await dbConnect();
 
         const body = await req.json();
-        const { loanType, principalAmount, tenureMonths, emiAmount, accountId } = body;
+        
+        // ADDED: loanReason and loanDescription to the extracted fields
+        const { loanType, principalAmount, tenureMonths, emiAmount, accountId, loanReason, loanDescription } = body;
 
         if (!principalAmount || !tenureMonths || !emiAmount || !accountId) {
             return NextResponse.json({ message: "Missing required fields (Amount, Tenure, EMI, or Account)." }, { status: 400 });
@@ -80,6 +82,8 @@ export async function POST(req: Request) {
             userId: decoded.userId,
             accountId: new mongoose.Types.ObjectId(accountId),
             loanType: loanType || "Personal",
+            loanReason: loanReason,           // ADDED: Saving the reason
+            loanDescription: loanDescription, // ADDED: Saving the description
             principalAmount,
             interestRate: 9.5,
             tenureMonths,

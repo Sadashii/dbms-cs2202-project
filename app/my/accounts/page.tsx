@@ -25,8 +25,9 @@ export default function AccountsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [kycs, setKycs] = useState<any[]>([]); 
-  const [accountRequest, setAccountRequest] = useState<any>(null); 
+  const [kycs, setKycs] = useState<any[]>([]); // New state for KYC document status
+  const [accountRequest, setAccountRequest] = useState<any>(null); // New state for global request
+  const [schedules, setSchedules] = useState<any[]>([]);
 
   // Transfer Modal State
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
@@ -39,6 +40,9 @@ export default function AccountsPage() {
   const [saveBeneficiary, setSaveBeneficiary] = useState(false);
   const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
   const [beneficiaryNickName, setBeneficiaryNickName] = useState("");
+  const [isScheduled, setIsScheduled] = useState(false);
+  const [frequency, setFrequency] = useState("Monthly");
+  const [startDate, setStartDate] = useState("");
 
   // Account Request & KYC Modal State
   const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
@@ -99,11 +103,22 @@ export default function AccountsPage() {
     } catch (e) { console.error(e); }
   };
 
+  const fetchSchedules = async () => {
+    try {
+      const res = await apiFetch("/api/scheduledpayments");
+      if (res.ok) {
+        const data = await res.json();
+        setSchedules(data.schedules || []);
+      }
+    } catch (e) { console.error(e); }
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
       fetchAccounts(page);
       fetchKycs();
       fetchBeneficiaries();
+      fetchSchedules();
     }
   }, [apiFetch, page, isLoggedIn]);
 
@@ -117,47 +132,91 @@ export default function AccountsPage() {
     setIsTransferring(true);
 
     try {
-      const res = await apiFetch("/api/transactions", {
-        method: "POST",
-        body: JSON.stringify({
-          fromAccountId,
-          toAccountNumber,
-          amount: parseFloat(amount),
-          memo
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setTransferError(data.message || "Transfer failed.");
+      if (isScheduled) {
+         const res = await apiFetch("/api/scheduledpayments", {
+           method: "POST",
+           body: JSON.stringify({
+             fromAccountId,
+             toAccountNumber,
+             amount: parseFloat(amount),
+             memo,
+             frequency,
+             startDate
+           }),
+         });
+         const data = await res.json();
+         if (!res.ok) {
+           setTransferError(data.message || "Scheduling failed.");
+         } else {
+             handleSaveBeneficiaryFlow();
+             resetForm("Schedule set successfully!");
+             fetchSchedules();
+         }
       } else {
-        if (saveBeneficiary && beneficiaryNickName) {
-           await apiFetch("/api/beneficiaries", {
-              method: "POST",
-              body: JSON.stringify({
-                  nickName: beneficiaryNickName,
-                  accountNumber: toAccountNumber,
-                  accountName: "VaultPay User" 
-              })
-           });
-           fetchBeneficiaries();
-        }
-
-        setIsTransferModalOpen(false);
-        setToAccountNumber("");
-        setAmount("");
-        setMemo("");
-        setBeneficiaryNickName("");
-        setSaveBeneficiary(false);
-        toast.success(`Transfer Successful! Ref ID: ${data.referenceId}`); 
-        fetchAccounts();
+         const res = await apiFetch("/api/transactions", {
+           method: "POST",
+           body: JSON.stringify({
+             fromAccountId,
+             toAccountNumber,
+             amount: parseFloat(amount),
+             memo
+           }),
+         });
+         const data = await res.json();
+         if (!res.ok) {
+           setTransferError(data.message || "Transfer failed.");
+         } else {
+             handleSaveBeneficiaryFlow();
+             resetForm(`Transfer Successful! Ref ID: ${data.referenceId}`);
+             fetchAccounts();
+         }
       }
     } catch (err) {
       setTransferError("A network error occurred. Please try again.");
     } finally {
       setIsTransferring(false);
     }
+  };
+
+  const handleSaveBeneficiaryFlow = async () => {
+      if (saveBeneficiary && beneficiaryNickName) {
+         await apiFetch("/api/beneficiaries", {
+            method: "POST",
+            body: JSON.stringify({
+                nickName: beneficiaryNickName,
+                accountNumber: toAccountNumber,
+                accountName: "VaultPay User" 
+            })
+         });
+         fetchBeneficiaries();
+      }
+  };
+
+  const resetForm = (successMessage: string) => {
+      setIsTransferModalOpen(false);
+      setToAccountNumber("");
+      setAmount("");
+      setMemo("");
+      setBeneficiaryNickName("");
+      setSaveBeneficiary(false);
+      setIsScheduled(false);
+      setStartDate("");
+      toast.success(successMessage);
+  };
+
+  const updateScheduleStatus = async (scheduleId: string, currentStatus: string) => {
+      try {
+          const res = await apiFetch("/api/scheduledpayments", {
+              method: "PATCH",
+              body: JSON.stringify({ scheduleId, currentStatus })
+          });
+          if (res.ok) {
+              toast.success(`Schedule ${currentStatus.toLowerCase()} successfully.`);
+              fetchSchedules();
+          }
+      } catch (e) {
+          toast.error("Failed to update schedule status.");
+      }
   };
 
     const handleRequestAccount = async (e: React.FormEvent) => {
@@ -484,6 +543,58 @@ export default function AccountsPage() {
         )}
       </Modal>
 
+      {schedules.length > 0 && (
+          <div className="mb-6 pt-8 border-t border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Scheduled Transfers</h2>
+              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                  <table className="w-full text-left">
+                      <thead className="bg-gray-50 border-b border-gray-100">
+                          <tr>
+                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Schedule Detail</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Frequency</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Next Payment</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
+                          </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                          {schedules.map(sch => (
+                              <tr key={sch._id} className="hover:bg-gray-50/50">
+                                  <td className="p-4">
+                                      <div className="font-bold text-gray-900">{sch.currency} {sch.amount.$numberDecimal || sch.amount}</div>
+                                      <div className="text-xs text-gray-500">To: {sch.beneficiaryId || "Saved Payee"}</div>
+                                  </td>
+                                  <td className="p-4">
+                                      <div className="text-sm font-medium text-gray-900">{sch.frequency}</div>
+                                  </td>
+                                  <td className="p-4 text-sm text-gray-600">
+                                      {new Date(sch.nextRunDate).toLocaleDateString()}
+                                  </td>
+                                  <td className="p-4">
+                                      <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase ${sch.currentStatus === 'Active' ? 'bg-emerald-100 text-emerald-700' : sch.currentStatus === 'Paused' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                                          {sch.currentStatus}
+                                      </span>
+                                  </td>
+                                  <td className="p-4 text-right">
+                                      {sch.currentStatus !== 'Cancelled' && (
+                                          <div className="flex justify-end gap-2">
+                                              <Button type="button" variant="outline" size="sm" className="text-xs py-1 h-auto" onClick={() => updateScheduleStatus(sch._id, sch.currentStatus === 'Active' ? 'Paused' : 'Active')}>
+                                                  {sch.currentStatus === 'Active' ? 'Pause' : 'Resume'}
+                                              </Button>
+                                              <Button type="button" variant="outline" size="sm" className="text-xs py-1 h-auto text-red-600 hover:bg-red-50" onClick={() => updateScheduleStatus(sch._id, 'Cancelled')}>
+                                                  Cancel
+                                              </Button>
+                                          </div>
+                                      )}
+                                  </td>
+                              </tr>
+                          ))}
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      )}
+
       {/* Money Transfer Modal */}
       <Modal
         isOpen={isTransferModalOpen}
@@ -598,7 +709,51 @@ export default function AccountsPage() {
               </div>
           )}
 
-          <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-slate-700 mt-6">
+          <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 space-y-3">
+              <div className="flex items-center gap-2">
+                  <input 
+                    type="checkbox" 
+                    id="schedule-transfer" 
+                    checked={isScheduled} 
+                    onChange={(e) => setIsScheduled(e.target.checked)}
+                    className="rounded text-blue-600 focus:ring-blue-500 border-blue-300 w-4 h-4"
+                  />
+                  <label htmlFor="schedule-transfer" className="text-sm font-medium text-blue-800">Schedule this transfer (Recurring)</label>
+              </div>
+              {isScheduled && (
+                  <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div>
+                          <label className="block text-xs font-medium text-blue-700 mb-1">Frequency</label>
+                          <select 
+                            className="w-full border border-blue-200 rounded-md px-3 py-1.5 bg-white text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            value={frequency}
+                            onChange={(e) => setFrequency(e.target.value)}
+                            required
+                          >
+                              <option value="Once">Once Later</option>
+                              <option value="Daily">Daily</option>
+                              <option value="Weekly">Weekly</option>
+                              <option value="Monthly">Monthly</option>
+                              <option value="Quarterly">Quarterly</option>
+                              <option value="Yearly">Yearly</option>
+                          </select>
+                      </div>
+                      <div>
+                          <label className="block text-xs font-medium text-blue-700 mb-1">Start / Execution Date</label>
+                          <input
+                              type="date"
+                              value={startDate}
+                              onChange={(e) => setStartDate(e.target.value)}
+                              required={isScheduled}
+                              min={new Date().toISOString().split('T')[0]}
+                              className="w-full border border-blue-200 rounded-md px-3 py-1.5 bg-white text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          />
+                      </div>
+                  </div>
+              )}
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 mt-6">
             <Button 
               type="button" 
               variant="ghost" 

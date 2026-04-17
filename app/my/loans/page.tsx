@@ -11,6 +11,8 @@ interface Loan {
   _id: string;
   loanReference: string;
   loanType: string;
+  loanReason?: string;       // ADDED: New field for specific reason
+  loanDescription?: string;  // ADDED: New field for description
   principalAmount: number;
   remainingAmount: number;
   emiAmount: number;
@@ -224,8 +226,11 @@ export default function LoansPage() {
                     <div key={loan._id} className="bg-white dark:bg-slate-900 overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 transition-all hover:shadow-md dark:hover:shadow-slate-800/50">
                     <div className="p-6 border-b border-gray-200 dark:border-slate-800 flex justify-between items-start transition-colors">
                         <div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white transition-colors">{loan.loanType} Loan</h3>
-                        <p className="text-sm font-mono text-gray-500 dark:text-gray-400 transition-colors">Ref: {loan.loanReference}</p>
+                        {/* UPDATED: Now displays the loan reason next to the loan type if it exists */}
+                        <h3 className="text-lg font-bold text-gray-900">
+                          {loan.loanType} Loan {loan.loanReason && <span className="text-base font-normal text-gray-500 ml-1">({loan.loanReason})</span>}
+                        </h3>
+                        <p className="text-sm font-mono text-gray-500">Ref: {loan.loanReference}</p>
                         </div>
                         <span className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors
                         ${isApproved ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800/30' : 
@@ -356,6 +361,7 @@ export default function LoansPage() {
         </div>
       </div>
 
+      {/* Modals for Schedule and History (Unchanged) */}
       {scheduleLoan && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 dark:bg-black/70 backdrop-blur-sm p-4 transition-colors">
             <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl dark:shadow-slate-900/50 w-full max-w-4xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200 transition-colors border dark:border-slate-800">

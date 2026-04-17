@@ -5,6 +5,8 @@ export interface ILoan extends Document {
     userId: Types.ObjectId;
     accountId: Types.ObjectId; 
     loanType: 'Personal' | 'Home' | 'Auto' | 'Education' | 'Business';
+    loanReason?: string;       // Added: Specific reason (e.g., 'Medical')
+    loanDescription?: string;  // Added: Detailed description
     principalAmount: Types.Decimal128;
     interestRate: Types.Decimal128;
     tenureMonths: number;
@@ -65,6 +67,16 @@ const LoanSchema = new Schema<ILoan>({
         enum: ['Personal', 'Home', 'Auto', 'Education', 'Business'],
         required: true,
         immutable: true 
+    },
+    loanReason: { 
+        type: String, 
+        required: false,
+        trim: true
+    },
+    loanDescription: { 
+        type: String, 
+        required: false,
+        trim: true
     },
     principalAmount: { 
         type: Schema.Types.Decimal128, 
