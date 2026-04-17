@@ -108,19 +108,19 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
 
     return (
         <>
-            <div id="loan-tool" className="bg-white p-6 rounded-xl shadow-sm border border-gray-200 mt-6">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">Quick EMI Calculator</h3>
+            <div id="loan-tool" className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 mt-6 transition-colors">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 transition-colors">Quick EMI Calculator</h3>
                 
-                <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 mb-6">
-                    <span className="text-sm font-medium text-gray-600">Applicable Interest Rate</span>
-                    <span className="font-bold text-blue-600">{BANK_INTEREST_RATE}% p.a.</span>
+                <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-800/50 p-3 rounded-lg border border-gray-200 dark:border-slate-700 mb-6 transition-colors">
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Applicable Interest Rate</span>
+                    <span className="font-bold text-blue-600 dark:text-blue-400">{BANK_INTEREST_RATE}% p.a.</span>
                 </div>
                 
                 <div className="space-y-6">
                     <div>
-                        <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                        <label className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors">
                             <span>Loan Amount</span>
-                            <span className="font-bold text-blue-600">₹{principal.toLocaleString('en-IN')}</span>
+                            <span className="font-bold text-blue-600 dark:text-blue-400">₹{principal.toLocaleString('en-IN')}</span>
                         </label>
                         <input 
                             type="range" 
@@ -129,21 +129,21 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                             step="10000"
                             value={principal}
                             onChange={(e) => setPrincipal(Number(e.target.value))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500 transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Linked Bank Account</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors">Linked Bank Account</label>
                         {isLoadingAccounts ? (
-                            <div className="h-10 bg-gray-100 animate-pulse rounded-lg"></div>
+                            <div className="h-10 bg-gray-100 dark:bg-slate-800 animate-pulse rounded-lg transition-colors"></div>
                         ) : accounts.length === 0 ? (
-                            <div className="text-xs text-red-500 bg-red-50 p-2 rounded border border-red-100">
+                            <div className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-2 rounded border border-red-100 dark:border-red-800/30 transition-colors">
                                 No active accounts found. Please register an account first.
                             </div>
                         ) : (
                             <select
-                                className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm outline-none"
+                                className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm outline-none transition-colors"
                                 value={linkedAccountId}
                                 onChange={(e) => setLinkedAccountId(e.target.value)}
                                 disabled={isSubmitting}
@@ -155,13 +155,13 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                                 ))}
                             </select>
                         )}
-                        <p className="text-[10px] text-gray-400 mt-1">Funds will be disbursed to and EMIs deducted from this account.</p>
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 transition-colors">Funds will be disbursed to and EMIs deducted from this account.</p>
                     </div>
 
                     <div>
-                        <label className="flex justify-between text-sm font-medium text-gray-700 mb-2">
+                        <label className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors">
                             <span>Tenure</span>
-                            <span className="font-bold text-blue-600">{tenure} months</span>
+                            <span className="font-bold text-blue-600 dark:text-blue-400">{tenure} months</span>
                         </label>
                         <input 
                             type="range" 
@@ -170,13 +170,13 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                             step="6"
                             value={tenure}
                             onChange={(e) => setTenure(Number(e.target.value))}
-                            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500 transition-colors"
                         />
                     </div>
 
-                    <div className="pt-6 border-t border-gray-100 flex justify-between items-end mb-4">
-                        <p className="text-sm font-medium text-gray-500">Estimated Monthly EMI</p>
-                        <p className="text-3xl font-bold text-gray-900">₹{calculateEMI().toLocaleString('en-IN')}</p>
+                    <div className="pt-6 border-t border-gray-100 dark:border-slate-800 flex justify-between items-end mb-4 transition-colors">
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors">Estimated Monthly EMI</p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white transition-colors">₹{calculateEMI().toLocaleString('en-IN')}</p>
                     </div>
 
                     <Button 
@@ -263,8 +263,8 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Application Submitted!</h3>
-                        <p className="text-gray-500 mb-8">
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">Application Submitted!</h3>
+                        <p className="text-gray-500 dark:text-gray-400 mb-8 transition-colors">
                             You have successfully applied for a loan. Waiting for the admin reply.
                         </p>
                         <Button 
