@@ -130,9 +130,10 @@ export default function AdminAccountRequestsPage() {
   };
 
   const filteredRequests = requests.filter((req) => {
-    const name = `${req.userId.firstName || ''} ${req.userId.lastName || ''}`.toLowerCase();
-    const matchesSearch = req.userId.email.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          req.accountType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const name = `${req.userId?.firstName || ''} ${req.userId?.lastName || ''}`.toLowerCase();
+    const email = (req.userId?.email || "").toLowerCase();
+    const matchesSearch = email.includes(searchQuery.toLowerCase()) || 
+                          (req.accountType || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
                           name.includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "All" || req.currentStatus === statusFilter;
     return matchesSearch && matchesStatus;
@@ -194,7 +195,7 @@ export default function AdminAccountRequestsPage() {
             ) : (
               paginatedRequests.map((req) => {
                 const requiredDocs = ['PAN', 'Aadhar', 'Signature'];
-                const verifiedDocsCount = req.kycs.filter(k => requiredDocs.includes(k.documentType) && k.currentStatus === 'Verified').length;
+                const verifiedDocsCount = (req.kycs || []).filter(k => requiredDocs.includes(k.documentType) && k.currentStatus === 'Verified').length;
                 const totalRequired = requiredDocs.length;
                 const progressPercent = (verifiedDocsCount / totalRequired) * 100;
                 const isReady = verifiedDocsCount === totalRequired;
@@ -205,7 +206,7 @@ export default function AdminAccountRequestsPage() {
                       <div className="font-black text-gray-900 border-l-4 border-transparent group-hover:border-blue-500 pl-4 transition-all">
                         {req.userId?.firstName} {req.userId?.lastName}
                       </div>
-                      <div className="text-[11px] text-gray-400 pl-4">{req.userId.email}</div>
+                      <div className="text-[11px] text-gray-400 pl-4">{req.userId?.email}</div>
                     </td>
                     <td className="p-5">
                       <div className="text-xs font-black text-gray-700">{req.accountType}</div>
@@ -278,7 +279,7 @@ export default function AdminAccountRequestsPage() {
       {/* Reject Reason Modal */}
       <Modal 
         isOpen={isRejectModalOpen} 
-        onClose={() => !isProcessing && setIsRejectModalOpen(false)} 
+        onClose={() => !processingId && setIsRejectModalOpen(false)} 
         title="Override: Reject Protocol"
         description="Verify reasoning before permanently rejecting this entry protocol. The principal will be notified of the failure."
       >

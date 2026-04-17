@@ -26,8 +26,8 @@ export default function AccountsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [kycs, setKycs] = useState<any[]>([]); // New state for KYC document status
-  const [accountRequests, setAccountRequests] = useState<any[]>([]); // Changed to handle list of requests
+  const [kycs, setKycs] = useState<any[]>([]); 
+  const [accountRequests, setAccountRequests] = useState<any[]>([]); 
   const [schedules, setSchedules] = useState<any[]>([]);
 
   // Transfer Modal State
@@ -54,7 +54,6 @@ export default function AccountsPage() {
   // Branch Selection State
   const [branches, setBranches] = useState<any[]>([]);
   const [selectedBranchId, setSelectedBranchId] = useState("");
-  const [branchSearch, setBranchSearch] = useState("");
   
   // Reupload Modal State
   const [isReuploadModalOpen, setIsReuploadModalOpen] = useState(false);
@@ -66,6 +65,9 @@ export default function AccountsPage() {
   const [aadharFile, setAadharFile] = useState<File | null>(null);
   const [aadharNumber, setAadharNumber] = useState("");
   const [signatureFile, setSignatureFile] = useState<File | null>(null);
+
+  // Derived state for the active account request
+  const accountRequest = accountRequests.length > 0 ? accountRequests[0] : null;
 
   // Redirect unauthenticated users
   useEffect(() => {
@@ -171,7 +173,7 @@ export default function AccountsPage() {
          if (!res.ok) {
            setTransferError(data.message || "Scheduling failed.");
          } else {
-             handleSaveBeneficiaryFlow();
+             await handleSaveBeneficiaryFlow();
              resetForm("Schedule set successfully!");
              fetchSchedules();
          }
@@ -189,7 +191,7 @@ export default function AccountsPage() {
          if (!res.ok) {
            setTransferError(data.message || "Transfer failed.");
          } else {
-             handleSaveBeneficiaryFlow();
+             await handleSaveBeneficiaryFlow();
              resetForm(`Transfer Successful! Ref ID: ${data.referenceId}`);
              fetchAccounts();
          }
@@ -242,7 +244,7 @@ export default function AccountsPage() {
       }
   };
 
-    const handleRequestAccount = async (e: React.FormEvent) => {
+  const handleRequestAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!panFile && !signatureFile && !aadharFile) {
         toast.error("Please upload the documents you wish to submit.");
@@ -306,7 +308,6 @@ export default function AccountsPage() {
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage your balances and execute transfers.</p>
         </div>
         <div className="flex gap-3">
-            {/* Added dark mode classes for the outline button specifically, assuming primary handles itself */}
             <Button onClick={() => setIsNewAccountModalOpen(true)} variant="outline" className="dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">
                 Register for New Account
             </Button>
@@ -348,50 +349,18 @@ export default function AccountsPage() {
                               {status === 'Rejected' && (
                                   <div className="mt-3">
                                       <p className="text-[10px] text-red-600 dark:text-red-400 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
-                                      <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800" onClick={() => setIsNewAccountModalOpen(true)}>
+                                      <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800" onClick={() => {
+                                          setReuploadDocType(type);
+                                          setIsReuploadModalOpen(true);
+                                      }}>
                                           Fix & Re-upload
                                       </Button>
                                   </div>
                               )}
                           </div>
-                          <div className="flex gap-2">
-                              <span className={`px-2 py-1 rounded text-xs font-bold ${request.currentStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                                  {request.currentStatus}
-                              </span>
-                          </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          {['PAN', 'Aadhar', 'Signature'].map(type => {
-                              const kyc = kycs.find(k => k.documentType === type && k.userId === request.userId); // userId simplified for now
-                              const status = kyc?.currentStatus || 'Not Submitted';
-                              
-                              return (
-                                  <div key={type} className="bg-white p-4 rounded-lg border border-blue-100 flex flex-col justify-between">
-                                      <div>
-                                          <p className="text-xs font-bold text-gray-400 uppercase mb-1">{type} Document</p>
-                                          <div className="flex items-center gap-2">
-                                              <span className={`w-2 h-2 rounded-full ${status === 'Verified' ? 'bg-green-500' : status === 'Rejected' ? 'bg-red-500' : 'bg-orange-500'}`}></span>
-                                              <p className="text-sm font-semibold text-gray-900">{status}</p>
-                                          </div>
-                                      </div>
-                                      {status === 'Rejected' && (
-                                          <div className="mt-3">
-                                              <p className="text-[10px] text-red-600 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
-                                              <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto" onClick={() => {
-                                                  setReuploadDocType(type);
-                                                  setIsReuploadModalOpen(true);
-                                              }}>
-                                                  Fix & Re-upload
-                                              </Button>
-                                          </div>
-                                      )}
-                                  </div>
-                              );
-                          })}
-                      </div>
-                  </div>
-              ))}
+                      );
+                  })}
+              </div>
           </div>
       )}
 
@@ -560,7 +529,7 @@ export default function AccountsPage() {
                             onChange={(e) => setAadharNumber(e.target.value.replace(/\D/g, ''))}
                             required
                             disabled={isSubmittingKYC}
-                            placeholder="1234 5678 9012"
+                            placeholder="[Aadhaar Redacted]"
                             maxLength={12}
                         />
                         <div>
@@ -602,46 +571,198 @@ export default function AccountsPage() {
         )}
       </Modal>
 
+      {/* Transfer Modal Implementation */}
+      <Modal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        title="Transfer Funds"
+        description="Move money between your accounts or to a saved beneficiary."
+      >
+        <form onSubmit={handleTransfer} className="space-y-4">
+            {transferError && (
+                <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-md">
+                    {transferError}
+                </div>
+            )}
+            
+            <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Account</label>
+                <select 
+                    className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none" 
+                    value={fromAccountId} 
+                    onChange={(e) => setFromAccountId(e.target.value)} 
+                    required
+                >
+                    <option value="" disabled>Select Account</option>
+                    {accounts.filter(a => a.currentStatus === 'Active').map(acc => (
+                        <option key={acc._id} value={acc._id}>
+                            {acc.accountType} - {acc.accountNumber} ({acc.currency} {acc.balance.toLocaleString()})
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div>
+                <Input 
+                    label="To Account Number"
+                    type="text"
+                    value={toAccountNumber} 
+                    onChange={(e) => setToAccountNumber(e.target.value)} 
+                    placeholder="Recipient Account Number" 
+                    required 
+                />
+            </div>
+
+            <div>
+                <Input 
+                    label="Amount"
+                    type="number" 
+                    value={amount} 
+                    onChange={(e) => setAmount(e.target.value)} 
+                    placeholder="0.00" 
+                    required 
+                    min="0.01" 
+                    step="0.01" 
+                />
+            </div>
+
+            <div>
+                <Input 
+                    label="Memo / Note"
+                    type="text"
+                    value={memo} 
+                    onChange={(e) => setMemo(e.target.value)} 
+                    placeholder="What is this for?" 
+                />
+            </div>
+
+            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg space-y-3">
+                <div className="flex items-center gap-2">
+                    <input 
+                        type="checkbox" 
+                        id="saveBeneficiary" 
+                        checked={saveBeneficiary} 
+                        onChange={(e) => setSaveBeneficiary(e.target.checked)} 
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="saveBeneficiary" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Save as Beneficiary
+                    </label>
+                </div>
+                {saveBeneficiary && (
+                    <Input 
+                        label="Beneficiary Nickname"
+                        value={beneficiaryNickName} 
+                        onChange={e => setBeneficiaryNickName(e.target.value)} 
+                        placeholder="e.g. John's Rent" 
+                        required={saveBeneficiary} 
+                    />
+                )}
+
+                <div className="border-t border-gray-200 dark:border-slate-700 pt-3 flex items-center gap-2">
+                    <input 
+                        type="checkbox" 
+                        id="isScheduled" 
+                        checked={isScheduled} 
+                        onChange={(e) => setIsScheduled(e.target.checked)} 
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <label htmlFor="isScheduled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Schedule this transfer
+                    </label>
+                </div>
+                {isScheduled && (
+                    <div className="grid grid-cols-2 gap-4 mt-2">
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Frequency</label>
+                            <select 
+                                value={frequency} 
+                                onChange={e => setFrequency(e.target.value)} 
+                                className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                            >
+                                <option value="Daily">Daily</option>
+                                <option value="Weekly">Weekly</option>
+                                <option value="Monthly">Monthly</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
+                            <input 
+                                type="date" 
+                                value={startDate} 
+                                onChange={e => setStartDate(e.target.value)} 
+                                required={isScheduled} 
+                                className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <div className="flex gap-4 pt-2">
+                <Button type="button" variant="ghost" onClick={() => setIsTransferModalOpen(false)} className="w-full">
+                    Cancel
+                </Button>
+                <Button type="submit" variant="primary" isLoading={isTransferring} className="w-full">
+                    Confirm Transfer
+                </Button>
+            </div>
+        </form>
+      </Modal>
+
+      {/* Schedules Table */}
       {schedules.length > 0 && (
-          <div className="mb-6 pt-8 border-t border-gray-200">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Scheduled Transfers</h2>
-              <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="mb-6 pt-8 border-t border-gray-200 dark:border-slate-800 transition-colors">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Scheduled Transfers</h2>
+              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
                   <table className="w-full text-left">
-                      <thead className="bg-gray-50 border-b border-gray-100">
+                      <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
                           <tr>
-                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Schedule Detail</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Frequency</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Next Payment</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 uppercase text-right">Actions</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Schedule Detail</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Frequency</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Next Payment</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-right">Actions</th>
                           </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-50">
+                      <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
                           {schedules.map(sch => (
-                              <tr key={sch._id} className="hover:bg-gray-50/50">
+                              <tr key={sch._id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
                                   <td className="p-4">
-                                      <div className="font-bold text-gray-900">{sch.currency} {sch.amount.$numberDecimal || sch.amount}</div>
-                                      <div className="text-xs text-gray-500">To: {sch.beneficiaryId || "Saved Payee"}</div>
+                                      <div className="font-bold text-gray-900 dark:text-white">{sch.currency} {sch.amount.$numberDecimal || sch.amount}</div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400">To: {sch.beneficiaryId || "Saved Payee"}</div>
                                   </td>
                                   <td className="p-4">
-                                      <div className="text-sm font-medium text-gray-900">{sch.frequency}</div>
+                                      <div className="text-sm font-medium text-gray-900 dark:text-white">{sch.frequency}</div>
                                   </td>
-                                  <td className="p-4 text-sm text-gray-600">
+                                  <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
                                       {new Date(sch.nextRunDate).toLocaleDateString()}
                                   </td>
                                   <td className="p-4">
-                                      <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase ${sch.currentStatus === 'Active' ? 'bg-emerald-100 text-emerald-700' : sch.currentStatus === 'Paused' ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700'}`}>
+                                      <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase ${sch.currentStatus === 'Active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : sch.currentStatus === 'Paused' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
                                           {sch.currentStatus}
                                       </span>
                                   </td>
                                   <td className="p-4 text-right">
                                       {sch.currentStatus !== 'Cancelled' && (
                                           <div className="flex justify-end gap-2">
-                                              <Button type="button" variant="outline" size="sm" className="text-xs py-1 h-auto" onClick={() => updateScheduleStatus(sch._id, sch.currentStatus === 'Active' ? 'Paused' : 'Active')}>
-                                                  {sch.currentStatus === 'Active' ? 'Pause' : 'Resume'}
+                                              <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="text-xs py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800" 
+                                                onClick={() => updateScheduleStatus(sch._id, sch.currentStatus === 'Active' ? 'Paused' : 'Active')}
+                                              >
+                                                {sch.currentStatus === 'Active' ? 'Pause' : 'Resume'}
                                               </Button>
-                                              <Button type="button" variant="outline" size="sm" className="text-xs py-1 h-auto text-red-600 hover:bg-red-50" onClick={() => updateScheduleStatus(sch._id, 'Cancelled')}>
-                                                  Cancel
+                                              <Button 
+                                                type="button" 
+                                                variant="outline" 
+                                                size="sm" 
+                                                className="text-xs py-1 h-auto text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20" 
+                                                onClick={() => updateScheduleStatus(sch._id, 'Cancelled')}
+                                              >
+                                                Cancel
                                               </Button>
                                           </div>
                                       )}
@@ -654,185 +775,18 @@ export default function AccountsPage() {
           </div>
       )}
 
-      {/* Money Transfer Modal */}
-      <Modal
-        isOpen={isTransferModalOpen}
-        onClose={() => !isTransferring && setIsTransferModalOpen(false)}
-        title="Transfer Funds"
-        description="Securely transfer money to any internal account."
-      >
-        <form onSubmit={handleTransfer} className="space-y-4">
-          {transferError && (
-            <div className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 p-3 rounded-md text-sm border border-red-200 dark:border-red-800/30">
-              {transferError}
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Account</label>
-            <select
-              className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 sm:text-sm shadow-sm outline-none transition-colors"
-              value={fromAccountId}
-              onChange={(e) => setFromAccountId(e.target.value)}
-              required
-              disabled={isTransferring}
-            >
-              {accounts.filter(a => a.currentStatus === 'Active').map(acc => (
-                <option key={acc._id} value={acc._id}>
-                  {acc.accountType} (****{acc.accountNumber.slice(-4)}) - {acc.currency} {acc.balance.toLocaleString()}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Recipient Account</label>
-            <div className="space-y-3">
-                {beneficiaries.length > 0 && (
-                    <select
-                        className="w-full border border-blue-200 dark:border-blue-800/50 rounded-md px-3 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300 text-sm focus:ring-blue-500 outline-none transition-colors"
-                        onChange={(e) => {
-                            const b = beneficiaries.find(x => x._id === e.target.value);
-                            if (b) {
-                                setToAccountNumber(b.accountNumber);
-                                setBeneficiaryNickName(b.nickName);
-                            }
-                        }}
-                        disabled={isTransferring}
-                    >
-                        <option value="">Select Saved Payee (Optional)</option>
-                        {beneficiaries.map(b => (
-                            <option key={b._id} value={b._id}>{b.nickName} - {b.accountNumber}</option>
-                        ))}
-                    </select>
-                )}
-                <Input
-                    type="text"
-                    value={toAccountNumber}
-                    onChange={(e) => {
-                        setToAccountNumber(e.target.value.replace(/\D/g, ''));
-                        setSaveBeneficiary(true);
-                    }}
-                    required
-                    disabled={isTransferring}
-                    placeholder="Enter recipient account number"
-                />
-            </div>
-          </div>
-
-          <Input
-            label="Amount"
-            type="number"
-            step="0.01"
-            min="1"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            required
-            disabled={isTransferring}
-            placeholder="0.00"
+      {/* Reupload Modal */}
+      {isReuploadModalOpen && (
+          <ReuploadModal 
+              isOpen={isReuploadModalOpen} 
+              onClose={() => setIsReuploadModalOpen(false)} 
+              documentType={reuploadDocType} 
+              onSuccess={() => {
+                  setIsReuploadModalOpen(false);
+                  fetchKycs();
+              }} 
           />
-
-          <Input
-            label="Memo (Optional)"
-            type="text"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            disabled={isTransferring}
-            placeholder="e.g., Rent Payment"
-            maxLength={50}
-          />
-
-          {!beneficiaries.some(b => b.accountNumber === toAccountNumber) && toAccountNumber && (
-              <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border border-gray-200 dark:border-slate-700 space-y-3 transition-colors">
-                  <div className="flex items-center gap-2">
-                      <input 
-                        type="checkbox" 
-                        id="save-ben" 
-                        checked={saveBeneficiary} 
-                        onChange={(e) => setSaveBeneficiary(e.target.checked)}
-                        className="rounded border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-blue-600 focus:ring-blue-500"
-                      />
-                      <label htmlFor="save-ben" className="text-sm font-medium text-gray-700 dark:text-gray-300">Save this Payee for later?</label>
-                  </div>
-                  {saveBeneficiary && (
-                       <Input
-                        label="Payee Nickname"
-                        type="text"
-                        value={beneficiaryNickName}
-                        onChange={(e) => setBeneficiaryNickName(e.target.value)}
-                        placeholder="e.g., Landlord"
-                        maxLength={20}
-                        required
-                    />
-                  )}
-              </div>
-          )}
-
-          <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100 space-y-3">
-              <div className="flex items-center gap-2">
-                  <input 
-                    type="checkbox" 
-                    id="schedule-transfer" 
-                    checked={isScheduled} 
-                    onChange={(e) => setIsScheduled(e.target.checked)}
-                    className="rounded text-blue-600 focus:ring-blue-500 border-blue-300 w-4 h-4"
-                  />
-                  <label htmlFor="schedule-transfer" className="text-sm font-medium text-blue-800">Schedule this transfer (Recurring)</label>
-              </div>
-              {isScheduled && (
-                  <div className="grid grid-cols-2 gap-4 pt-2">
-                      <div>
-                          <label className="block text-xs font-medium text-blue-700 mb-1">Frequency</label>
-                          <select 
-                            className="w-full border border-blue-200 rounded-md px-3 py-1.5 bg-white text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            value={frequency}
-                            onChange={(e) => setFrequency(e.target.value)}
-                            required
-                          >
-                              <option value="Once">Once Later</option>
-                              <option value="Daily">Daily</option>
-                              <option value="Weekly">Weekly</option>
-                              <option value="Monthly">Monthly</option>
-                              <option value="Quarterly">Quarterly</option>
-                              <option value="Yearly">Yearly</option>
-                          </select>
-                      </div>
-                      <div>
-                          <label className="block text-xs font-medium text-blue-700 mb-1">Start / Execution Date</label>
-                          <input
-                              type="date"
-                              value={startDate}
-                              onChange={(e) => setStartDate(e.target.value)}
-                              required={isScheduled}
-                              min={new Date().toISOString().split('T')[0]}
-                              className="w-full border border-blue-200 rounded-md px-3 py-1.5 bg-white text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                          />
-                      </div>
-                  </div>
-              )}
-          </div>
-
-          <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 mt-6">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={() => setIsTransferModalOpen(false)}
-              disabled={isTransferring}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" isLoading={isTransferring}>
-              Confirm Transfer
-            </Button>
-          </div>
-        </form>
-      </Modal>
-      <ReuploadModal 
-        isOpen={isReuploadModalOpen} 
-        onClose={() => setIsReuploadModalOpen(false)} 
-        documentType={reuploadDocType} 
-        onSuccess={fetchKycs} 
-      />
+      )}
     </div>
   );
 }

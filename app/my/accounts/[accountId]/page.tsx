@@ -92,7 +92,7 @@ export default function AccountHistoryPage() {
       <div className="max-w-7xl mx-auto py-20 text-center animate-fade-in">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Account Not Found</h2>
         <p className="text-gray-500 dark:text-gray-400 mb-6">We couldn&apos;t load the details for this account.</p>
-        <Button onClick={() => router.push("/my/accounts")} variant="default">Return to Accounts</Button>
+        <Button onClick={() => router.push("/my/accounts")} variant="primary">Return to Accounts</Button>
       </div>
     );
   }

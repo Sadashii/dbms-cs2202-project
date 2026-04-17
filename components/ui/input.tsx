@@ -3,10 +3,11 @@ import React, { InputHTMLAttributes } from "react";
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
+  helperText?: React.ReactNode;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, className = "", ...props }, ref) => {
+  ({ label, error, helperText, className = "", ...props }, ref) => {
     return (
       <div className="w-full">
         {label && (
@@ -23,9 +24,12 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ${error ? "border-red-500" : ""} ${className}`}
           {...props}
         />
-        {error && (
-          <p className="mt-1 text-xs text-red-500 dark:text-red-400">{error}</p>
-        )}
+        {/* Error state takes precedence, otherwise show helper text if provided */}
+        {error ? (
+          <p className="mt-1.5 text-xs text-red-500 dark:text-red-400">{error}</p>
+        ) : helperText ? (
+          <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{helperText}</p>
+        ) : null}
       </div>
     );
   },
