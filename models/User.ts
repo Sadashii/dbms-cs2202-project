@@ -10,6 +10,7 @@ export interface IUser extends Document {
     
     currentStatus: 'Active' | 'Suspended' | 'Disabled' | 'Pending_KYC';
     role: 'Customer' | 'Employee' | 'Manager' | 'Admin';
+    branchId?: Types.ObjectId;
 
     previousEmails: Array<{ address: string; changedAt: Date }>;
     passwords: Array<{ hash: string; createdAt: Date }>;
@@ -61,6 +62,11 @@ const UserSchema = new Schema<IUser>({
         type: String, 
         enum: ['Customer', 'Employee', 'Manager', 'Admin'], 
         default: 'Customer',
+        index: true
+    },
+    branchId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Branch',
         index: true
     },
 

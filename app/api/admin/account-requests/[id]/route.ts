@@ -26,16 +26,41 @@ export async function PATCH(
 
         await dbConnect();
 
-        const { id } = (await context.params); // ✅ safe access
+        const { id } = (await context.params);
         const body = await req.json();
-
-        if (body.action !== "approve") {
-            return NextResponse.json({ message: "Invalid action" }, { status: 400 });
-        }
 
         const accountReq = await AccountRequest.findById(id);
         if (!accountReq) {
             return NextResponse.json({ message: "Request not found" }, { status: 404 });
+        }
+
+        if (body.action === "reject") {
+            accountReq.currentStatus = 'Rejected';
+            accountReq.metadata = {
+                ...accountReq.metadata,
+                rejectionReason: body.reason || "Documents do not meet requirements.",
+                reviewedBy: decoded.userId
+            };
+            await accountReq.save();
+
+            // Log the rejection
+            await createAuditLog({
+                userId: decoded.userId,
+                userRole: decoded.role,
+                actionType: 'ACCOUNT_REJECTED',
+                category: 'Administrative',
+                severity: 'Medium',
+                resource: 'AccountRequest',
+                resourceId: accountReq._id,
+                description: `Account request for user ${accountReq.userId} was rejected. Reason: ${body.reason || "N/A"}`,
+                currentStatus: 'Success',
+            });
+
+            return NextResponse.json({ message: "Account Request Rejected" }, { status: 200 });
+        }
+
+        if (body.action !== "approve") {
+            return NextResponse.json({ message: "Invalid action" }, { status: 400 });
         }
 
         if (accountReq.currentStatus === 'Approved') {
@@ -43,11 +68,23 @@ export async function PATCH(
         }
 
         const userKycs = await KYC.find({ userId: accountReq.userId });
-        const allVerified = userKycs.length > 0 && userKycs.every(k => k.currentStatus === 'Verified');
+        
+        // Define required document types
+        const requiredDocs = ['PAN', 'Aadhar', 'Signature'];
+        const foundDocs = userKycs.filter(k => requiredDocs.includes(k.documentType));
+        
+        const allVerified = foundDocs.length === requiredDocs.length && foundDocs.every(k => k.currentStatus === 'Verified');
+        const anyRejected = userKycs.some(k => k.currentStatus === 'Rejected');
+
+        if (anyRejected) {
+            return NextResponse.json({
+                message: "Cannot approve. One or more KYC documents are currently Rejected. User must re-upload."
+            }, { status: 403 });
+        }
 
         if (!allVerified) {
             return NextResponse.json({
-                message: "Cannot approve. All attached KYCs must be verified first."
+                message: "Cannot approve. All mandatory KYC documents (PAN, Aadhar, Signature) must be Verified first."
             }, { status: 403 });
         }
 
@@ -63,7 +100,7 @@ export async function PATCH(
             balance: 0,
             currency: "INR",
             currentStatus: "Active",
-            branchId: null
+            branchId: accountReq.branchId || null
         });
 
         // Log the account creation

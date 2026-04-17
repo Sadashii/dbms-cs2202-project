@@ -4,28 +4,84 @@ import Branch from "@/models/Branches";
 import { headers } from "next/headers";
 import jwt from "jsonwebtoken";
 
-const isAdmin = async (request: Request) => {
-    try {
-        const authHeader = request.headers.get("Authorization");
-        if (!authHeader || !authHeader.startsWith("Bearer ")) return false;
-        
-        const token = authHeader.split(" ")[1];
-        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET!) as { userId: string, role: string };
-        
-        return decoded.role === 'Admin';
-    } catch {
-        return false;
-    }
-};
+import { verifyAuth } from "@/lib/auth";
 
 export async function GET(request: Request) {
     try {
-        if (!(await isAdmin(request))) {
-            return NextResponse.json({ message: "Unauthorized. Admin access required." }, { status: 403 });
+        const decoded = verifyAuth(await headers());
+        if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+
+        // Allow Customers to see branch list for selections
+        if (!['Admin', 'Manager', 'Employee', 'Customer'].includes(decoded.role)) {
+            return NextResponse.json({ message: "Forbidden" }, { status: 403 });
         }
+
         await dbConnect();
-        // Since we may not have actual User manager mappings easily, we omit populating for now
-        const branches = await Branch.find().sort({ createdAt: -1 });
+        
+        // Use aggregation for metrics
+        const branches = await Branch.aggregate([
+            {
+                $lookup: {
+                    from: "accounts",
+                    localField: "_id",
+                    foreignField: "branchId",
+                    as: "branchAccounts"
+                }
+            },
+            {
+                $lookup: {
+                    from: "loans",
+                    localField: "branchAccounts._id",
+                    foreignField: "accountId",
+                    as: "branchLoans"
+                }
+            },
+            {
+                $lookup: {
+                    from: "transactions",
+                    localField: "branchAccounts._id",
+                    foreignField: "metadata.accountId",
+                    as: "branchTransactions"
+                }
+            },
+            {
+                $addFields: {
+                    totalLoanVolume: { 
+                        $sum: {
+                            $map: {
+                                input: {
+                                    $filter: {
+                                        input: "$branchLoans",
+                                        as: "loan",
+                                        cond: { $in: ["$$loan.currentStatus", ["Approved", "Disbursed", "Active"]] }
+                                    }
+                                },
+                                as: "l",
+                                in: { $toDouble: "$$l.principalAmount" }
+                            }
+                        }
+                    },
+                    transactionVolume: { 
+                        $size: {
+                            $filter: {
+                                input: "$branchTransactions",
+                                as: "tx",
+                                cond: { $eq: ["$$tx.currentStatus", "Completed"] }
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    branchAccounts: 0,
+                    branchLoans: 0,
+                    branchTransactions: 0
+                }
+            },
+            { $sort: { createdAt: -1 } }
+        ]);
+
         return NextResponse.json({ branches }, { status: 200 });
     } catch (error: any) {
         return NextResponse.json({ message: error.message }, { status: 500 });
@@ -34,7 +90,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        if (!(await isAdmin(request))) {
+        const decoded = verifyAuth(await headers());
+        if (!decoded || decoded.role !== 'Admin') {
             return NextResponse.json({ message: "Unauthorized. Admin access required." }, { status: 403 });
         }
         await dbConnect();
@@ -74,7 +131,8 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
     try {
-        if (!(await isAdmin(request))) {
+        const decoded = verifyAuth(await headers());
+        if (!decoded || decoded.role !== 'Admin') {
             return NextResponse.json({ message: "Unauthorized. Admin access required." }, { status: 403 });
         }
         await dbConnect();

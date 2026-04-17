@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
         const accountType = formData.get("accountType") as string;
         const panNumber = formData.get("panNumber") as string;
         const aadharNumber = formData.get("aadharNumber") as string;
+        const branchId = formData.get("branchId") as string;
 
         const panCard = formData.get("panCard") as File | null;
         const signature = formData.get("signature") as File | null;
@@ -55,6 +56,7 @@ export async function POST(req: NextRequest) {
                 signatureFileUrl,
                 aadharFileUrl
             },
+            branchId: branchId || undefined,
             currentStatus: "Pending_KYC"
         });
 
@@ -92,6 +94,21 @@ export async function POST(req: NextRequest) {
             currentStatus: 'Pending'
         });
 
+        await KYC.create({
+            kycReference: `SIGNATURE-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            userId,
+            documentType: 'Signature',
+            documentDetails: {
+                issuedCountry: 'India'
+            },
+            attachments: [{
+                fileUrl: signatureFileUrl,
+                fileName: signature.name,
+                fileType: 'Full'
+            }],
+            currentStatus: 'Pending'
+        });
+
         return NextResponse.json(
             { message: "Account request and KYC submitted successfully.", request: newAccountRequest },
             { status: 201 }
@@ -117,13 +134,14 @@ export async function PATCH(req: NextRequest) {
         const aadhar = formData.get("aadhar") as File | null;
         const panNumber = formData.get("panNumber") as string;
         const aadharNumber = formData.get("aadharNumber") as string;
+        const kycType = formData.get("kycType") as string; // Optional: specify which one is being re-uploaded
 
         const request = await AccountRequest.findOne({ userId, currentStatus: { $ne: 'Approved' } });
         if (!request) return NextResponse.json({ message: "No active account request found for remediation." }, { status: 404 });
 
         const updates: any = {};
         
-        if (panCard) {
+        if (panCard || (kycType === 'PAN' && panCard)) {
             const url = await saveFile(panCard, 'pan');
             request.kycDocuments.panCardFileUrl = url;
             await KYC.findOneAndUpdate(
@@ -138,7 +156,7 @@ export async function PATCH(req: NextRequest) {
             updates.pan = "Updated";
         }
 
-        if (aadhar) {
+        if (aadhar || (kycType === 'Aadhar' && aadhar)) {
             const url = await saveFile(aadhar, 'aadhar');
             request.kycDocuments.aadharFileUrl = url;
             await KYC.findOneAndUpdate(
@@ -153,10 +171,18 @@ export async function PATCH(req: NextRequest) {
             updates.aadhar = "Updated";
         }
 
-        if (signature) {
+        if (signature || (kycType === 'Signature' && signature)) {
             const url = await saveFile(signature, 'signature');
             request.kycDocuments.signatureFileUrl = url;
-            // Handle Signature KYC if your model tracks it, or just update the request
+            await KYC.findOneAndUpdate(
+                { userId, documentType: 'Signature' },
+                {
+                    currentStatus: 'Pending',
+                    attachments: [{ fileUrl: url, fileName: signature.name, fileType: 'Full' }],
+                    documentDetails: { issuedCountry: 'India' }
+                },
+                { upsert: true }
+            );
             updates.signature = "Updated";
         }
 

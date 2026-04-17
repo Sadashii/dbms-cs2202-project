@@ -15,12 +15,12 @@ export async function GET() {
         // Fetch specific KYC records (PAN, Aadhar, etc.)
         const kycs = await KYC.find({ userId: decoded.userId }).sort({ createdAt: -1 });
         
-        // Fetch the global Account Request to see global status/account type
-        const accountRequest = await AccountRequest.findOne({ userId: decoded.userId }).sort({ createdAt: -1 });
+        // Fetch the global Account Requests to see global status/account types
+        const accountRequests = await AccountRequest.find({ userId: decoded.userId }).sort({ createdAt: -1 });
 
         return NextResponse.json({ 
             documents: kycs, 
-            request: accountRequest 
+            requests: accountRequests 
         });
     } catch (error) {
         console.error("KYC Fetch Error:", error);

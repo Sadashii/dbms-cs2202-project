@@ -5,7 +5,7 @@ export interface IKYC extends Document {
     kycReference: string; 
     userId: Types.ObjectId; 
     
-    documentType: 'Passport' | 'SSN' | 'National_ID' | 'Driving_License' | 'PAN' | 'Aadhar';
+    documentType: 'Passport' | 'SSN' | 'National_ID' | 'Driving_License' | 'PAN' | 'Aadhar' | 'Signature';
     
     documentDetails: {
         // The actual number MUST be encrypted at the application layer before saving to Mongo.
@@ -66,13 +66,13 @@ const KYCSchema = new Schema<IKYC>({
     },
     documentType: { 
         type: String, 
-        enum: ['Passport', 'SSN', 'National_ID', 'Driving_License', 'PAN', 'Aadhar'], 
+        enum: ['Passport', 'SSN', 'National_ID', 'Driving_License', 'PAN', 'Aadhar', 'Signature'], 
         required: true, 
         immutable: true // Cannot change document type once submitted
     },
     documentDetails: {
-        encryptedNumber: { type: String, required: true, immutable: true },
-        numberHash: { type: String, required: true, index: true, immutable: true },
+        encryptedNumber: { type: String, required: false, immutable: true },
+        numberHash: { type: String, required: false, index: true, immutable: true },
         expiryDate: { type: Date, immutable: true },
         issuedCountry: { type: String, required: true, default: 'India', immutable: true }
     },

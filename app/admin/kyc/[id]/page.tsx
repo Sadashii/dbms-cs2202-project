@@ -130,6 +130,35 @@ export default function FocusedKYCPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Col: Details & Attachments */}
         <div className="lg:col-span-2 space-y-6">
+          {(() => {
+            const lastRejection = [...(kyc.statusHistory || [])]
+              .reverse()
+              .find(h => h.state === 'Rejected');
+            
+            if (lastRejection && (kyc.currentStatus === 'Pending' || kyc.currentStatus === 'In-Review')) {
+              return (
+                <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4 flex items-start gap-4 animate-in fade-in slide-in-from-top-1 px-4">
+                  <div className="bg-orange-100 p-2 rounded-lg text-orange-600">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black text-orange-800 uppercase tracking-tight">Re-uploaded Document Context</h3>
+                    <p className="text-xs text-orange-700 mt-1 leading-relaxed">
+                      This document was previously <span className="font-bold border-b border-orange-300">Rejected</span>. 
+                      Please verify if the current submission addresses the following previous anomaly:
+                    </p>
+                    <div className="mt-2 bg-white/50 border border-orange-100 p-2 rounded-lg text-[11px] font-mono text-orange-900 break-words italic">
+                      "{lastRejection.remarks || "No specific reason provided."}"
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
             <h2 className="text-lg font-bold text-gray-900 mb-4 border-b pb-2">Document Information</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
@@ -161,7 +190,7 @@ export default function FocusedKYCPage() {
                   <p className="font-medium text-gray-900">{new Date(kyc.documentDetails.expiryDate).toLocaleDateString()}</p>
                 </div>
               )}
-              {kyc.documentDetails?.encryptedNumber && (
+              {kyc.documentType !== 'Signature' && kyc.documentDetails?.encryptedNumber && kyc.documentDetails.encryptedNumber !== 'N/A' && (
                 <div className="col-span-2">
                   <p className="text-gray-500 uppercase tracking-wider text-xs mb-1">Decrypted ID Number</p>
                   <p className="font-medium text-gray-900 tracking-widest font-mono bg-blue-50 px-2 py-1 inline-block rounded">

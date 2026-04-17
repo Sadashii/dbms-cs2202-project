@@ -9,6 +9,7 @@ export interface IAccountRequest extends Document {
         signatureFileUrl: string;
         aadharFileUrl: string;
     };
+    branchId?: Types.ObjectId; 
     
     currentStatus: 'Pending_KYC' | 'Approved' | 'Rejected';
     
@@ -47,6 +48,12 @@ const AccountRequestSchema = new Schema<IAccountRequest>({
         panCardFileUrl: { type: String, required: true },
         signatureFileUrl: { type: String, required: true },
         aadharFileUrl: { type: String, required: true }
+    },
+    branchId: { 
+        type: Schema.Types.ObjectId, 
+        ref: 'Branch', 
+        required: false, // For older requests
+        index: true 
     },
     currentStatus: { 
         type: String, 

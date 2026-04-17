@@ -32,7 +32,17 @@ export async function GET(req: NextRequest) {
             return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
         });
 
-        return NextResponse.json(sortedRecords, { status: 200 });
+        // Add re-uploaded flag
+        const enrichedRecords = sortedRecords.map(doc => {
+            const hasBeenRejected = doc.statusHistory?.some((h: any) => h.state === 'Rejected');
+            const isReuploaded = (doc.currentStatus === 'Pending' || doc.currentStatus === 'In-Review') && hasBeenRejected;
+            return {
+                ...doc,
+                isReuploaded
+            };
+        });
+
+        return NextResponse.json(enrichedRecords, { status: 200 });
     } catch (error: any) {
         console.error("Error fetching KYCs:", error);
         return NextResponse.json({ message: "Internal server error" }, { status: 500 });

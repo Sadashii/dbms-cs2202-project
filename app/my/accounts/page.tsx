@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
+import { ReuploadModal } from "@/components/ReuploadModal";
 
 interface Account {
   _id: string;
@@ -27,7 +28,7 @@ export default function AccountsPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
   const [kycs, setKycs] = useState<any[]>([]); // New state for KYC document status
-  const [accountRequest, setAccountRequest] = useState<any>(null); // New state for global request
+  const [accountRequests, setAccountRequests] = useState<any[]>([]); // Changed to handle list of requests
   const [schedules, setSchedules] = useState<any[]>([]);
 
   // Transfer Modal State
@@ -51,6 +52,15 @@ export default function AccountsPage() {
   const [kycStatus, setKycStatus] = useState<"idle" | "pending">("idle");
   const [newAccountType, setNewAccountType] = useState("Savings");
   
+  // Branch Selection State
+  const [branches, setBranches] = useState<any[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState("");
+  const [branchSearch, setBranchSearch] = useState("");
+  
+  // Reupload Modal State
+  const [isReuploadModalOpen, setIsReuploadModalOpen] = useState(false);
+  const [reuploadDocType, setReuploadDocType] = useState("");
+
   // File & Document Data States
   const [panFile, setPanFile] = useState<File | null>(null);
   const [panNumber, setPanNumber] = useState("");
@@ -91,7 +101,7 @@ export default function AccountsPage() {
       if (res.ok) {
         const data = await res.json();
         setKycs(data.documents || []);
-        setAccountRequest(data.request);
+        setAccountRequests(data.requests || []);
       }
     } catch (e) { console.error(e); }
   };
@@ -116,12 +126,25 @@ export default function AccountsPage() {
     } catch (e) { console.error(e); }
   };
 
+  const fetchBranches = async () => {
+    try {
+      const res = await apiFetch("/api/admin/branches");
+      if (res.ok) {
+        const data = await res.json();
+        setBranches(data.branches || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch branches:", e);
+    }
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
       fetchAccounts(page);
       fetchKycs();
       fetchBeneficiaries();
       fetchSchedules();
+      fetchBranches();
     }
   }, [apiFetch, page, isLoggedIn]);
 
@@ -234,15 +257,16 @@ export default function AccountsPage() {
     try {
         const formData = new FormData();
         formData.append("accountType", newAccountType);
-        if (panNumber) formData.append("panNumber", panNumber);
-        if (aadharNumber) formData.append("aadharNumber", aadharNumber);
+        formData.append("panNumber", panNumber);
+        formData.append("aadharNumber", aadharNumber);
+        if (selectedBranchId) formData.append("branchId", selectedBranchId);
         
         if (panFile) formData.append("panCard", panFile);
         if (aadharFile) formData.append("aadhar", aadharFile);
         if (signatureFile) formData.append("signature", signatureFile);
 
         // Detect if this is a remediation (PATCH) or a new request (POST)
-        const method = (accountRequest && accountRequest.currentStatus !== 'Approved') ? "PATCH" : "POST";
+        const method = "POST"; // New request is always POST from this modal
 
         const response = await apiFetch("/api/account-requests", {
             method: method,
@@ -254,7 +278,7 @@ export default function AccountsPage() {
             throw new Error(errorData.message || "Failed to submit request");
         }
 
-        toast.success(method === "PATCH" ? "Documents re-submitted for review." : "Registration submitted successfully.");
+        toast.success("Registration submitted successfully.");
         setKycStatus("pending");
         fetchKycs(); // Refresh status tracking
         
@@ -295,47 +319,54 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* KYC & Account Request Status Tracking */}
-      {accountRequest && (accountRequest.currentStatus !== 'Approved') && (
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-sm mb-6">
-              <div className="flex items-center justify-between mb-4">
-                  <div>
-                      <h2 className="text-lg font-bold text-blue-900">Account Request Status: {accountRequest.currentStatus.replace('_', ' ')}</h2>
-                      <p className="text-sm text-blue-700">Tracking progress for your {accountRequest.accountType} account.</p>
-                  </div>
-                  <div className="flex gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
-                          {accountRequest.currentStatus}
-                      </span>
-                  </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {['PAN', 'Aadhar', 'Signature'].map(type => {
-                      const kyc = kycs.find(k => k.documentType === type) || (type === 'Signature' ? { currentStatus: 'Pending' } : null);
-                      const status = kyc?.currentStatus || 'Not Submitted';
-                      
-                      return (
-                          <div key={type} className="bg-white p-4 rounded-lg border border-blue-100 flex flex-col justify-between">
-                              <div>
-                                  <p className="text-xs font-bold text-gray-400 uppercase mb-1">{type} Document</p>
-                                  <div className="flex items-center gap-2">
-                                      <span className={`w-2 h-2 rounded-full ${status === 'Verified' ? 'bg-green-500' : status === 'Rejected' ? 'bg-red-500' : 'bg-orange-500'}`}></span>
-                                      <p className="text-sm font-semibold text-gray-900">{status}</p>
-                                  </div>
-                              </div>
-                              {status === 'Rejected' && (
-                                  <div className="mt-3">
-                                      <p className="text-[10px] text-red-600 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
-                                      <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto" onClick={() => setIsNewAccountModalOpen(true)}>
-                                          Fix & Re-upload
-                                      </Button>
-                                  </div>
-                              )}
+      {/* KYC & Account Requests Status Tracking */}
+      {accountRequests.length > 0 && accountRequests.some(r => r.currentStatus !== 'Approved') && (
+          <div className="space-y-6">
+              {accountRequests.filter(r => r.currentStatus !== 'Approved').map(request => (
+                  <div key={request._id} className="bg-blue-50 border border-blue-200 rounded-xl p-6 shadow-sm mb-6">
+                      <div className="flex items-center justify-between mb-4">
+                          <div>
+                              <h2 className="text-lg font-bold text-blue-900">Account Request Status: {request.currentStatus.replace('_', ' ')}</h2>
+                              <p className="text-sm text-blue-700">Tracking progress for your {request.accountType} account.</p>
                           </div>
-                      );
-                  })}
-              </div>
+                          <div className="flex gap-2">
+                              <span className={`px-2 py-1 rounded text-xs font-bold ${request.currentStatus === 'Rejected' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'}`}>
+                                  {request.currentStatus}
+                              </span>
+                          </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          {['PAN', 'Aadhar', 'Signature'].map(type => {
+                              const kyc = kycs.find(k => k.documentType === type && k.userId === request.userId); // userId simplified for now
+                              const status = kyc?.currentStatus || 'Not Submitted';
+                              
+                              return (
+                                  <div key={type} className="bg-white p-4 rounded-lg border border-blue-100 flex flex-col justify-between">
+                                      <div>
+                                          <p className="text-xs font-bold text-gray-400 uppercase mb-1">{type} Document</p>
+                                          <div className="flex items-center gap-2">
+                                              <span className={`w-2 h-2 rounded-full ${status === 'Verified' ? 'bg-green-500' : status === 'Rejected' ? 'bg-red-500' : 'bg-orange-500'}`}></span>
+                                              <p className="text-sm font-semibold text-gray-900">{status}</p>
+                                          </div>
+                                      </div>
+                                      {status === 'Rejected' && (
+                                          <div className="mt-3">
+                                              <p className="text-[10px] text-red-600 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
+                                              <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto" onClick={() => {
+                                                  setReuploadDocType(type);
+                                                  setIsReuploadModalOpen(true);
+                                              }}>
+                                                  Fix & Re-upload
+                                              </Button>
+                                          </div>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </div>
+              ))}
           </div>
       )}
 
@@ -771,6 +802,12 @@ export default function AccountsPage() {
           </div>
         </form>
       </Modal>
+      <ReuploadModal 
+        isOpen={isReuploadModalOpen} 
+        onClose={() => setIsReuploadModalOpen(false)} 
+        documentType={reuploadDocType} 
+        onSuccess={fetchKycs} 
+      />
     </div>
   );
 }
