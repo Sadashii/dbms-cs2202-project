@@ -14,27 +14,23 @@ export default function LoginPage() {
   const [step, setStep] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Form State
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // OTP array state matching your original logic
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   
-  // Error State
   const [errors, setErrors] = useState<{ email?: string; password?: string; otp?: string }>({});
 
-  // Redirect to dashboard if already logged in
   useEffect(() => {
     if (isLoggedIn) {
       router.push("/my/overview");
     }
   }, [isLoggedIn, router]);
 
-  // --- OTP Input Handlers (Adapted from your inspiration) ---
+  // --- OTP Input Handlers ---
   const onOTPPaste = (input_index: number) => (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
     const pastedData = e.clipboardData.getData('text/plain');
-    if (!/^\d+$/.test(pastedData)) return; // Only allow numbers
+    if (!/^\d+$/.test(pastedData)) return;
 
     setOtp(state => {
       const new_otp = [...state];
@@ -44,7 +40,6 @@ export default function LoginPage() {
         }
       }
       
-      // Auto-focus the next empty input or the last input
       setTimeout(() => {
         document.getElementById(`otp-${Math.min(input_index + pastedData.length, new_otp.length - 1)}`)?.focus();
       }, 0);
@@ -57,7 +52,6 @@ export default function LoginPage() {
     const val = e.target.value;
     const char = val.slice(-1);
 
-    // Only allow digits
     if (char && !/^\d$/.test(char)) return;
 
     setOtp(state => {
@@ -66,7 +60,6 @@ export default function LoginPage() {
       return new_otp;
     });
 
-    // Auto-advance to next input
     if (char && input_index < 5) {
       setTimeout(() => {
         document.getElementById(`otp-${input_index + 1}`)?.focus();
@@ -75,7 +68,6 @@ export default function LoginPage() {
   };
 
   const onOTPKeyDown = (input_index: number) => (e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Handle backspace to auto-focus previous input
     if (e.key === 'Backspace' && otp[input_index] === '') {
       e.preventDefault(); 
       if (input_index > 0) {
@@ -84,11 +76,8 @@ export default function LoginPage() {
     }        
   };
 
-  // --- Submit Handlers ---
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validate Inputs locally before hitting the API
     const validation = verifyConstraints({
       email: { value: email },
       password: { value: password }
@@ -104,7 +93,6 @@ export default function LoginPage() {
     const success = await getLoginOTP(email, password);
     if (success) {
       setStep(2);
-      // Auto focus the first OTP box when entering step 2
       setTimeout(() => {
         document.getElementById('otp-0')?.focus();
       }, 100);
@@ -114,7 +102,6 @@ export default function LoginPage() {
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     const otpString = otp.join('');
     if (otpString.length < 6) {
       setErrors({ otp: "Please complete the 6-digit OTP." });
@@ -126,26 +113,25 @@ export default function LoginPage() {
 
     const success = await verifyLogin(email, password, otpString);
     if (success) {
-      router.push("/my/overview"); // Navigate to secure dashboard on success
+      router.push("/my/overview");
     } else {
       setErrors({ otp: "Invalid OTP. Please try again." });
     }
-    
     setIsSubmitting(false);
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-4rem)] flex-1 flex-col justify-center px-6 py-12 lg:px-8 bg-slate-50">
+    <div className="flex min-h-screen flex-1 flex-col justify-center px-6 py-12 lg:px-8 bg-white dark:bg-slate-950 transition-colors duration-300">
       <div className="sm:mx-auto sm:w-full sm:max-w-sm">
-        <div className="mx-auto h-12 w-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+        <div className="mx-auto h-12 w-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg border-2 border-white dark:border-slate-800">
           <span className="text-white font-bold text-3xl leading-none">V</span>
         </div>
-        <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
+        <h2 className="mt-6 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white transition-colors">
           Sign in to your Vault
         </h2>
       </div>
 
-      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm bg-white p-8 border border-gray-200 rounded-xl shadow-sm">
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-sm bg-white dark:bg-slate-900 p-8 border border-gray-200 dark:border-slate-800 rounded-2xl shadow-sm transition-all">
         {step === 1 ? (
           <form className="space-y-6" onSubmit={handleSendOTP}>
             <Input
@@ -171,20 +157,20 @@ export default function LoginPage() {
             />
 
             <div>
-              <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting}>
+              <Button type="submit" className="w-full h-12 text-base" size="lg" isLoading={isSubmitting}>
                 Secure Login
               </Button>
             </div>
           </form>
         ) : (
           <form className="space-y-6" onSubmit={handleVerifyOTP}>
-            <div className="text-sm text-gray-600 mb-6 text-center">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-6 text-center">
               We've sent a 6-digit verification code to <br/>
-              <span className="font-semibold text-gray-900">{email}</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">{email}</span>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+            <div className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-center">
                 Enter Secure Code
               </label>
               <div className="flex gap-2 sm:gap-3 justify-center">
@@ -195,11 +181,9 @@ export default function LoginPage() {
                     name={`otp-${index}`}
                     type="number"
                     maxLength={1}
-                    min={0}
-                    max={9}
-                    className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                      errors.otp ? "border-red-300 focus:border-red-500 focus:ring-red-500" : "border-gray-300 focus:border-blue-500"
-                    }`}
+                    className={`w-10 h-12 sm:w-12 sm:h-14 text-center text-xl font-bold rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none 
+                    bg-white dark:bg-slate-950 text-gray-900 dark:text-white
+                    ${errors.otp ? "border-red-500 ring-red-500" : "border-gray-300 dark:border-slate-700"} `}
                     onPaste={onOTPPaste(index)}
                     onChange={onOTPEnter(index)}
                     onKeyDown={onOTPKeyDown(index)}
@@ -209,14 +193,14 @@ export default function LoginPage() {
                 ))}
               </div>
               {errors.otp && (
-                <p className="mt-2 text-sm text-red-600 text-center animate-fade-in">
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400 text-center animate-fade-in">
                   {errors.otp}
                 </p>
               )}
             </div>
 
             <div className="pt-2">
-              <Button type="submit" className="w-full" size="lg" isLoading={isSubmitting}>
+              <Button type="submit" className="w-full h-12 text-base" size="lg" isLoading={isSubmitting}>
                 Verify & Enter
               </Button>
             </div>
@@ -225,7 +209,7 @@ export default function LoginPage() {
               <button 
                 type="button" 
                 onClick={() => setStep(1)}
-                className="text-blue-600 hover:text-blue-500 font-medium transition-colors"
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-500 font-medium transition-colors"
               >
                 &larr; Back to Email/Password
               </button>
@@ -233,9 +217,9 @@ export default function LoginPage() {
           </form>
         )}
 
-        <p className="mt-10 text-center text-sm text-gray-500">
+        <p className="mt-10 text-center text-sm text-gray-500 dark:text-gray-500">
           Not a member yet?{" "}
-          <Link href="/auth/signup" className="font-semibold leading-6 text-blue-600 hover:text-blue-500 transition-colors">
+          <Link href="/auth/signup" className="font-semibold leading-6 text-blue-600 dark:text-blue-400 hover:text-blue-500 transition-colors">
             Open a Corporate Account
           </Link>
         </p>

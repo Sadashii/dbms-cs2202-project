@@ -33,12 +33,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     // Visual variants
+   // Visual variants updated for Dark Mode
     const variantStyles = {
-      primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm",
-      secondary: "bg-blue-50 text-blue-700 hover:bg-blue-100 focus:ring-blue-500",
-      danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm",
-      ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500",
-      outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500 shadow-sm",
+      primary: "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm dark:bg-blue-600 dark:hover:bg-blue-500",
+      secondary: "bg-blue-50 text-blue-700 hover:bg-blue-100 focus:ring-blue-500 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/40",
+      danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500 shadow-sm dark:bg-red-600 dark:hover:bg-red-500",
+      ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-gray-500 dark:text-gray-400 dark:hover:bg-slate-800 dark:hover:text-white",
+      outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-blue-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-gray-300 dark:hover:bg-slate-800 dark:hover:text-white",
     };
 
     // Combine styles
