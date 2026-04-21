@@ -197,7 +197,7 @@ export const Sidebar = () => {
     return () => { document.body.style.overflow = ""; };
   }, [isMobileOpen]);
 
-  if (!user) return null;
+  if (!user || user.role === "Customer") return null;
 
   const statusFooter = (
     <div className="flex-shrink-0 p-4 border-t border-gray-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
@@ -242,7 +242,7 @@ export const Sidebar = () => {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-950 border-r border-gray-100 dark:border-slate-800 h-[calc(100vh-4rem)] sticky top-16 shrink-0 shadow-[1px_0_0_rgb(0,0,0,0.02)] transition-colors">
+      <aside className="hidden md:flex h-full flex-col self-stretch w-64 bg-white dark:bg-slate-950 border-r border-gray-100 dark:border-slate-800 shrink-0 shadow-[1px_0_0_rgb(0,0,0,0.02)] transition-colors">
         <div className="flex flex-col flex-grow pt-4 pb-4 overflow-y-auto custom-scrollbar">
           <NavList pathname={pathname} userRole={user.role} />
         </div>

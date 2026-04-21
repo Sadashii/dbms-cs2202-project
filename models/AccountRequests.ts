@@ -82,6 +82,14 @@ const AccountRequestSchema = new Schema<IAccountRequest>({
 
 // Automatically track status lifecycle changes
 AccountRequestSchema.pre('save', async function() {
+    if (!Array.isArray(this.statusHistory)) {
+        this.statusHistory = [];
+    }
+
+    if (!this.metadata) {
+        this.metadata = {};
+    }
+
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,

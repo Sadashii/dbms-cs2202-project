@@ -26,9 +26,28 @@ export interface UserPayload {
     _id: string;
     firstName: string;
     lastName: string;
+    customerId: string;
     email: string;
     role: string;
     currentStatus: string;
+}
+
+export interface SignupResult {
+    success: boolean;
+    customerId?: string;
+    message?: string;
+}
+
+export interface LoginOtpResult {
+    success: boolean;
+    otp?: string;
+    message?: string;
+}
+
+export interface PasswordResetOtpResult {
+    success: boolean;
+    otp?: string;
+    message?: string;
 }
 
 export const useAuth = () => {
@@ -126,7 +145,7 @@ export const useAuth = () => {
     }, [accessToken]);
 
     // --- Auth Methods ---
-    const signup = async (name: string, email: string, password: string) => {
+    const signup = async (name: string, email: string, password: string): Promise<SignupResult> => {
         try {
             const response = await fetch('/api/auth/signup', {
                 method: 'POST',
@@ -137,44 +156,49 @@ export const useAuth = () => {
             const data = await response.json();
             if (!response.ok) {
                 toast.error(data.message);
-                return;
+                return { success: false, message: data.message };
             }
 
-            toast.success(data.message);
+            toast.success(
+                data.customerId
+                    ? `${data.message} Your customer ID is ${data.customerId}.`
+                    : data.message
+            );
             router.push("/auth/login/");
+            return { success: true, customerId: data.customerId, message: data.message };
         } catch (error) {
             console.error("Network Error:", error);
+            return { success: false, message: "Network error. Please try again." };
         }
     };
 
-    const getLoginOTP = async (email: string, password: string): Promise<boolean> => {
+    const getLoginOTP = async (identifier: string, password: string): Promise<LoginOtpResult> => {
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ process: "generateotp", email, password })
+                body: JSON.stringify({ process: "generateotp", identifier, password })
             });
 
             const data = await response.json();
             if (!response.ok) {
                 toast.error(data.message);
-                return false;
+                return { success: false, message: data.message };
             }
 
-            toast.success(data.message);
-            return true;
+            return { success: true, otp: data.otp, message: data.message };
         } catch (error) {
             console.error("Network Error:", error);
-            return false;
+            return { success: false, message: "Network error. Please try again." };
         }
     };
 
-    const verifyLogin = async (email: string, password: string, otp: string) => {
+    const verifyLogin = async (identifier: string, password: string, otp: string) => {
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ process: "verifyotp", email, password, otp })
+                body: JSON.stringify({ process: "verifyotp", identifier, password, otp })
             });
 
             const data = await response.json();
@@ -187,6 +211,73 @@ export const useAuth = () => {
             setUser(data.user);
             setIsLoggedIn(true);
             
+            return true;
+        } catch (error) {
+            console.error("Network Error:", error);
+            return false;
+        }
+    };
+
+    const getResetPasswordOTP = async (
+        customerId: string,
+        email: string,
+        oldPassword: string,
+        newPassword: string
+    ): Promise<PasswordResetOtpResult> => {
+        try {
+            const response = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    process: "generateotp",
+                    customerId,
+                    email,
+                    oldPassword,
+                    newPassword
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                toast.error(data.message);
+                return { success: false, message: data.message };
+            }
+
+            return { success: true, otp: data.otp, message: data.message };
+        } catch (error) {
+            console.error("Network Error:", error);
+            return { success: false, message: "Network error. Please try again." };
+        }
+    };
+
+    const confirmPasswordReset = async (
+        customerId: string,
+        email: string,
+        oldPassword: string,
+        newPassword: string,
+        otp: string
+    ) => {
+        try {
+            const response = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    process: "verifyotp",
+                    customerId,
+                    email,
+                    oldPassword,
+                    newPassword,
+                    otp
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                toast.error(data.message);
+                return false;
+            }
+
+            toast.success(data.message);
             return true;
         } catch (error) {
             console.error("Network Error:", error);
@@ -252,6 +343,8 @@ export const useAuth = () => {
         signup,
         getLoginOTP,
         verifyLogin,
+        getResetPasswordOTP,
+        confirmPasswordReset,
         logout,
         verifyConstraints,
         apiFetch,

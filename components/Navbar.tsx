@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthContext } from "./AuthProvider";
 import ThemeToggle from "./ThemeToggle";
 
@@ -10,6 +10,7 @@ export const Navbar = () => {
   const { isLoggedIn, user, logout, isLoading, apiFetch } = useAuthContext();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   // Notifications State
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -66,7 +67,19 @@ export const Navbar = () => {
     }
   };
 
+  const handleNotificationClick = async (notification: any) => {
+    if (!notification?.isRead) {
+      await handleMarkAsRead(notification._id);
+    }
+
+    if (notification?.actionUrl) {
+      setIsNotifOpen(false);
+      router.push(notification.actionUrl);
+    }
+  };
+
   const unreadCount = notifications.filter((n) => !n.isRead).length;
+  const isCustomer = user?.role === "Customer";
 
   return (
     <nav className="bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800 shadow-sm sticky top-0 z-50 transition-colors">
@@ -87,11 +100,15 @@ export const Navbar = () => {
 
             <div className="hidden sm:ml-8 sm:flex sm:space-x-8">
               {isLoggedIn ? (
-                <>
-                  <NavLink href="/my/overview" active={isActive("/my/overview")}>Dashboard</NavLink>
-                  <NavLink href="/my/accounts" active={isActive("/my/accounts")}>Accounts</NavLink>
-                  <NavLink href="/my/cards" active={isActive("/my/cards")}>Cards</NavLink>
-                </>
+                isCustomer ? (
+                  <>
+                    <NavLink href="/my/overview" active={isActive("/my/overview")}>Overview</NavLink>
+                    <NavLink href="/my/accounts" active={isActive("/my/accounts")}>Accounts</NavLink>
+                    <NavLink href="/my/cards" active={isActive("/my/cards")}>Cards</NavLink>
+                    <NavLink href="/my/loans" active={isActive("/my/loans")}>Loans</NavLink>
+                    <NavLink href="/my/support" active={isActive("/my/support")}>Support</NavLink>
+                  </>
+                ) : null
               ) : (
                 <>
                   <NavLink href="/" active={isActive("/")}>Home</NavLink>
@@ -142,12 +159,22 @@ export const Navbar = () => {
                               </div>
                             ) : (
                               notifications.map((notif) => (
-                                <div key={notif._id} className={`p-4 border-b border-gray-50 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors flex gap-3 ${!notif.isRead ? "bg-blue-50/30 dark:bg-blue-900/10" : "opacity-70"}`}>
+                                <button
+                                  key={notif._id}
+                                  type="button"
+                                  onClick={() => handleNotificationClick(notif)}
+                                  className={`w-full p-4 border-b border-gray-50 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors flex gap-3 text-left ${!notif.isRead ? "bg-blue-50/30 dark:bg-blue-900/10" : "opacity-70"}`}
+                                >
                                   <div className="flex-1">
                                     <p className={`text-sm ${!notif.isRead ? "font-bold text-gray-900 dark:text-white" : "font-medium text-gray-700 dark:text-gray-300"}`}>{notif.title}</p>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notif.body}</p>
+                                    {notif.actionUrl && (
+                                      <p className="mt-2 text-[10px] font-black uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                                        Open linked page
+                                      </p>
+                                    )}
                                   </div>
-                                </div>
+                                </button>
                               ))
                             )}
                           </div>
@@ -183,7 +210,7 @@ export const Navbar = () => {
                       Sign In
                     </Link>
                     <Link href="/auth/signup" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium shadow-sm transition-all active:scale-95">
-                      Open Account
+                      Create New Account
                     </Link>
                   </>
                 )
@@ -217,12 +244,20 @@ export const Navbar = () => {
         <div className="sm:hidden border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 transition-colors">
           <div className="pt-2 pb-3 space-y-1">
             {isLoggedIn ? (
-              <>
-                <MobileNavLink href="/my/overview" active={isActive("/my/overview")}>Dashboard</MobileNavLink>
-                <MobileNavLink href="/my/accounts" active={isActive("/my/accounts")}>Accounts</MobileNavLink>
-                <MobileNavLink href="/my/cards" active={isActive("/my/cards")}>Cards</MobileNavLink>
-                <MobileNavLink href="/my/profile" active={isActive("/my/profile")}>Profile</MobileNavLink>
-              </>
+              isCustomer ? (
+                <>
+                  <MobileNavLink href="/my/overview" active={isActive("/my/overview")}>Overview</MobileNavLink>
+                  <MobileNavLink href="/my/accounts" active={isActive("/my/accounts")}>Accounts</MobileNavLink>
+                  <MobileNavLink href="/my/cards" active={isActive("/my/cards")}>Cards</MobileNavLink>
+                  <MobileNavLink href="/my/loans" active={isActive("/my/loans")}>Loans</MobileNavLink>
+                  <MobileNavLink href="/my/support" active={isActive("/my/support")}>Support</MobileNavLink>
+                  <MobileNavLink href="/my/profile" active={isActive("/my/profile")}>Profile</MobileNavLink>
+                </>
+              ) : (
+                <>
+                  <MobileNavLink href="/my/profile" active={isActive("/my/profile")}>Profile</MobileNavLink>
+                </>
+              )
             ) : (
               <>
                 <MobileNavLink href="/" active={isActive("/")}>Home</MobileNavLink>
@@ -248,7 +283,7 @@ export const Navbar = () => {
             ) : (
               <div className="px-4 flex flex-col gap-2">
                 <Link href="/auth/login" className="block text-center w-full bg-gray-50 dark:bg-slate-900 text-gray-800 dark:text-gray-200 border border-gray-300 dark:border-slate-700 px-4 py-2 rounded-md font-medium">Sign In</Link>
-                <Link href="/auth/signup" className="block text-center w-full bg-blue-600 text-white px-4 py-2 rounded-md font-medium">Open Account</Link>
+                <Link href="/auth/signup" className="block text-center w-full bg-blue-600 text-white px-4 py-2 rounded-md font-medium">Create New Account</Link>
               </div>
             )}
           </div>

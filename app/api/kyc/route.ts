@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import KYC from "@/models/KYC";
 import AccountRequest from "@/models/AccountRequests";
 import { verifyAuth } from "@/lib/auth";
+import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
 
 export async function GET() {
     try {
@@ -11,6 +12,7 @@ export async function GET() {
         if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
         await dbConnect();
+        await autoApproveSignatureDocuments(decoded.userId);
         
         // Fetch specific KYC records (PAN, Aadhar, etc.)
         const kycs = await KYC.find({ userId: decoded.userId }).sort({ createdAt: -1 });

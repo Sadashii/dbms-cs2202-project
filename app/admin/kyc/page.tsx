@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuthContext } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
-import toast from "react-hot-toast";
 
 interface UserInfo {
   _id: string;
   firstName?: string;
   lastName?: string;
   email: string;
+  customerId?: string;
 }
 
 interface Attachment {
@@ -39,8 +40,39 @@ interface KYCRecord {
   isReuploaded?: boolean;
 }
 
+interface KYCReviewGroup {
+  userId: string;
+  name: string;
+  email: string;
+  customerId?: string;
+  latestActivityAt: string;
+  highestPriorityStatus: string;
+  hasReuploaded: boolean;
+  documents: Array<{
+    id: string;
+    type: string;
+    status: string;
+    reference: string;
+  }>;
+  stats: {
+    total: number;
+    pending: number;
+    verified: number;
+    rejected: number;
+  };
+}
+
+const STATUS_PRIORITY: Record<string, number> = {
+  Pending: 1,
+  "In-Review": 2,
+  Rejected: 3,
+  Verified: 4,
+  Expired: 5,
+};
+
 export default function AdminKYCPage() {
   const { apiFetch } = useAuthContext();
+  const router = useRouter();
   const [kycRecords, setKycRecords] = useState<KYCRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -71,12 +103,106 @@ export default function AdminKYCPage() {
     fetchKYCRecords();
   }, [apiFetch]);
 
-  const filteredRecords = kycRecords.filter((kyc) => {
-    const matchesSearch = kyc.kycReference.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          kyc.userId?.email?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "All" || kyc.currentStatus === statusFilter;
-    const matchesDocType = docTypeFilter === "All" || kyc.documentType === docTypeFilter;
-    const matchesReupload = !reuploadFilter || kyc.isReuploaded;
+  const groupedRecords = useMemo(() => {
+    const grouped = new Map<string, KYCReviewGroup>();
+
+    for (const kyc of kycRecords) {
+      const groupKey = kyc.userId?._id || kyc._id;
+      const existingGroup = grouped.get(groupKey);
+      const fullName = `${kyc.userId?.firstName || ""} ${kyc.userId?.lastName || ""}`.trim() || "Unknown Customer";
+
+      const currentTimestamp = new Date(kyc.createdAt).getTime();
+      const existingTimestamp = existingGroup ? new Date(existingGroup.latestActivityAt).getTime() : 0;
+      const currentPriority = STATUS_PRIORITY[kyc.currentStatus] ?? 99;
+      const existingPriority = existingGroup ? STATUS_PRIORITY[existingGroup.highestPriorityStatus] ?? 99 : 99;
+
+      if (!existingGroup) {
+        grouped.set(groupKey, {
+          userId: groupKey,
+          name: fullName,
+          email: kyc.userId?.email || "No email",
+          customerId: kyc.userId?.customerId,
+          latestActivityAt: kyc.createdAt,
+          highestPriorityStatus: kyc.currentStatus,
+          hasReuploaded: Boolean(kyc.isReuploaded),
+          documents: [
+            {
+              id: kyc._id,
+              type: kyc.documentType,
+              status: kyc.currentStatus,
+              reference: kyc.kycReference,
+            },
+          ],
+          stats: {
+            total: 1,
+            pending: ["Pending", "In-Review"].includes(kyc.currentStatus) ? 1 : 0,
+            verified: kyc.currentStatus === "Verified" ? 1 : 0,
+            rejected: kyc.currentStatus === "Rejected" ? 1 : 0,
+          },
+        });
+        continue;
+      }
+
+      existingGroup.documents.push({
+        id: kyc._id,
+        type: kyc.documentType,
+        status: kyc.currentStatus,
+        reference: kyc.kycReference,
+      });
+      existingGroup.stats.total += 1;
+      existingGroup.stats.pending += ["Pending", "In-Review"].includes(kyc.currentStatus) ? 1 : 0;
+      existingGroup.stats.verified += kyc.currentStatus === "Verified" ? 1 : 0;
+      existingGroup.stats.rejected += kyc.currentStatus === "Rejected" ? 1 : 0;
+      existingGroup.hasReuploaded = existingGroup.hasReuploaded || Boolean(kyc.isReuploaded);
+
+      if (currentPriority < existingPriority || (currentPriority === existingPriority && currentTimestamp > existingTimestamp)) {
+        existingGroup.highestPriorityStatus = kyc.currentStatus;
+      }
+
+      if (currentTimestamp > existingTimestamp) {
+        existingGroup.latestActivityAt = kyc.createdAt;
+      }
+    }
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        ...group,
+        documents: group.documents.sort((a, b) => {
+          const statusDiff = (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99);
+          if (statusDiff !== 0) {
+            return statusDiff;
+          }
+
+          return a.type.localeCompare(b.type);
+        }),
+      }))
+      .sort((a, b) => {
+        const statusDiff = (STATUS_PRIORITY[a.highestPriorityStatus] ?? 99) - (STATUS_PRIORITY[b.highestPriorityStatus] ?? 99);
+        if (statusDiff !== 0) {
+          return statusDiff;
+        }
+
+        return new Date(b.latestActivityAt).getTime() - new Date(a.latestActivityAt).getTime();
+      });
+  }, [kycRecords]);
+
+  const filteredRecords = groupedRecords.filter((group) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch =
+      !query ||
+      group.name.toLowerCase().includes(query) ||
+      group.email.toLowerCase().includes(query) ||
+      group.customerId?.toLowerCase().includes(query) ||
+      group.documents.some(
+        (document) =>
+          document.reference.toLowerCase().includes(query) ||
+          document.type.toLowerCase().includes(query)
+      );
+    const matchesStatus =
+      statusFilter === "All" || group.documents.some((document) => document.status === statusFilter);
+    const matchesDocType =
+      docTypeFilter === "All" || group.documents.some((document) => document.type === docTypeFilter);
+    const matchesReupload = !reuploadFilter || group.hasReuploaded;
     return matchesSearch && matchesStatus && matchesDocType && matchesReupload;
   });
 
@@ -105,7 +231,7 @@ export default function AdminKYCPage() {
           <div className="flex flex-wrap gap-3">
             <input 
               type="text" 
-              placeholder="Search email/reference..." 
+              placeholder="Search name, email, customer ID..." 
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
               className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-2 text-xs font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-48 transition-all"
@@ -153,9 +279,9 @@ export default function AdminKYCPage() {
             <table className="w-full text-left border-collapse min-w-[900px]">
               <thead className="bg-gray-50/50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
                 <tr>
-                  <th className="p-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Document Protocol</th>
-                  <th className="p-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Origin Principal</th>
-                  <th className="p-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Lifecycle</th>
+                  <th className="p-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Customer</th>
+                  <th className="p-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Submitted Documents</th>
+                  <th className="p-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Review State</th>
                   <th className="p-6 text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Timestamp</th>
                   <th className="p-6 text-right text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Audit</th>
                 </tr>
@@ -164,43 +290,70 @@ export default function AdminKYCPage() {
                 {paginatedRecords.length === 0 ? (
                   <tr><td colSpan={5} className="p-20 text-center text-gray-300 dark:text-slate-700 font-black italic uppercase">No records found matching filter</td></tr>
                 ) : (
-                  paginatedRecords.map((kyc) => (
-                    <tr key={kyc._id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 group transition-all">
+                  paginatedRecords.map((group) => (
+                    <tr key={group.userId} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 group transition-all">
                       <td className="p-6">
-                        <div className="flex items-center gap-3">
-                           <div className="font-black text-gray-900 dark:text-white text-base group-hover:text-blue-500 transition-colors">{kyc.documentType}</div>
-                           {kyc.isReuploaded && (
-                             <span className="bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 text-[9px] font-black uppercase px-2 py-0.5 rounded-full border border-orange-100 dark:border-orange-800/30 animate-pulse">
-                               Re-uploaded
-                             </span>
-                           )}
-                        </div>
-                        <div className="text-[10px] text-gray-400 dark:text-gray-500 font-mono mt-1 uppercase">REF: {kyc.kycReference}</div>
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/admin/kyc/${group.userId}`)}
+                          className="text-left group/name"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="text-base font-black text-gray-900 transition-colors group-hover/name:text-blue-600 dark:text-white dark:group-hover/name:text-blue-400">
+                              {group.name}
+                            </div>
+                            {group.hasReuploaded && (
+                              <span className="rounded-full border border-orange-100 bg-orange-50 px-2 py-0.5 text-[9px] font-black uppercase text-orange-600 dark:border-orange-800/30 dark:bg-orange-900/20 dark:text-orange-400">
+                                Re-uploaded
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 font-mono">{group.email}</div>
+                          {group.customerId && (
+                            <div className="mt-1 text-[10px] text-blue-600 dark:text-blue-400 font-mono tracking-[0.2em]">
+                              {group.customerId}
+                            </div>
+                          )}
+                        </button>
                       </td>
                       <td className="p-6">
-                        <div className="text-sm font-bold text-gray-900 dark:text-gray-300">{kyc.userId?.firstName} {kyc.userId?.lastName}</div>
-                        <div className="text-xs text-gray-400 dark:text-gray-500 font-mono">{kyc.userId?.email}</div>
+                        <div className="flex flex-wrap gap-2">
+                          {group.documents.map((document) => (
+                            <span
+                              key={document.id}
+                              className="rounded-full border border-gray-200 bg-gray-50 px-3 py-1 text-[10px] font-black uppercase text-gray-700 dark:border-slate-700 dark:bg-slate-800 dark:text-gray-300"
+                            >
+                              {document.type}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.16em] text-gray-400 dark:text-gray-500">
+                          <span>{group.stats.total} total</span>
+                          <span>{group.stats.pending} pending</span>
+                          <span>{group.stats.verified} verified</span>
+                          <span>{group.stats.rejected} rejected</span>
+                        </div>
                       </td>
                       <td className="p-6">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase border transition-all
-                          ${kyc.currentStatus === 'Verified' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' :
-                            kyc.currentStatus === 'Rejected' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800/30' :
-                            kyc.currentStatus === 'In-Review' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800/30' :
+                          ${group.highestPriorityStatus === 'Verified' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-100 dark:border-emerald-800/30' :
+                            group.highestPriorityStatus === 'Rejected' ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-100 dark:border-red-800/30' :
+                            group.highestPriorityStatus === 'In-Review' ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-100 dark:border-blue-800/30' :
                             'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-yellow-100 dark:border-yellow-800/30'}`}>
-                          {kyc.currentStatus}
+                          {group.highestPriorityStatus}
                         </span>
                       </td>
                       <td className="p-6 text-xs font-medium text-gray-500 dark:text-gray-400">
-                        {new Date(kyc.createdAt).toLocaleDateString()}
+                        {new Date(group.latestActivityAt).toLocaleDateString()}
                       </td>
                       <td className="p-6 text-right">
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          onClick={() => window.location.href = `/admin/kyc/${kyc._id}`}
+                          onClick={() => router.push(`/admin/kyc/${group.userId}`)}
                           className="text-[10px] font-black uppercase h-8 rounded-xl dark:border-slate-800 dark:text-white dark:hover:bg-slate-800 transition-all"
                         >
-                          Manual Audit
+                          Open Record
                         </Button>
                       </td>
                     </tr>

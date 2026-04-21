@@ -4,6 +4,7 @@ export interface IUser extends Document {
     firstName: string;
     lastName: string;
     
+    customerId: string;
     email: string;
     isEmailVerified: boolean;
     phone?: string;
@@ -42,6 +43,14 @@ const UserSchema = new Schema<IUser>({
     firstName: { type: String, required: true, trim: true },
     lastName: { type: String, required: true, trim: true },
     
+    customerId: {
+        type: String,
+        unique: true,
+        sparse: true,
+        uppercase: true,
+        trim: true,
+        index: true
+    },
     email: { 
         type: String, 
         required: true, 
@@ -103,6 +112,36 @@ const UserSchema = new Schema<IUser>({
 }, {
     timestamps: true,
     optimisticConcurrency: true 
+});
+
+const generateCustomerIdCandidate = () => {
+    return Math.floor(1000000000 + Math.random() * 9000000000).toString();
+};
+
+UserSchema.pre('validate', async function() {
+    if (this.customerId) {
+        const normalizedCustomerId = this.customerId.replace(/\D/g, "");
+        if (/^\d{10}$/.test(normalizedCustomerId)) {
+            this.customerId = normalizedCustomerId;
+            return;
+        }
+
+        this.customerId = undefined as any;
+    }
+
+    const UserModel = this.constructor as mongoose.Model<IUser>;
+    let candidate = "";
+    let exists = true;
+
+    while (exists) {
+        candidate = generateCustomerIdCandidate();
+        exists = !!(await UserModel.exists({
+            customerId: candidate,
+            _id: { $ne: this._id }
+        }));
+    }
+
+    this.customerId = candidate;
 });
 
 UserSchema.pre('save', async function() {
