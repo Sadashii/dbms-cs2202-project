@@ -10,788 +10,1053 @@ import toast from "react-hot-toast";
 import { ReuploadModal } from "@/components/ReuploadModal";
 
 interface Account {
-  _id: string;
-  accountNumber: string;
-  accountType: string;
-  balance: number;
-  currency: string;
-  currentStatus: string;
+    _id: string;
+    accountNumber: string;
+    accountType: string;
+    balance: number;
+    currency: string;
+    currentStatus: string;
 }
 
 export default function AccountsPage() {
-  const { apiFetch, isLoading: authLoading, isLoggedIn, user } = useAuthContext();
-  const router = useRouter();
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [kycs, setKycs] = useState<any[]>([]); 
-  const [accountRequests, setAccountRequests] = useState<any[]>([]); 
-  const [schedules, setSchedules] = useState<any[]>([]);
+    const {
+        apiFetch,
+        isLoading: authLoading,
+        isLoggedIn,
+        user,
+    } = useAuthContext();
+    const router = useRouter();
+    const [accounts, setAccounts] = useState<Account[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [total, setTotal] = useState(0);
+    const [kycs, setKycs] = useState<any[]>([]);
+    const [accountRequests, setAccountRequests] = useState<any[]>([]);
+    const [schedules, setSchedules] = useState<any[]>([]);
 
-  // Transfer Modal State
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [transferError, setTransferError] = useState("");
-  const [fromAccountId, setFromAccountId] = useState("");
-  const [toAccountNumber, setToAccountNumber] = useState("");
-  const [amount, setAmount] = useState("");
-  const [memo, setMemo] = useState("");
-  const [saveBeneficiary, setSaveBeneficiary] = useState(false);
-  const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
-  const [beneficiaryNickName, setBeneficiaryNickName] = useState("");
-  const [isScheduled, setIsScheduled] = useState(false);
-  const [frequency, setFrequency] = useState("Monthly");
-  const [startDate, setStartDate] = useState("");
+    const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+    const [isTransferring, setIsTransferring] = useState(false);
+    const [transferError, setTransferError] = useState("");
+    const [fromAccountId, setFromAccountId] = useState("");
+    const [toAccountNumber, setToAccountNumber] = useState("");
+    const [amount, setAmount] = useState("");
+    const [memo, setMemo] = useState("");
+    const [saveBeneficiary, setSaveBeneficiary] = useState(false);
+    const [beneficiaries, setBeneficiaries] = useState<any[]>([]);
+    const [beneficiaryNickName, setBeneficiaryNickName] = useState("");
+    const [isScheduled, setIsScheduled] = useState(false);
+    const [frequency, setFrequency] = useState("Monthly");
+    const [startDate, setStartDate] = useState("");
 
-  // Account Request & KYC Modal State
-  const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
-  const [isSubmittingKYC, setIsSubmittingKYC] = useState(false);
-  const [kycStatus, setKycStatus] = useState<"idle" | "pending">("idle");
-  const [newAccountType, setNewAccountType] = useState("Savings");
-  
-  // Branch Selection State
-  const [branches, setBranches] = useState<any[]>([]);
-  const [selectedBranchId, setSelectedBranchId] = useState("");
-  
-  // Reupload Modal State
-  const [isReuploadModalOpen, setIsReuploadModalOpen] = useState(false);
-  const [reuploadDocType, setReuploadDocType] = useState("");
+    // Account Request & KYC Modal State
+    const [isNewAccountModalOpen, setIsNewAccountModalOpen] = useState(false);
+    const [isSubmittingKYC, setIsSubmittingKYC] = useState(false);
+    const [kycStatus, setKycStatus] = useState<"idle" | "pending">("idle");
+    const [newAccountType, setNewAccountType] = useState("Savings");
 
-  // File & Document Data States
-  const [panFile, setPanFile] = useState<File | null>(null);
-  const [panNumber, setPanNumber] = useState("");
-  const [aadharFile, setAadharFile] = useState<File | null>(null);
-  const [aadharNumber, setAadharNumber] = useState("");
-  const [signatureFile, setSignatureFile] = useState<File | null>(null);
+    const [branches, setBranches] = useState<any[]>([]);
+    const [selectedBranchId, setSelectedBranchId] = useState("");
 
-  // Derived state for the active account request
-  const accountRequest = accountRequests.length > 0 ? accountRequests[0] : null;
+    // Reupload Modal State
+    const [isReuploadModalOpen, setIsReuploadModalOpen] = useState(false);
+    const [reuploadDocType, setReuploadDocType] = useState("");
 
-  // Redirect unauthenticated users
-  useEffect(() => {
-    if (!authLoading && !isLoggedIn) router.push("/auth/login");
-  }, [authLoading, isLoggedIn, router]);
+    // File & Document Data States
+    const [panFile, setPanFile] = useState<File | null>(null);
+    const [panNumber, setPanNumber] = useState("");
+    const [aadharFile, setAadharFile] = useState<File | null>(null);
+    const [aadharNumber, setAadharNumber] = useState("");
+    const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
-  const fetchAccounts = async (p = page) => {
-    try {
-      setIsLoading(true);
-      const res = await apiFetch(`/api/accounts?page=${p}&limit=9`);
-      if (res.ok) {
-        const data = await res.json();
-        setAccounts(data.accounts);
-        setTotalPages(data.pagination?.totalPages ?? 1);
-        setTotal(data.pagination?.total ?? data.accounts.length);
-        if (data.accounts.length > 0 && !fromAccountId) {
-          setFromAccountId(data.accounts[0]._id);
+    // Derived state for the active account request
+    const accountRequest =
+        accountRequests.length > 0 ? accountRequests[0] : null;
+
+    // Redirect unauthenticated users
+    useEffect(() => {
+        if (!authLoading && !isLoggedIn) router.push("/auth/login");
+    }, [authLoading, isLoggedIn, router]);
+
+    const fetchAccounts = async (p = page) => {
+        try {
+            setIsLoading(true);
+            const res = await apiFetch(`/api/accounts?page=${p}&limit=9`);
+            if (res.ok) {
+                const data = await res.json();
+                setAccounts(data.accounts);
+                setTotalPages(data.pagination?.totalPages ?? 1);
+                setTotal(data.pagination?.total ?? data.accounts.length);
+                if (data.accounts.length > 0 && !fromAccountId) {
+                    setFromAccountId(data.accounts[0]._id);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch accounts", error);
+        } finally {
+            setIsLoading(false);
         }
-      }
-    } catch (error) {
-      console.error("Failed to fetch accounts", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
 
-  const fetchKycs = async () => {
-    try {
-      const res = await apiFetch("/api/kyc");
-      if (res.ok) {
-        const data = await res.json();
-        setKycs(data.documents || []);
-        setAccountRequests(data.requests || []);
-      }
-    } catch (e) { console.error(e); }
-  };
+    const fetchKycs = async () => {
+        try {
+            const res = await apiFetch("/api/kyc");
+            if (res.ok) {
+                const data = await res.json();
+                setKycs(data.documents || []);
+                setAccountRequests(data.requests || []);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
-  const fetchBeneficiaries = async () => {
-    try {
-      const res = await apiFetch("/api/beneficiaries");
-      if (res.ok) {
-        const data = await res.json();
-        setBeneficiaries(data.beneficiaries || []);
-      }
-    } catch (e) { console.error(e); }
-  };
+    const fetchBeneficiaries = async () => {
+        try {
+            const res = await apiFetch("/api/beneficiaries");
+            if (res.ok) {
+                const data = await res.json();
+                setBeneficiaries(data.beneficiaries || []);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
-  const fetchSchedules = async () => {
-    try {
-      const res = await apiFetch("/api/scheduledpayments");
-      if (res.ok) {
-        const data = await res.json();
-        setSchedules(data.schedules || []);
-      }
-    } catch (e) { console.error(e); }
-  };
+    const fetchSchedules = async () => {
+        try {
+            const res = await apiFetch("/api/scheduledpayments");
+            if (res.ok) {
+                const data = await res.json();
+                setSchedules(data.schedules || []);
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
 
-  const fetchBranches = async () => {
-    try {
-      const res = await apiFetch("/api/admin/branches");
-      if (res.ok) {
-        const data = await res.json();
-        setBranches(data.branches || []);
-      }
-    } catch (e) {
-      console.error("Failed to fetch branches:", e);
-    }
-  };
+    const fetchBranches = async () => {
+        try {
+            const res = await apiFetch("/api/admin/branches");
+            if (res.ok) {
+                const data = await res.json();
+                setBranches(data.branches || []);
+            }
+        } catch (e) {
+            console.error("Failed to fetch branches:", e);
+        }
+    };
 
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchAccounts(page);
-      fetchKycs();
-      fetchBeneficiaries();
-      fetchSchedules();
-      fetchBranches();
-    }
-  }, [apiFetch, page, isLoggedIn]);
+    useEffect(() => {
+        if (isLoggedIn) {
+            fetchAccounts(page);
+            fetchKycs();
+            fetchBeneficiaries();
+            fetchSchedules();
+            fetchBranches();
+        }
+    }, [apiFetch, page, isLoggedIn]);
 
-  const fetchHistory = (account: Account) => {
-    router.push(`/my/accounts/${account._id}`);
-  };
+    const fetchHistory = (account: Account) => {
+        router.push(`/my/accounts/${account._id}`);
+    };
 
-  const handleTransfer = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTransferError("");
-    setIsTransferring(true);
+    const handleTransfer = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setTransferError("");
+        setIsTransferring(true);
 
-    try {
-      if (isScheduled) {
-         const res = await apiFetch("/api/scheduledpayments", {
-           method: "POST",
-           body: JSON.stringify({
-             fromAccountId,
-             toAccountNumber,
-             amount: parseFloat(amount),
-             memo,
-             frequency,
-             startDate
-           }),
-         });
-         const data = await res.json();
-         if (!res.ok) {
-           setTransferError(data.message || "Scheduling failed.");
-         } else {
-             await handleSaveBeneficiaryFlow();
-             resetForm("Schedule set successfully!");
-             fetchSchedules();
-         }
-      } else {
-         const res = await apiFetch("/api/transactions", {
-           method: "POST",
-           body: JSON.stringify({
-             fromAccountId,
-             toAccountNumber,
-             amount: parseFloat(amount),
-             memo
-           }),
-         });
-         const data = await res.json();
-         if (!res.ok) {
-           setTransferError(data.message || "Transfer failed.");
-         } else {
-             await handleSaveBeneficiaryFlow();
-             resetForm(`Transfer Successful! Ref ID: ${data.referenceId}`);
-             fetchAccounts();
-         }
-      }
-    } catch (err) {
-      setTransferError("A network error occurred. Please try again.");
-    } finally {
-      setIsTransferring(false);
-    }
-  };
+        try {
+            if (isScheduled) {
+                const res = await apiFetch("/api/scheduledpayments", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        fromAccountId,
+                        toAccountNumber,
+                        amount: parseFloat(amount),
+                        memo,
+                        frequency,
+                        startDate,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    setTransferError(data.message || "Scheduling failed.");
+                } else {
+                    await handleSaveBeneficiaryFlow();
+                    resetForm("Schedule set successfully!");
+                    fetchSchedules();
+                }
+            } else {
+                const res = await apiFetch("/api/transactions", {
+                    method: "POST",
+                    body: JSON.stringify({
+                        fromAccountId,
+                        toAccountNumber,
+                        amount: parseFloat(amount),
+                        memo,
+                    }),
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    setTransferError(data.message || "Transfer failed.");
+                } else {
+                    await handleSaveBeneficiaryFlow();
+                    resetForm(
+                        `Transfer Successful! Ref ID: ${data.referenceId}`,
+                    );
+                    fetchAccounts();
+                }
+            }
+        } catch (err) {
+            setTransferError("A network error occurred. Please try again.");
+        } finally {
+            setIsTransferring(false);
+        }
+    };
 
-  const handleSaveBeneficiaryFlow = async () => {
-      if (saveBeneficiary && beneficiaryNickName) {
-         await apiFetch("/api/beneficiaries", {
-            method: "POST",
-            body: JSON.stringify({
-                nickName: beneficiaryNickName,
-                accountNumber: toAccountNumber,
-                accountName: "VaultPay User" 
-            })
-         });
-         fetchBeneficiaries();
-      }
-  };
+    const handleSaveBeneficiaryFlow = async () => {
+        if (saveBeneficiary && beneficiaryNickName) {
+            await apiFetch("/api/beneficiaries", {
+                method: "POST",
+                body: JSON.stringify({
+                    nickName: beneficiaryNickName,
+                    accountNumber: toAccountNumber,
+                    accountName: "VaultPay User",
+                }),
+            });
+            fetchBeneficiaries();
+        }
+    };
 
-  const resetForm = (successMessage: string) => {
-      setIsTransferModalOpen(false);
-      setToAccountNumber("");
-      setAmount("");
-      setMemo("");
-      setBeneficiaryNickName("");
-      setSaveBeneficiary(false);
-      setIsScheduled(false);
-      setStartDate("");
-      toast.success(successMessage);
-  };
+    const resetForm = (successMessage: string) => {
+        setIsTransferModalOpen(false);
+        setToAccountNumber("");
+        setAmount("");
+        setMemo("");
+        setBeneficiaryNickName("");
+        setSaveBeneficiary(false);
+        setIsScheduled(false);
+        setStartDate("");
+        toast.success(successMessage);
+    };
 
-  const updateScheduleStatus = async (scheduleId: string, currentStatus: string) => {
-      try {
-          const res = await apiFetch("/api/scheduledpayments", {
-              method: "PATCH",
-              body: JSON.stringify({ scheduleId, currentStatus })
-          });
-          if (res.ok) {
-              toast.success(`Schedule ${currentStatus.toLowerCase()} successfully.`);
-              fetchSchedules();
-          }
-      } catch (e) {
-          toast.error("Failed to update schedule status.");
-      }
-  };
+    const updateScheduleStatus = async (
+        scheduleId: string,
+        currentStatus: string,
+    ) => {
+        try {
+            const res = await apiFetch("/api/scheduledpayments", {
+                method: "PATCH",
+                body: JSON.stringify({ scheduleId, currentStatus }),
+            });
+            if (res.ok) {
+                toast.success(
+                    `Schedule ${currentStatus.toLowerCase()} successfully.`,
+                );
+                fetchSchedules();
+            }
+        } catch (e) {
+            toast.error("Failed to update schedule status.");
+        }
+    };
 
-  const handleRequestAccount = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!panFile && !signatureFile && !aadharFile) {
-        toast.error("Please upload the documents you wish to submit.");
-        return;
-    }
-    
-    setIsSubmittingKYC(true);
-
-    try {
-        const formData = new FormData();
-        formData.append("accountType", newAccountType);
-        formData.append("panNumber", panNumber);
-        formData.append("aadharNumber", aadharNumber);
-        if (selectedBranchId) formData.append("branchId", selectedBranchId);
-        
-        if (panFile) formData.append("panCard", panFile);
-        if (aadharFile) formData.append("aadhar", aadharFile);
-        if (signatureFile) formData.append("signature", signatureFile);
-
-        const method = (accountRequest && accountRequest.currentStatus !== 'Approved') ? "PATCH" : "POST";
-
-        const response = await apiFetch("/api/account-requests", {
-            method: method,
-            body: formData,
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Failed to submit request");
+    const handleRequestAccount = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!panFile && !signatureFile && !aadharFile) {
+            toast.error("Please upload the documents you wish to submit.");
+            return;
         }
 
-        toast.success("Registration submitted successfully.");
-        setKycStatus("pending");
-        fetchKycs(); 
-        
-    } catch (error: any) {
-        console.error("Failed to submit KYC:", error);
-        toast.error(error.message || "Failed to submit account request.");
-    } finally {
-        setIsSubmittingKYC(false);
-    }
-  };
+        setIsSubmittingKYC(true);
 
-  const closeKycModal = () => {
-    if (!isSubmittingKYC) {
-        setIsNewAccountModalOpen(false);
-        setTimeout(() => setKycStatus("idle"), 300); 
-        setPanFile(null);
-        setAadharFile(null);
-        setSignatureFile(null);
-        setPanNumber("");
-        setAadharNumber("");
-    }
-  }
+        try {
+            const formData = new FormData();
+            formData.append("accountType", newAccountType);
+            formData.append("panNumber", panNumber);
+            formData.append("aadharNumber", aadharNumber);
+            if (selectedBranchId) formData.append("branchId", selectedBranchId);
 
-  return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-fade-in transition-colors">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Your Accounts</h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Manage your balances and execute transfers.</p>
-          {user?.customerId && (
-            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
-              Customer ID: <span className="font-mono">{user.customerId}</span>
-            </p>
-          )}
-        </div>
-        <div className="flex gap-3">
-            <Button onClick={() => setIsNewAccountModalOpen(true)} variant="outline" className="dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">
-                Register for New Account
-            </Button>
-            <Button onClick={() => setIsTransferModalOpen(true)} variant="primary">
-                New Transfer
-            </Button>
-        </div>
-      </div>
+            if (panFile) formData.append("panCard", panFile);
+            if (aadharFile) formData.append("aadhar", aadharFile);
+            if (signatureFile) formData.append("signature", signatureFile);
 
-      {/* KYC & Account Request Status Tracking */}
-      {accountRequest && (accountRequest.currentStatus !== 'Approved') && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm mb-6 transition-colors">
-              <div className="flex items-center justify-between mb-4">
-                  <div>
-                      <h2 className="text-lg font-bold text-blue-900 dark:text-blue-400">Account Request Status: {accountRequest.currentStatus.replace('_', ' ')}</h2>
-                      <p className="text-sm text-blue-700 dark:text-blue-300">Tracking progress for your {accountRequest.accountType} account.</p>
-                  </div>
-                  <div className="flex gap-2">
-                      <span className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === 'Rejected' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'}`}>
-                          {accountRequest.currentStatus}
-                      </span>
-                  </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {['PAN', 'Aadhar', 'Signature'].map(type => {
-                      const kyc = kycs.find(k => k.documentType === type) || (type === 'Signature' ? { currentStatus: 'Verified' } : null);
-                      const status = kyc?.currentStatus || 'Not Submitted';
-                      
-                      return (
-                          <div key={type} className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-blue-100 dark:border-slate-800 flex flex-col justify-between transition-colors">
-                              <div>
-                                  <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">{type} Document</p>
-                                  <div className="flex items-center gap-2">
-                                      <span className={`w-2 h-2 rounded-full ${status === 'Verified' ? 'bg-green-500' : status === 'Rejected' ? 'bg-red-500' : 'bg-orange-500'}`}></span>
-                                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{status}</p>
-                                  </div>
-                              </div>
-                              {status === 'Rejected' && (
-                                  <div className="mt-3">
-                                      <p className="text-[10px] text-red-600 dark:text-red-400 mb-2">{kyc?.metadata?.rejectionReason || "Please re-upload clear image."}</p>
-                                      <Button variant="outline" size="sm" className="w-full text-[10px] py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800" onClick={() => {
-                                          setReuploadDocType(type);
-                                          setIsReuploadModalOpen(true);
-                                      }}>
-                                          Fix & Re-upload
-                                      </Button>
-                                  </div>
-                              )}
-                          </div>
-                      );
-                  })}
-              </div>
-          </div>
-      )}
+            const method =
+                accountRequest && accountRequest.currentStatus !== "Approved"
+                    ? "PATCH"
+                    : "POST";
 
-      {/* Accounts Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {isLoading ? (
-          <div className="col-span-full py-10 flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
-          </div>
-        ) : accounts.length === 0 ? (
-          <div className="col-span-full py-16 text-center bg-white dark:bg-slate-900 border border-dashed border-gray-200 dark:border-slate-700 rounded-xl shadow-sm transition-colors">
-            <div className="mx-auto w-16 h-16 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-blue-400 dark:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-              </svg>
-            </div>
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">No accounts yet</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">Submit your KYC documents to get started. Our team typically reviews applications within 1 business day.</p>
-            <Button onClick={() => setIsNewAccountModalOpen(true)} variant="primary">
-              Register for New Account
-            </Button>
-          </div>
-        ) : (
-          accounts.map((acc) => (
-            <div key={acc._id} className="bg-white dark:bg-slate-900 overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 relative transition-colors">
-              {acc.currentStatus !== 'Active' && (
-                <div className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/80 text-red-800 dark:text-red-200 text-xs font-bold px-2 py-1 rounded-bl-lg z-10">
-                  {acc.currentStatus}
-                </div>
-              )}
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{acc.accountType}</h3>
-                    <p className="text-sm font-mono text-gray-500 dark:text-gray-400">{acc.accountNumber}</p>
-                  </div>
-                  <div className="h-10 w-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center border border-blue-100 dark:border-blue-800/50 transition-colors">
-                    <span className="text-blue-700 dark:text-blue-400 font-bold text-xs">{acc.currency}</span>
-                  </div>
-                </div>
+            const response = await apiFetch("/api/account-requests", {
+                method: method,
+                body: formData,
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(
+                    errorData.message || "Failed to submit request",
+                );
+            }
+
+            toast.success("Registration submitted successfully.");
+            setKycStatus("pending");
+            fetchKycs();
+        } catch (error: any) {
+            console.error("Failed to submit KYC:", error);
+            toast.error(error.message || "Failed to submit account request.");
+        } finally {
+            setIsSubmittingKYC(false);
+        }
+    };
+
+    const closeKycModal = () => {
+        if (!isSubmittingKYC) {
+            setIsNewAccountModalOpen(false);
+            setTimeout(() => setKycStatus("idle"), 300);
+            setPanFile(null);
+            setAadharFile(null);
+            setSignatureFile(null);
+            setPanNumber("");
+            setAadharNumber("");
+        }
+    };
+
+    return (
+        <div className="max-w-7xl mx-auto space-y-6 animate-fade-in transition-colors">
+            <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Available Balance</p>
-                  <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
-                    {acc.currency === 'INR' ? '₹' : acc.currency === 'USD' ? '$' : '€'}
-                    {acc.balance.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                  </p>
-                  
-                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800 grid grid-cols-2 gap-2 transition-colors">
-                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-gray-600 dark:text-gray-300 dark:border-slate-700 dark:hover:bg-slate-800" onClick={() => fetchHistory(acc)}>
-                        History
-                    </Button>
-                    <Button variant="outline" className="w-full text-xs shadow-none py-1.5 h-auto text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-900/30" onClick={() => router.push(`/my/accounts/statement/${acc._id}`)}>
-                        Statement
-                    </Button>
-                  </div>
+                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+                        Your Accounts
+                    </h1>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Manage your balances and execute transfers.
+                    </p>
+                    {user?.customerId && (
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+                            Customer ID:{" "}
+                            <span className="font-mono">{user.customerId}</span>
+                        </p>
+                    )}
                 </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Pagination Controls */}
-      {!isLoading && totalPages > 1 && (
-        <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 px-5 py-3 shadow-sm transition-colors">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            {total} account{total !== 1 ? "s" : ""} total
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page === 1}
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              className="py-1 h-auto text-xs dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
-            >
-              ← Previous
-            </Button>
-            <span className="text-sm text-gray-600 dark:text-gray-400 px-2">{page} / {totalPages}</span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              className="py-1 h-auto text-xs dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
-            >
-              Next →
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Account Request & KYC Modal */}
-      <Modal
-        isOpen={isNewAccountModalOpen}
-        onClose={closeKycModal}
-        title="Open New Account"
-        description={kycStatus === "pending" ? "" : "Please provide your KYC documents to process your request."}
-      >
-        {kycStatus === "pending" ? (
-            <div className="py-8 text-center space-y-4 animate-fade-in">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50 mb-4 transition-colors">
-                    <svg className="h-8 w-8 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white">KYC Pending</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
-                    Your account request and documents have been submitted successfully. Please wait while our compliance team verifies your details.
-                </p>
-                <div className="pt-6">
-                    <Button onClick={closeKycModal} variant="outline" className="w-full">
-                        Close Window
-                    </Button>
-                </div>
-            </div>
-        ) : (
-            <form onSubmit={handleRequestAccount} className="space-y-5">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Type</label>
-                    <select
-                        className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                        value={newAccountType}
-                        onChange={(e) => setNewAccountType(e.target.value)}
-                        disabled={isSubmittingKYC}
+                <div className="flex gap-3">
+                    <Button
+                        onClick={() => setIsNewAccountModalOpen(true)}
+                        variant="outline"
+                        className="dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
                     >
-                        <option value="Savings">Savings Account</option>
-                        <option value="Current">Current Account</option>
-                        <option value="Fixed">Fixed Deposit</option>
-                    </select>
+                        Register for New Account
+                    </Button>
+                    <Button
+                        onClick={() => setIsTransferModalOpen(true)}
+                        variant="primary"
+                    >
+                        New Transfer
+                    </Button>
                 </div>
+            </div>
 
-                <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border border-gray-200 dark:border-slate-700 space-y-4 max-h-[50vh] overflow-y-auto transition-colors">
-                    <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700 pb-2">Mandatory KYC Details</h4>
-                    
-                    {/* PAN Input Group */}
-                    <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-slate-700">
-                        <Input
-                            label="PAN Number"
-                            type="text"
-                            value={panNumber}
-                            onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
-                            required
-                            disabled={isSubmittingKYC}
-                            placeholder="ABCDE1234F"
-                        />
+            {}
+            {accountRequest && accountRequest.currentStatus !== "Approved" && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm mb-6 transition-colors">
+                    <div className="flex items-center justify-between mb-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PAN Card Image</label>
-                            <input
-                                type="file"
-                                accept="image/*,.pdf"
-                                onChange={(e) => setPanFile(e.target.files?.[0] || null)}
-                                required
-                                disabled={isSubmittingKYC}
-                                className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
-                            />
+                            <h2 className="text-lg font-bold text-blue-900 dark:text-blue-400">
+                                Account Request Status:{" "}
+                                {accountRequest.currentStatus.replace("_", " ")}
+                            </h2>
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                                Tracking progress for your{" "}
+                                {accountRequest.accountType} account.
+                            </p>
+                        </div>
+                        <div className="flex gap-2">
+                            <span
+                                className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === "Rejected" ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"}`}
+                            >
+                                {accountRequest.currentStatus}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Aadhar Input Group */}
-                    <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-slate-700">
-                        <Input
-                            label="Aadhar Number"
-                            type="text"
-                            value={aadharNumber}
-                            onChange={(e) => setAadharNumber(e.target.value.replace(/\D/g, ''))}
-                            required
-                            disabled={isSubmittingKYC}
-                            placeholder="[Aadhaar Redacted]"
-                            maxLength={12}
-                        />
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Aadhar Card Image</label>
-                            <input
-                                type="file"
-                                accept="image/*,.pdf"
-                                onChange={(e) => setAadharFile(e.target.files?.[0] || null)}
-                                required
-                                disabled={isSubmittingKYC}
-                                className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
-                            />
-                        </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {["PAN", "Aadhar", "Signature"].map((type) => {
+                            const kyc =
+                                kycs.find((k) => k.documentType === type) ||
+                                (type === "Signature"
+                                    ? { currentStatus: "Verified" }
+                                    : null);
+                            const status =
+                                kyc?.currentStatus || "Not Submitted";
+
+                            return (
+                                <div
+                                    key={type}
+                                    className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-blue-100 dark:border-slate-800 flex flex-col justify-between transition-colors"
+                                >
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">
+                                            {type} Document
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <span
+                                                className={`w-2 h-2 rounded-full ${status === "Verified" ? "bg-green-500" : status === "Rejected" ? "bg-red-500" : "bg-orange-500"}`}
+                                            ></span>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                {status}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {status === "Rejected" && (
+                                        <div className="mt-3">
+                                            <p className="text-[10px] text-red-600 dark:text-red-400 mb-2">
+                                                {kyc?.metadata
+                                                    ?.rejectionReason ||
+                                                    "Please re-upload clear image."}
+                                            </p>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full text-[10px] py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+                                                onClick={() => {
+                                                    setReuploadDocType(type);
+                                                    setIsReuploadModalOpen(
+                                                        true,
+                                                    );
+                                                }}
+                                            >
+                                                Fix & Re-upload
+                                            </Button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
-
-                    {/* Signature Input Group */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Signature Image</label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => setSignatureFile(e.target.files?.[0] || null)}
-                            required
-                            disabled={isSubmittingKYC}
-                            className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
-                        />
-                    </div>
-                </div>
-
-                <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-slate-700 mt-6">
-                    <Button type="button" variant="ghost" onClick={closeKycModal} disabled={isSubmittingKYC}>
-                        Cancel
-                    </Button>
-                    <Button type="submit" variant="primary" isLoading={isSubmittingKYC}>
-                        Submit Documents
-                    </Button>
-                </div>
-            </form>
-        )}
-      </Modal>
-
-      {/* Transfer Modal Implementation */}
-      <Modal
-        isOpen={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
-        title="Transfer Funds"
-        description="Move money between your accounts or to a saved beneficiary."
-      >
-        <form onSubmit={handleTransfer} className="space-y-4">
-            {transferError && (
-                <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-md">
-                    {transferError}
                 </div>
             )}
-            
-            <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From Account</label>
-                <select 
-                    className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none" 
-                    value={fromAccountId} 
-                    onChange={(e) => setFromAccountId(e.target.value)} 
-                    required
-                >
-                    <option value="" disabled>Select Account</option>
-                    {accounts.filter(a => a.currentStatus === 'Active').map(acc => (
-                        <option key={acc._id} value={acc._id}>
-                            {acc.accountType} - {acc.accountNumber} ({acc.currency} {acc.balance.toLocaleString()})
-                        </option>
-                    ))}
-                </select>
-            </div>
 
-            <div>
-                <Input 
-                    label="To Account Number"
-                    type="text"
-                    value={toAccountNumber} 
-                    onChange={(e) => setToAccountNumber(e.target.value)} 
-                    placeholder="Recipient Account Number" 
-                    required 
-                />
-            </div>
-
-            <div>
-                <Input 
-                    label="Amount"
-                    type="number" 
-                    value={amount} 
-                    onChange={(e) => setAmount(e.target.value)} 
-                    placeholder="0.00" 
-                    required 
-                    min="0.01" 
-                    step="0.01" 
-                />
-            </div>
-
-            <div>
-                <Input 
-                    label="Memo / Note"
-                    type="text"
-                    value={memo} 
-                    onChange={(e) => setMemo(e.target.value)} 
-                    placeholder="What is this for?" 
-                />
-            </div>
-
-            <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg space-y-3">
-                <div className="flex items-center gap-2">
-                    <input 
-                        type="checkbox" 
-                        id="saveBeneficiary" 
-                        checked={saveBeneficiary} 
-                        onChange={(e) => setSaveBeneficiary(e.target.checked)} 
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label htmlFor="saveBeneficiary" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Save as Beneficiary
-                    </label>
-                </div>
-                {saveBeneficiary && (
-                    <Input 
-                        label="Beneficiary Nickname"
-                        value={beneficiaryNickName} 
-                        onChange={e => setBeneficiaryNickName(e.target.value)} 
-                        placeholder="e.g. John's Rent" 
-                        required={saveBeneficiary} 
-                    />
-                )}
-
-                <div className="border-t border-gray-200 dark:border-slate-700 pt-3 flex items-center gap-2">
-                    <input 
-                        type="checkbox" 
-                        id="isScheduled" 
-                        checked={isScheduled} 
-                        onChange={(e) => setIsScheduled(e.target.checked)} 
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                    />
-                    <label htmlFor="isScheduled" className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                        Schedule this transfer
-                    </label>
-                </div>
-                {isScheduled && (
-                    <div className="grid grid-cols-2 gap-4 mt-2">
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Frequency</label>
-                            <select 
-                                value={frequency} 
-                                onChange={e => setFrequency(e.target.value)} 
-                                className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+            {}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {isLoading ? (
+                    <div className="col-span-full py-10 flex justify-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-blue-400"></div>
+                    </div>
+                ) : accounts.length === 0 ? (
+                    <div className="col-span-full py-16 text-center bg-white dark:bg-slate-900 border border-dashed border-gray-200 dark:border-slate-700 rounded-xl shadow-sm transition-colors">
+                        <div className="mx-auto w-16 h-16 bg-blue-50 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+                            <svg
+                                className="w-8 h-8 text-blue-400 dark:text-blue-500"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
                             >
-                                <option value="Daily">Daily</option>
-                                <option value="Weekly">Weekly</option>
-                                <option value="Monthly">Monthly</option>
-                            </select>
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                                />
+                            </svg>
                         </div>
-                        <div>
-                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Start Date</label>
-                            <input 
-                                type="date" 
-                                value={startDate} 
-                                onChange={e => setStartDate(e.target.value)} 
-                                required={isScheduled} 
-                                className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
-                            />
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-1">
+                            No accounts yet
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto mb-6">
+                            Submit your KYC documents to get started. Our team
+                            typically reviews applications within 1 business
+                            day.
+                        </p>
+                        <Button
+                            onClick={() => setIsNewAccountModalOpen(true)}
+                            variant="primary"
+                        >
+                            Register for New Account
+                        </Button>
+                    </div>
+                ) : (
+                    accounts.map((acc) => (
+                        <div
+                            key={acc._id}
+                            className="bg-white dark:bg-slate-900 overflow-hidden rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 relative transition-colors"
+                        >
+                            {acc.currentStatus !== "Active" && (
+                                <div className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/80 text-red-800 dark:text-red-200 text-xs font-bold px-2 py-1 rounded-bl-lg z-10">
+                                    {acc.currentStatus}
+                                </div>
+                            )}
+                            <div className="p-6">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                                            {acc.accountType}
+                                        </h3>
+                                        <p className="text-sm font-mono text-gray-500 dark:text-gray-400">
+                                            {acc.accountNumber}
+                                        </p>
+                                    </div>
+                                    <div className="h-10 w-10 bg-blue-50 dark:bg-blue-900/30 rounded-full flex items-center justify-center border border-blue-100 dark:border-blue-800/50 transition-colors">
+                                        <span className="text-blue-700 dark:text-blue-400 font-bold text-xs">
+                                            {acc.currency}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                                        Available Balance
+                                    </p>
+                                    <p className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                                        {acc.currency === "INR"
+                                            ? "₹"
+                                            : acc.currency === "USD"
+                                              ? "$"
+                                              : "€"}
+                                        {acc.balance.toLocaleString("en-IN", {
+                                            minimumFractionDigits: 2,
+                                        })}
+                                    </p>
+
+                                    <div className="pt-4 border-t border-gray-100 dark:border-slate-800 grid grid-cols-2 gap-2 transition-colors">
+                                        <Button
+                                            variant="outline"
+                                            className="w-full text-xs shadow-none py-1.5 h-auto text-gray-600 dark:text-gray-300 dark:border-slate-700 dark:hover:bg-slate-800"
+                                            onClick={() => fetchHistory(acc)}
+                                        >
+                                            History
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            className="w-full text-xs shadow-none py-1.5 h-auto text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/50 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                                            onClick={() =>
+                                                router.push(
+                                                    `/my/accounts/statement/${acc._id}`,
+                                                )
+                                            }
+                                        >
+                                            Statement
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            {}
+            {!isLoading && totalPages > 1 && (
+                <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-800 px-5 py-3 shadow-sm transition-colors">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {total} account{total !== 1 ? "s" : ""} total
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page === 1}
+                            onClick={() => setPage((p) => Math.max(1, p - 1))}
+                            className="py-1 h-auto text-xs dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+                        >
+                            ← Previous
+                        </Button>
+                        <span className="text-sm text-gray-600 dark:text-gray-400 px-2">
+                            {page} / {totalPages}
+                        </span>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={page >= totalPages}
+                            onClick={() =>
+                                setPage((p) => Math.min(totalPages, p + 1))
+                            }
+                            className="py-1 h-auto text-xs dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+                        >
+                            Next →
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {}
+            <Modal
+                isOpen={isNewAccountModalOpen}
+                onClose={closeKycModal}
+                title="Open New Account"
+                description={
+                    kycStatus === "pending"
+                        ? ""
+                        : "Please provide your KYC documents to process your request."
+                }
+            >
+                {kycStatus === "pending" ? (
+                    <div className="py-8 text-center space-y-4 animate-fade-in">
+                        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50 mb-4 transition-colors">
+                            <svg
+                                className="h-8 w-8 text-blue-600 dark:text-blue-400"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                strokeWidth="1.5"
+                                stroke="currentColor"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                                />
+                            </svg>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                            KYC Pending
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 px-4">
+                            Your account request and documents have been
+                            submitted successfully. Please wait while our
+                            compliance team verifies your details.
+                        </p>
+                        <div className="pt-6">
+                            <Button
+                                onClick={closeKycModal}
+                                variant="outline"
+                                className="w-full"
+                            >
+                                Close Window
+                            </Button>
                         </div>
                     </div>
+                ) : (
+                    <form onSubmit={handleRequestAccount} className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Account Type
+                            </label>
+                            <select
+                                className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                                value={newAccountType}
+                                onChange={(e) =>
+                                    setNewAccountType(e.target.value)
+                                }
+                                disabled={isSubmittingKYC}
+                            >
+                                <option value="Savings">Savings Account</option>
+                                <option value="Current">Current Account</option>
+                                <option value="Fixed">Fixed Deposit</option>
+                            </select>
+                        </div>
+
+                        <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg border border-gray-200 dark:border-slate-700 space-y-4 max-h-[50vh] overflow-y-auto transition-colors">
+                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-slate-700 pb-2">
+                                Mandatory KYC Details
+                            </h4>
+
+                            {}
+                            <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-slate-700">
+                                <Input
+                                    label="PAN Number"
+                                    type="text"
+                                    value={panNumber}
+                                    onChange={(e) =>
+                                        setPanNumber(
+                                            e.target.value.toUpperCase(),
+                                        )
+                                    }
+                                    required
+                                    disabled={isSubmittingKYC}
+                                    placeholder="ABCDE1234F"
+                                />
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        PAN Card Image
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        onChange={(e) =>
+                                            setPanFile(
+                                                e.target.files?.[0] || null,
+                                            )
+                                        }
+                                        required
+                                        disabled={isSubmittingKYC}
+                                        className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {}
+                            <div className="space-y-3 pb-4 border-b border-gray-200 dark:border-slate-700">
+                                <Input
+                                    label="Aadhar Number"
+                                    type="text"
+                                    value={aadharNumber}
+                                    onChange={(e) =>
+                                        setAadharNumber(
+                                            e.target.value.replace(/\D/g, ""),
+                                        )
+                                    }
+                                    required
+                                    disabled={isSubmittingKYC}
+                                    placeholder="[Aadhaar Redacted]"
+                                    maxLength={12}
+                                />
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Aadhar Card Image
+                                    </label>
+                                    <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        onChange={(e) =>
+                                            setAadharFile(
+                                                e.target.files?.[0] || null,
+                                            )
+                                        }
+                                        required
+                                        disabled={isSubmittingKYC}
+                                        className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Signature Input Group */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Signature Image
+                                </label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) =>
+                                        setSignatureFile(
+                                            e.target.files?.[0] || null,
+                                        )
+                                    }
+                                    required
+                                    disabled={isSubmittingKYC}
+                                    className="w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 focus:outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 dark:border-slate-700 mt-6">
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                onClick={closeKycModal}
+                                disabled={isSubmittingKYC}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                variant="primary"
+                                isLoading={isSubmittingKYC}
+                            >
+                                Submit Documents
+                            </Button>
+                        </div>
+                    </form>
                 )}
-            </div>
+            </Modal>
 
-            <div className="flex gap-4 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setIsTransferModalOpen(false)} className="w-full">
-                    Cancel
-                </Button>
-                <Button type="submit" variant="primary" isLoading={isTransferring} className="w-full">
-                    Confirm Transfer
-                </Button>
-            </div>
-        </form>
-      </Modal>
+            {/* Transfer Modal Implementation */}
+            <Modal
+                isOpen={isTransferModalOpen}
+                onClose={() => setIsTransferModalOpen(false)}
+                title="Transfer Funds"
+                description="Move money between your accounts or to a saved beneficiary."
+            >
+                <form onSubmit={handleTransfer} className="space-y-4">
+                    {transferError && (
+                        <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-900/30 dark:text-red-400 rounded-md">
+                            {transferError}
+                        </div>
+                    )}
 
-      {/* Schedules Table */}
-      {schedules.length > 0 && (
-          <div className="mb-6 pt-8 border-t border-gray-200 dark:border-slate-800 transition-colors">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Scheduled Transfers</h2>
-              <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
-                  <table className="w-full text-left">
-                      <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
-                          <tr>
-                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Schedule Detail</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Frequency</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Next Payment</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Status</th>
-                              <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-right">Actions</th>
-                          </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
-                          {schedules.map(sch => (
-                              <tr key={sch._id} className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                  <td className="p-4">
-                                      <div className="font-bold text-gray-900 dark:text-white">{sch.currency} {sch.amount.$numberDecimal || sch.amount}</div>
-                                      <div className="text-xs text-gray-500 dark:text-gray-400">To: {sch.beneficiaryId || "Saved Payee"}</div>
-                                  </td>
-                                  <td className="p-4">
-                                      <div className="text-sm font-medium text-gray-900 dark:text-white">{sch.frequency}</div>
-                                  </td>
-                                  <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
-                                      {new Date(sch.nextRunDate).toLocaleDateString()}
-                                  </td>
-                                  <td className="p-4">
-                                      <span className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase ${sch.currentStatus === 'Active' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : sch.currentStatus === 'Paused' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                          {sch.currentStatus}
-                                      </span>
-                                  </td>
-                                  <td className="p-4 text-right">
-                                      {sch.currentStatus !== 'Cancelled' && (
-                                          <div className="flex justify-end gap-2">
-                                              <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="text-xs py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800" 
-                                                onClick={() => updateScheduleStatus(sch._id, sch.currentStatus === 'Active' ? 'Paused' : 'Active')}
-                                              >
-                                                {sch.currentStatus === 'Active' ? 'Pause' : 'Resume'}
-                                              </Button>
-                                              <Button 
-                                                type="button" 
-                                                variant="outline" 
-                                                size="sm" 
-                                                className="text-xs py-1 h-auto text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20" 
-                                                onClick={() => updateScheduleStatus(sch._id, 'Cancelled')}
-                                              >
-                                                Cancel
-                                              </Button>
-                                          </div>
-                                      )}
-                                  </td>
-                              </tr>
-                          ))}
-                      </tbody>
-                  </table>
-              </div>
-          </div>
-      )}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            From Account
+                        </label>
+                        <select
+                            className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none"
+                            value={fromAccountId}
+                            onChange={(e) => setFromAccountId(e.target.value)}
+                            required
+                        >
+                            <option value="" disabled>
+                                Select Account
+                            </option>
+                            {accounts
+                                .filter((a) => a.currentStatus === "Active")
+                                .map((acc) => (
+                                    <option key={acc._id} value={acc._id}>
+                                        {acc.accountType} - {acc.accountNumber}{" "}
+                                        ({acc.currency}{" "}
+                                        {acc.balance.toLocaleString()})
+                                    </option>
+                                ))}
+                        </select>
+                    </div>
 
-      {/* Reupload Modal */}
-      {isReuploadModalOpen && (
-          <ReuploadModal 
-              isOpen={isReuploadModalOpen} 
-              onClose={() => setIsReuploadModalOpen(false)} 
-              documentType={reuploadDocType} 
-              onSuccess={() => {
-                  setIsReuploadModalOpen(false);
-                  fetchKycs();
-              }} 
-          />
-      )}
-    </div>
-  );
+                    <div>
+                        <Input
+                            label="To Account Number"
+                            type="text"
+                            value={toAccountNumber}
+                            onChange={(e) => setToAccountNumber(e.target.value)}
+                            placeholder="Recipient Account Number"
+                            required
+                        />
+                    </div>
+
+                    <div>
+                        <Input
+                            label="Amount"
+                            type="number"
+                            value={amount}
+                            onChange={(e) => setAmount(e.target.value)}
+                            placeholder="0.00"
+                            required
+                            min="0.01"
+                            step="0.01"
+                        />
+                    </div>
+
+                    <div>
+                        <Input
+                            label="Memo / Note"
+                            type="text"
+                            value={memo}
+                            onChange={(e) => setMemo(e.target.value)}
+                            placeholder="What is this for?"
+                        />
+                    </div>
+
+                    <div className="bg-gray-50 dark:bg-slate-800/50 p-4 rounded-lg space-y-3">
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="saveBeneficiary"
+                                checked={saveBeneficiary}
+                                onChange={(e) =>
+                                    setSaveBeneficiary(e.target.checked)
+                                }
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label
+                                htmlFor="saveBeneficiary"
+                                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                            >
+                                Save as Beneficiary
+                            </label>
+                        </div>
+                        {saveBeneficiary && (
+                            <Input
+                                label="Beneficiary Nickname"
+                                value={beneficiaryNickName}
+                                onChange={(e) =>
+                                    setBeneficiaryNickName(e.target.value)
+                                }
+                                placeholder="e.g. John's Rent"
+                                required={saveBeneficiary}
+                            />
+                        )}
+
+                        <div className="border-t border-gray-200 dark:border-slate-700 pt-3 flex items-center gap-2">
+                            <input
+                                type="checkbox"
+                                id="isScheduled"
+                                checked={isScheduled}
+                                onChange={(e) =>
+                                    setIsScheduled(e.target.checked)
+                                }
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <label
+                                htmlFor="isScheduled"
+                                className="text-sm font-medium text-gray-700 dark:text-gray-300"
+                            >
+                                Schedule this transfer
+                            </label>
+                        </div>
+                        {isScheduled && (
+                            <div className="grid grid-cols-2 gap-4 mt-2">
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Frequency
+                                    </label>
+                                    <select
+                                        value={frequency}
+                                        onChange={(e) =>
+                                            setFrequency(e.target.value)
+                                        }
+                                        className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                    >
+                                        <option value="Daily">Daily</option>
+                                        <option value="Weekly">Weekly</option>
+                                        <option value="Monthly">Monthly</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Start Date
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={startDate}
+                                        onChange={(e) =>
+                                            setStartDate(e.target.value)
+                                        }
+                                        required={isScheduled}
+                                        className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex gap-4 pt-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            onClick={() => setIsTransferModalOpen(false)}
+                            className="w-full"
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            isLoading={isTransferring}
+                            className="w-full"
+                        >
+                            Confirm Transfer
+                        </Button>
+                    </div>
+                </form>
+            </Modal>
+
+            {}
+            {schedules.length > 0 && (
+                <div className="mb-6 pt-8 border-t border-gray-200 dark:border-slate-800 transition-colors">
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">
+                        Scheduled Transfers
+                    </h2>
+                    <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-xl shadow-sm overflow-hidden">
+                        <table className="w-full text-left">
+                            <thead className="bg-gray-50 dark:bg-slate-800/50 border-b border-gray-100 dark:border-slate-800">
+                                <tr>
+                                    <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                                        Schedule Detail
+                                    </th>
+                                    <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                                        Frequency
+                                    </th>
+                                    <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                                        Next Payment
+                                    </th>
+                                    <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">
+                                        Status
+                                    </th>
+                                    <th className="p-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-right">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-50 dark:divide-slate-800/50">
+                                {schedules.map((sch) => (
+                                    <tr
+                                        key={sch._id}
+                                        className="hover:bg-gray-50/50 dark:hover:bg-slate-800/30 transition-colors"
+                                    >
+                                        <td className="p-4">
+                                            <div className="font-bold text-gray-900 dark:text-white">
+                                                {sch.currency}{" "}
+                                                {sch.amount.$numberDecimal ||
+                                                    sch.amount}
+                                            </div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                To:{" "}
+                                                {sch.beneficiaryId ||
+                                                    "Saved Payee"}
+                                            </div>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                                {sch.frequency}
+                                            </div>
+                                        </td>
+                                        <td className="p-4 text-sm text-gray-600 dark:text-gray-300">
+                                            {new Date(
+                                                sch.nextRunDate,
+                                            ).toLocaleDateString()}
+                                        </td>
+                                        <td className="p-4">
+                                            <span
+                                                className={`px-2 py-1 text-[10px] font-bold rounded-full uppercase ${sch.currentStatus === "Active" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : sch.currentStatus === "Paused" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
+                                            >
+                                                {sch.currentStatus}
+                                            </span>
+                                        </td>
+                                        <td className="p-4 text-right">
+                                            {sch.currentStatus !==
+                                                "Cancelled" && (
+                                                <div className="flex justify-end gap-2">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-xs py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+                                                        onClick={() =>
+                                                            updateScheduleStatus(
+                                                                sch._id,
+                                                                sch.currentStatus ===
+                                                                    "Active"
+                                                                    ? "Paused"
+                                                                    : "Active",
+                                                            )
+                                                        }
+                                                    >
+                                                        {sch.currentStatus ===
+                                                        "Active"
+                                                            ? "Pause"
+                                                            : "Resume"}
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-xs py-1 h-auto text-red-600 border-red-200 hover:bg-red-50 dark:border-red-900/50 dark:text-red-400 dark:hover:bg-red-900/20"
+                                                        onClick={() =>
+                                                            updateScheduleStatus(
+                                                                sch._id,
+                                                                "Cancelled",
+                                                            )
+                                                        }
+                                                    >
+                                                        Cancel
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {}
+            {isReuploadModalOpen && (
+                <ReuploadModal
+                    isOpen={isReuploadModalOpen}
+                    onClose={() => setIsReuploadModalOpen(false)}
+                    documentType={reuploadDocType}
+                    onSuccess={() => {
+                        setIsReuploadModalOpen(false);
+                        fetchKycs();
+                    }}
+                />
+            )}
+        </div>
+    );
 }

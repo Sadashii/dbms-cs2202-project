@@ -9,17 +9,29 @@ import crypto from "crypto";
 export async function GET(req: Request) {
     try {
         const decoded = verifyAuth(await headers());
-        if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        if (!decoded)
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 },
+            );
 
         const { searchParams } = new URL(req.url);
         const loanId = searchParams.get("loanId");
 
-        if (!loanId) return NextResponse.json({ message: "Loan ID is required." }, { status: 400 });
+        if (!loanId)
+            return NextResponse.json(
+                { message: "Loan ID is required." },
+                { status: 400 },
+            );
 
         await dbConnect();
-        const payments = await LoanPayment.find({ loanId, userId: decoded.userId }).sort({ dueDate: 1 }).lean();
+        const payments = await LoanPayment.find({
+            loanId,
+            userId: decoded.userId,
+        })
+            .sort({ dueDate: 1 })
+            .lean();
 
-        // Serialize Decimal128
         const formattedPayments = payments.map((p: any) => ({
             ...p,
             amountExpected: parseFloat(p.amountExpected.toString()),
@@ -31,44 +43,69 @@ export async function GET(req: Request) {
 
         return NextResponse.json({ payments: formattedPayments });
     } catch (error) {
-        return NextResponse.json({ message: "Failed to fetch payments." }, { status: 500 });
+        return NextResponse.json(
+            { message: "Failed to fetch payments." },
+            { status: 500 },
+        );
     }
 }
 
-// Simulates "Billing" of an EMI installment
 export async function POST(req: Request) {
     try {
         const decoded = verifyAuth(await headers());
-        if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        if (!decoded)
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 },
+            );
 
         const { loanId } = await req.json();
         await dbConnect();
 
-        const loan = await Loan.findOne({ _id: loanId, userId: decoded.userId });
-        if (!loan) return NextResponse.json({ message: "Loan not found." }, { status: 404 });
-        if (loan.currentStatus !== 'Active') return NextResponse.json({ message: "Loan is not active." }, { status: 400 });
+        const loan = await Loan.findOne({
+            _id: loanId,
+            userId: decoded.userId,
+        });
+        if (!loan)
+            return NextResponse.json(
+                { message: "Loan not found." },
+                { status: 404 },
+            );
+        if (loan.currentStatus !== "Active")
+            return NextResponse.json(
+                { message: "Loan is not active." },
+                { status: 400 },
+            );
 
-        // Check if there is already a pending payment
-        const existingPending = await LoanPayment.findOne({ loanId, currentStatus: 'Pending' });
-        if (existingPending) return NextResponse.json({ message: "An EMI is already billed and pending payment." }, { status: 400 });
+        const existingPending = await LoanPayment.findOne({
+            loanId,
+            currentStatus: "Pending",
+        });
+        if (existingPending)
+            return NextResponse.json(
+                { message: "An EMI is already billed and pending payment." },
+                { status: 400 },
+            );
 
-        // Math Logic for breakdown
         const remainingPrincipal = parseFloat(loan.remainingAmount.toString());
-        if (remainingPrincipal <= 0) return NextResponse.json({ message: "Loan is fully paid." }, { status: 400 });
+        if (remainingPrincipal <= 0)
+            return NextResponse.json(
+                { message: "Loan is fully paid." },
+                { status: 400 },
+            );
 
         const monthlyRate = parseFloat(loan.interestRate.toString()) / 12 / 100;
         const totalEmi = parseFloat(loan.emiAmount.toString());
-        
-        let interestComponent = remainingPrincipal * monthlyRate;
+
+        const interestComponent = remainingPrincipal * monthlyRate;
         let principalComponent = totalEmi - interestComponent;
 
-        // Last payment adjustment
         if (principalComponent >= remainingPrincipal) {
             principalComponent = remainingPrincipal;
         }
 
-        const paymentReference = `PAY-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-        
+        const paymentReference = `PAY-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
+
         const newPayment = await LoanPayment.create({
             paymentReference,
             loanId: loan._id,
@@ -79,15 +116,21 @@ export async function POST(req: Request) {
             interestComponent,
             lateFeeComponent: 0,
             dueDate: loan.nextPaymentDate || new Date(),
-            currentStatus: 'Pending',
+            currentStatus: "Pending",
             metadata: {
-                notes: `System generated installment #${loan.paidEmiCount + 1}`
-            }
+                notes: `System generated installment #${loan.paidEmiCount + 1}`,
+            },
         });
 
-        return NextResponse.json({ message: "EMI Billed Successfully.", payment: newPayment });
+        return NextResponse.json({
+            message: "EMI Billed Successfully.",
+            payment: newPayment,
+        });
     } catch (error: any) {
         console.error("Billing Error:", error);
-        return NextResponse.json({ message: error.message || "Billing failed." }, { status: 500 });
+        return NextResponse.json(
+            { message: error.message || "Billing failed." },
+            { status: 500 },
+        );
     }
 }

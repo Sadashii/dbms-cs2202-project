@@ -7,7 +7,8 @@ let hasCompletedInitialBackfill = false;
 
 export const normalizeCustomerId = (value: string) => value.replace(/\D/g, "");
 
-export const isCustomerId = (value: string) => CUSTOMER_ID_PATTERN.test(normalizeCustomerId(value));
+export const isCustomerId = (value: string) =>
+    CUSTOMER_ID_PATTERN.test(normalizeCustomerId(value));
 
 export async function ensureUserHasValidCustomerId(userId: string) {
     const user = await User.findById(userId);
@@ -15,7 +16,9 @@ export async function ensureUserHasValidCustomerId(userId: string) {
         return null;
     }
 
-    const normalizedCustomerId = user.customerId ? normalizeCustomerId(user.customerId) : "";
+    const normalizedCustomerId = user.customerId
+        ? normalizeCustomerId(user.customerId)
+        : "";
     if (!CUSTOMER_ID_PATTERN.test(normalizedCustomerId)) {
         user.customerId = undefined as any;
         await user.save();
@@ -45,8 +48,8 @@ export async function backfillMissingCustomerIds(): Promise<number> {
                 { customerId: { $exists: false } },
                 { customerId: null },
                 { customerId: "" },
-                { customerId: { $not: CUSTOMER_ID_PATTERN } }
-            ]
+                { customerId: { $not: CUSTOMER_ID_PATTERN } },
+            ],
         }).select("_id customerId");
 
         for (const user of users) {

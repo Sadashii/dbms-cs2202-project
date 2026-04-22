@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import { useAuthContext } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
@@ -10,15 +10,15 @@ interface EmiCalculatorProps {
 }
 
 export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
-    const { user, apiFetch } = useAuthContext(); 
-    
+    const { user, apiFetch } = useAuthContext();
+
     const [principal, setPrincipal] = useState(160000);
     const [tenure, setTenure] = useState(12);
     const [isSubmitting, setIsSubmitting] = useState(false);
-    
-    const [showDetailsPopup, setShowDetailsPopup] = useState(false); 
-    const [showSuccessPopup, setShowSuccessPopup] = useState(false); 
-    
+
+    const [showDetailsPopup, setShowDetailsPopup] = useState(false);
+    const [showSuccessPopup, setShowSuccessPopup] = useState(false);
+
     const [loanReason, setLoanReason] = useState("Personal");
     const [loanDescription, setLoanDescription] = useState("");
 
@@ -26,7 +26,7 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
     const [linkedAccountId, setLinkedAccountId] = useState("");
     const [isLoadingAccounts, setIsLoadingAccounts] = useState(true);
 
-    const BANK_INTEREST_RATE = 9.5; 
+    const BANK_INTEREST_RATE = 9.5;
 
     React.useEffect(() => {
         const fetchAccounts = async () => {
@@ -34,9 +34,12 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                 const res = await apiFetch("/api/accounts?limit=50");
                 if (res.ok) {
                     const data = await res.json();
-                    const activeAccounts = data.accounts.filter((a: any) => a.currentStatus === 'Active');
+                    const activeAccounts = data.accounts.filter(
+                        (a: any) => a.currentStatus === "Active",
+                    );
                     setAccounts(activeAccounts);
-                    if (activeAccounts.length > 0) setLinkedAccountId(activeAccounts[0]._id);
+                    if (activeAccounts.length > 0)
+                        setLinkedAccountId(activeAccounts[0]._id);
                 }
             } catch (error) {
                 console.error("Failed to fetch accounts", error);
@@ -51,7 +54,8 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
         const r = BANK_INTEREST_RATE / 12 / 100;
         const n = tenure;
         if (r === 0) return principal / n;
-        const emi = (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+        const emi =
+            (principal * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
         return Math.round(emi);
     };
 
@@ -61,7 +65,9 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
 
     const handleFinalSubmit = async () => {
         if (loanReason === "Other" && loanDescription.trim() === "") {
-            toast.error("Please provide additional details for your loan purpose.");
+            toast.error(
+                "Please provide additional details for your loan purpose.",
+            );
             return;
         }
 
@@ -76,15 +82,15 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                     emiAmount: calculateEMI(),
                     loanType: "Personal",
                     accountId: linkedAccountId,
-                    loanReason: loanReason, 
-                    loanDescription: loanDescription 
-                })
+                    loanReason: loanReason,
+                    loanDescription: loanDescription,
+                }),
             });
 
             if (res.ok) {
                 if (onApplySuccess) onApplySuccess();
-                setShowDetailsPopup(false); 
-                setShowSuccessPopup(true); 
+                setShowDetailsPopup(false);
+                setShowSuccessPopup(true);
                 setLoanDescription("");
                 setLoanReason("Personal");
             } else {
@@ -98,38 +104,55 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
         }
     };
 
-    const isConfirmDisabled = isSubmitting || (loanReason === "Other" && loanDescription.trim() === "");
+    const isConfirmDisabled =
+        isSubmitting ||
+        (loanReason === "Other" && loanDescription.trim() === "");
 
     return (
         <>
             {/* Main Tool Container */}
-            <div id="loan-tool" className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 mt-6 transition-colors">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 transition-colors">Quick EMI Calculator</h3>
-                
+            <div
+                id="loan-tool"
+                className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-slate-800 mt-6 transition-colors"
+            >
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 transition-colors">
+                    Quick EMI Calculator
+                </h3>
+
                 <div className="flex justify-between items-center bg-gray-50 dark:bg-slate-800/50 p-3 rounded-lg border border-gray-200 dark:border-slate-700 mb-6 transition-colors">
-                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">Applicable Interest Rate</span>
-                    <span className="font-bold text-blue-600 dark:text-blue-400">{BANK_INTEREST_RATE}% p.a.</span>
+                    <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                        Applicable Interest Rate
+                    </span>
+                    <span className="font-bold text-blue-600 dark:text-blue-400">
+                        {BANK_INTEREST_RATE}% p.a.
+                    </span>
                 </div>
-                
+
                 <div className="space-y-6">
                     <div>
                         <label className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors">
                             <span>Loan Amount</span>
-                            <span className="font-bold text-blue-600 dark:text-blue-400">₹{principal.toLocaleString('en-IN')}</span>
+                            <span className="font-bold text-blue-600 dark:text-blue-400">
+                                ₹{principal.toLocaleString("en-IN")}
+                            </span>
                         </label>
-                        <input 
-                            type="range" 
-                            min="10000" 
-                            max="1000000" 
+                        <input
+                            type="range"
+                            min="10000"
+                            max="1000000"
                             step="10000"
                             value={principal}
-                            onChange={(e) => setPrincipal(Number(e.target.value))}
+                            onChange={(e) =>
+                                setPrincipal(Number(e.target.value))
+                            }
                             className="w-full h-2 bg-gray-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500 transition-colors"
                         />
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors">Linked Bank Account</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors">
+                            Linked Bank Account
+                        </label>
                         {isLoadingAccounts ? (
                             <div className="h-10 bg-gray-100 dark:bg-slate-800 animate-pulse rounded-lg"></div>
                         ) : accounts.length === 0 ? (
@@ -140,12 +163,20 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                             <select
                                 className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-950 text-gray-900 dark:text-white focus:ring-blue-500 shadow-sm outline-none transition-colors"
                                 value={linkedAccountId}
-                                onChange={(e) => setLinkedAccountId(e.target.value)}
+                                onChange={(e) =>
+                                    setLinkedAccountId(e.target.value)
+                                }
                                 disabled={isSubmitting}
                             >
-                                {accounts.map(acc => (
-                                    <option key={acc._id} value={acc._id} className="dark:bg-slate-900">
-                                        {acc.accountType} (****{acc.accountNumber.slice(-4)}) - ₹{acc.balance.toLocaleString()}
+                                {accounts.map((acc) => (
+                                    <option
+                                        key={acc._id}
+                                        value={acc._id}
+                                        className="dark:bg-slate-900"
+                                    >
+                                        {acc.accountType} (****
+                                        {acc.accountNumber.slice(-4)}) - ₹
+                                        {acc.balance.toLocaleString()}
                                     </option>
                                 ))}
                             </select>
@@ -155,12 +186,14 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                     <div>
                         <label className="flex justify-between text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 transition-colors">
                             <span>Tenure</span>
-                            <span className="font-bold text-blue-600 dark:text-blue-400">{tenure} months</span>
+                            <span className="font-bold text-blue-600 dark:text-blue-400">
+                                {tenure} months
+                            </span>
                         </label>
-                        <input 
-                            type="range" 
-                            min="6" 
-                            max="60" 
+                        <input
+                            type="range"
+                            min="6"
+                            max="60"
                             step="6"
                             value={tenure}
                             onChange={(e) => setTenure(Number(e.target.value))}
@@ -169,86 +202,176 @@ export default function EmiCalculator({ onApplySuccess }: EmiCalculatorProps) {
                     </div>
 
                     <div className="pt-6 border-t border-gray-100 dark:border-slate-800 flex justify-between items-end mb-4 transition-colors">
-                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors">Estimated Monthly EMI</p>
-                        <p className="text-3xl font-bold text-gray-900 dark:text-white transition-colors">₹{calculateEMI().toLocaleString('en-IN')}</p>
+                        <p className="text-sm font-medium text-gray-500 dark:text-gray-400 transition-colors">
+                            Estimated Monthly EMI
+                        </p>
+                        <p className="text-3xl font-bold text-gray-900 dark:text-white transition-colors">
+                            ₹{calculateEMI().toLocaleString("en-IN")}
+                        </p>
                     </div>
 
-                    <Button 
-                        variant="primary" 
-                        className="w-full" 
-                        onClick={handleInitialApply} 
+                    <Button
+                        variant="primary"
+                        className="w-full"
+                        onClick={handleInitialApply}
                         disabled={accounts.length === 0}
                     >
-                        Apply for ₹{principal.toLocaleString('en-IN')} Loan
+                        Apply for ₹{principal.toLocaleString("en-IN")} Loan
                     </Button>
                 </div>
             </div>
 
-            {/* Application Details Modal */}
+            {}
             {showDetailsPopup && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
                     <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200 border dark:border-slate-800">
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 transition-colors">Application Details</h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 transition-colors">Confirming a ₹{principal.toLocaleString('en-IN')} loan for {tenure} months.</p>
-                        
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1 transition-colors">
+                            Application Details
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 transition-colors">
+                            Confirming a ₹{principal.toLocaleString("en-IN")}{" "}
+                            loan for {tenure} months.
+                        </p>
+
                         <div className="space-y-4 mb-8">
                             <div className="space-y-1">
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Purpose of Loan</label>
-                                <select 
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Purpose of Loan
+                                </label>
+                                <select
                                     value={loanReason}
-                                    onChange={(e) => setLoanReason(e.target.value)}
+                                    onChange={(e) =>
+                                        setLoanReason(e.target.value)
+                                    }
                                     className="w-full border border-gray-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white dark:bg-slate-950 text-gray-900 dark:text-white focus:ring-blue-500 outline-none transition-colors"
                                 >
-                                    <option value="Personal" className="dark:bg-slate-900">General Personal</option>
-                                    <option value="Medical" className="dark:bg-slate-900">Medical Emergency</option>
-                                    <option value="Education" className="dark:bg-slate-900">Education</option>
-                                    <option value="Home Renovation" className="dark:bg-slate-900">Home Renovation</option>
-                                    <option value="Wedding" className="dark:bg-slate-900">Wedding/Event</option>
-                                    <option value="Other" className="dark:bg-slate-900">Other</option>
+                                    <option
+                                        value="Personal"
+                                        className="dark:bg-slate-900"
+                                    >
+                                        General Personal
+                                    </option>
+                                    <option
+                                        value="Medical"
+                                        className="dark:bg-slate-900"
+                                    >
+                                        Medical Emergency
+                                    </option>
+                                    <option
+                                        value="Education"
+                                        className="dark:bg-slate-900"
+                                    >
+                                        Education
+                                    </option>
+                                    <option
+                                        value="Home Renovation"
+                                        className="dark:bg-slate-900"
+                                    >
+                                        Home Renovation
+                                    </option>
+                                    <option
+                                        value="Wedding"
+                                        className="dark:bg-slate-900"
+                                    >
+                                        Wedding/Event
+                                    </option>
+                                    <option
+                                        value="Other"
+                                        className="dark:bg-slate-900"
+                                    >
+                                        Other
+                                    </option>
                                 </select>
                             </div>
 
                             <div className="space-y-1">
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                                    Additional Details 
-                                    {loanReason === "Other" ? <span className="text-red-500 ml-1">*</span> : <span className="text-gray-400 font-normal ml-1 text-xs">(Optional)</span>}
+                                    Additional Details
+                                    {loanReason === "Other" ? (
+                                        <span className="text-red-500 ml-1">
+                                            *
+                                        </span>
+                                    ) : (
+                                        <span className="text-gray-400 font-normal ml-1 text-xs">
+                                            (Optional)
+                                        </span>
+                                    )}
                                 </label>
-                                <textarea 
+                                <textarea
                                     value={loanDescription}
-                                    onChange={(e) => setLoanDescription(e.target.value)}
-                                    placeholder={loanReason === "Other" ? "Please specify your reason here..." : "Briefly describe why you need this loan..."}
+                                    onChange={(e) =>
+                                        setLoanDescription(e.target.value)
+                                    }
+                                    placeholder={
+                                        loanReason === "Other"
+                                            ? "Please specify your reason here..."
+                                            : "Briefly describe why you need this loan..."
+                                    }
                                     className={`w-full border rounded-lg px-3 py-2 outline-none h-24 resize-none transition-colors
                                         bg-white dark:bg-slate-950 text-gray-900 dark:text-white
-                                        ${loanReason === 'Other' && loanDescription.trim() === '' ? 'border-red-300' : 'border-gray-300 dark:border-slate-700 focus:border-blue-500'}
+                                        ${loanReason === "Other" && loanDescription.trim() === "" ? "border-red-300" : "border-gray-300 dark:border-slate-700 focus:border-blue-500"}
                                     `}
                                 />
                             </div>
                         </div>
 
                         <div className="flex gap-3">
-                            <Button variant="outline" className="w-1/3 dark:text-white dark:border-slate-700" onClick={() => setShowDetailsPopup(false)} disabled={isSubmitting}>Cancel</Button>
-                            <Button variant="primary" className="w-2/3" onClick={handleFinalSubmit} disabled={isConfirmDisabled}>
-                                {isSubmitting ? "Submitting..." : "Confirm & Apply"}
+                            <Button
+                                variant="outline"
+                                className="w-1/3 dark:text-white dark:border-slate-700"
+                                onClick={() => setShowDetailsPopup(false)}
+                                disabled={isSubmitting}
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="primary"
+                                className="w-2/3"
+                                onClick={handleFinalSubmit}
+                                disabled={isConfirmDisabled}
+                            >
+                                {isSubmitting
+                                    ? "Submitting..."
+                                    : "Confirm & Apply"}
                             </Button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Success Modal */}
+            {}
             {showSuccessPopup && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
                     <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center border dark:border-slate-800">
                         <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 dark:bg-green-900/30 mb-6">
-                            <svg className="h-8 w-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                            <svg
+                                className="h-8 w-8 text-green-600 dark:text-green-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M5 13l4 4L19 7"
+                                ></path>
                             </svg>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">Application Submitted!</h3>
+                        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 transition-colors">
+                            Application Submitted!
+                        </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 transition-colors">
-                            Your application is being processed. An admin will review it shortly.
+                            Your application is being processed. An admin will
+                            review it shortly.
                         </p>
-                        <Button variant="primary" className="w-full py-3" onClick={() => setShowSuccessPopup(false)}>Got it</Button>
+                        <Button
+                            variant="primary"
+                            className="w-full py-3"
+                            onClick={() => setShowSuccessPopup(false)}
+                        >
+                            Got it
+                        </Button>
                     </div>
                 </div>
             )}

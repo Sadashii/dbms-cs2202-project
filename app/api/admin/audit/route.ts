@@ -5,28 +5,28 @@ import AuditLog from "@/models/Auditlogs";
 import User from "@/models/User";
 import { verifyAuth } from "@/lib/auth";
 
-/**
- * GET /api/admin/audit
- * Returns a paginated, filterable, and searchable list of audit logs.
- * Restricted to Manager and Admin roles.
- */
 export async function GET(req: Request) {
     try {
         const decoded = verifyAuth(await headers());
         if (!decoded || !["Admin", "Manager"].includes(decoded.role)) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 },
+            );
         }
 
         await dbConnect();
-        // Ensure User model is registered for populate
+
         User.init();
 
         const url = new URL(req.url);
         const page = Math.max(1, parseInt(url.searchParams.get("page") || "1"));
-        const limit = Math.min(100, Math.max(1, parseInt(url.searchParams.get("limit") || "20")));
+        const limit = Math.min(
+            100,
+            Math.max(1, parseInt(url.searchParams.get("limit") || "20")),
+        );
         const skip = (page - 1) * limit;
 
-        // Filters
         const category = url.searchParams.get("category");
         const severity = url.searchParams.get("severity");
         const status = url.searchParams.get("status");
@@ -72,20 +72,25 @@ export async function GET(req: Request) {
             AuditLog.countDocuments(query),
         ]);
 
-        return NextResponse.json({
-            logs,
-            pagination: {
-                page,
-                limit,
-                total,
-                totalPages: Math.ceil(total / limit),
-                hasNextPage: page * limit < total,
-                hasPrevPage: page > 1,
+        return NextResponse.json(
+            {
+                logs,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    totalPages: Math.ceil(total / limit),
+                    hasNextPage: page * limit < total,
+                    hasPrevPage: page > 1,
+                },
             },
-        }, { status: 200 });
-
+            { status: 200 },
+        );
     } catch (error: any) {
         console.error("Audit API Error:", error);
-        return NextResponse.json({ message: "Internal server error." }, { status: 500 });
+        return NextResponse.json(
+            { message: "Internal server error." },
+            { status: 500 },
+        );
     }
 }

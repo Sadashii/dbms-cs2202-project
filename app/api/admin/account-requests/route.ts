@@ -10,7 +10,10 @@ export async function GET(req: NextRequest) {
     try {
         const decoded = verifyAuth(await headers());
         if (!decoded) {
-            return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 },
+            );
         }
 
         if (decoded.role !== "Admin") {
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest) {
         await dbConnect();
 
         const requests = await AccountRequest.find()
-            .populate({ path: 'userId', select: 'firstName lastName email' })
+            .populate({ path: "userId", select: "firstName lastName email" })
             .sort({ createdAt: -1 })
             .lean();
 
@@ -31,28 +34,31 @@ export async function GET(req: NextRequest) {
                 const fileUrls = [
                     request.kycDocuments?.panCardFileUrl,
                     request.kycDocuments?.aadharFileUrl,
-                    request.kycDocuments?.signatureFileUrl
+                    request.kycDocuments?.signatureFileUrl,
                 ].filter(Boolean);
 
-                const userKycs = await KYC.find({ 
+                const userKycs = await KYC.find({
                     userId: request.userId._id,
-                    'attachments.fileUrl': { $in: fileUrls }
+                    "attachments.fileUrl": { $in: fileUrls },
                 })
-                    .select('kycReference documentType currentStatus attachments documentDetails verifiedAt metadata createdAt updatedAt')
+                    .select(
+                        "kycReference documentType currentStatus attachments documentDetails verifiedAt metadata createdAt updatedAt",
+                    )
                     .lean();
 
                 return {
                     ...request,
-                    kycs: userKycs
+                    kycs: userKycs,
                 };
-            })
+            }),
         );
 
-
         return NextResponse.json(enhancedRequests, { status: 200 });
-
     } catch (error: any) {
         console.error("Error fetching account requests:", error);
-        return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+        return NextResponse.json(
+            { message: "Internal server error" },
+            { status: 500 },
+        );
     }
 }

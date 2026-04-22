@@ -10,25 +10,29 @@ export async function POST() {
 
         if (refreshToken) {
             await dbConnect();
-            // Delete the specific session from the database to invalidate it server-side
+
             await Session.deleteOne({ refreshToken });
         }
 
-        // Create a response and tell the browser to delete the cookie
-        const response = NextResponse.json({ message: "Logged out successfully" }, { status: 200 });
-        
+        const response = NextResponse.json(
+            { message: "Logged out successfully" },
+            { status: 200 },
+        );
+
         response.cookies.set("refresh_token", "", {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             sameSite: "strict",
-            maxAge: 0, // Immediately expires the cookie
+            maxAge: 0,
             path: "/",
         });
 
         return response;
-
     } catch (error: any) {
         console.error("Logout Error:", error);
-        return NextResponse.json({ message: "Internal server error." }, { status: 500 });
+        return NextResponse.json(
+            { message: "Internal server error." },
+            { status: 500 },
+        );
     }
 }

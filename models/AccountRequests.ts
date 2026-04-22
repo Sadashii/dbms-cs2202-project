@@ -1,21 +1,20 @@
-import mongoose, { Schema, Document, Types } from 'mongoose';
+import mongoose, { Schema, Document, Types } from "mongoose";
 
 export interface IAccountRequest extends Document {
     userId: Types.ObjectId;
-    accountType: 'Savings' | 'Current' | 'Fixed';
-    
+    accountType: "Savings" | "Current" | "Fixed";
+
     kycDocuments: {
-        panCardFileUrl: string; 
+        panCardFileUrl: string;
         signatureFileUrl: string;
         aadharFileUrl: string;
     };
-    branchId?: Types.ObjectId; 
-    
-    currentStatus: 'Pending_KYC' | 'Approved' | 'Rejected';
-    
-    // Full lifecycle history — consistent with every other model in the project
+    branchId?: Types.ObjectId;
+
+    currentStatus: "Pending_KYC" | "Approved" | "Rejected";
+
     statusHistory: Array<{
-        state: 'Pending_KYC' | 'Approved' | 'Rejected';
+        state: "Pending_KYC" | "Approved" | "Rejected";
         updatedBy?: Types.ObjectId;
         remarks?: string;
         updatedAt: Date;
@@ -26,62 +25,66 @@ export interface IAccountRequest extends Document {
         rejectionReason?: string;
         reviewedBy?: Types.ObjectId;
     };
-    
+
     createdAt: Date;
     updatedAt: Date;
 }
 
-const AccountRequestSchema = new Schema<IAccountRequest>({
-    userId: { 
-        type: Schema.Types.ObjectId, 
-        ref: 'User', 
-        required: true, 
-        index: true,
-        immutable: true
-    },
-    accountType: { 
-        type: String, 
-        enum: ['Savings', 'Current', 'Fixed'], 
-        required: true 
-    },
-    kycDocuments: {
-        panCardFileUrl: { type: String, required: true },
-        signatureFileUrl: { type: String, required: true },
-        aadharFileUrl: { type: String, required: true }
-    },
-    branchId: { 
-        type: Schema.Types.ObjectId, 
-        ref: 'Branch', 
-        required: false, // For older requests
-        index: true 
-    },
-    currentStatus: { 
-        type: String, 
-        enum: ['Pending_KYC', 'Approved', 'Rejected'], 
-        default: 'Pending_KYC', 
-        index: true 
-    },
-    statusHistory: [{
-        state: { 
-            type: String, 
-            enum: ['Pending_KYC', 'Approved', 'Rejected'],
-            required: true
+const AccountRequestSchema = new Schema<IAccountRequest>(
+    {
+        userId: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+            index: true,
+            immutable: true,
         },
-        updatedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-        remarks: { type: String },
-        updatedAt: { type: Date, default: Date.now }
-    }],
-    metadata: {
-        ipAddress: { type: String },
-        rejectionReason: { type: String },
-        reviewedBy: { type: Schema.Types.ObjectId, ref: 'User' }
-    }
-}, { 
-    timestamps: true 
-});
+        accountType: {
+            type: String,
+            enum: ["Savings", "Current", "Fixed"],
+            required: true,
+        },
+        kycDocuments: {
+            panCardFileUrl: { type: String, required: true },
+            signatureFileUrl: { type: String, required: true },
+            aadharFileUrl: { type: String, required: true },
+        },
+        branchId: {
+            type: Schema.Types.ObjectId,
+            ref: "Branch",
+            required: false,
+            index: true,
+        },
+        currentStatus: {
+            type: String,
+            enum: ["Pending_KYC", "Approved", "Rejected"],
+            default: "Pending_KYC",
+            index: true,
+        },
+        statusHistory: [
+            {
+                state: {
+                    type: String,
+                    enum: ["Pending_KYC", "Approved", "Rejected"],
+                    required: true,
+                },
+                updatedBy: { type: Schema.Types.ObjectId, ref: "User" },
+                remarks: { type: String },
+                updatedAt: { type: Date, default: Date.now },
+            },
+        ],
+        metadata: {
+            ipAddress: { type: String },
+            rejectionReason: { type: String },
+            reviewedBy: { type: Schema.Types.ObjectId, ref: "User" },
+        },
+    },
+    {
+        timestamps: true,
+    },
+);
 
-// Automatically track status lifecycle changes
-AccountRequestSchema.pre('save', async function() {
+AccountRequestSchema.pre("save", async function () {
     if (!Array.isArray(this.statusHistory)) {
         this.statusHistory = [];
     }
@@ -90,17 +93,17 @@ AccountRequestSchema.pre('save', async function() {
         this.metadata = {};
     }
 
-    if (this.isModified('currentStatus')) {
+    if (this.isModified("currentStatus")) {
         this.statusHistory.push({
             state: this.currentStatus,
             updatedBy: this.metadata?.reviewedBy,
             remarks: this.metadata?.rejectionReason,
-            updatedAt: new Date()
+            updatedAt: new Date(),
         });
     }
 });
 
-// Compound index: quickly fetch oldest pending requests for admin review queue
 AccountRequestSchema.index({ currentStatus: 1, createdAt: 1 });
 
-export default mongoose.models.AccountRequest || mongoose.model<IAccountRequest>("AccountRequest", AccountRequestSchema);
+export default mongoose.models.AccountRequest ||
+    mongoose.model<IAccountRequest>("AccountRequest", AccountRequestSchema);

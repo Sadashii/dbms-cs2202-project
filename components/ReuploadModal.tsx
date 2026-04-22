@@ -14,7 +14,12 @@ interface ReuploadModalProps {
     onSuccess: () => void;
 }
 
-export const ReuploadModal: React.FC<ReuploadModalProps> = ({ isOpen, onClose, documentType, onSuccess }) => {
+export const ReuploadModal: React.FC<ReuploadModalProps> = ({
+    isOpen,
+    onClose,
+    documentType,
+    onSuccess,
+}) => {
     const { apiFetch } = useAuthContext();
     const [file, setFile] = useState<File | null>(null);
     const [idNumber, setIdNumber] = useState("");
@@ -31,20 +36,20 @@ export const ReuploadModal: React.FC<ReuploadModalProps> = ({ isOpen, onClose, d
         try {
             const formData = new FormData();
             formData.append("kycType", documentType);
-            
-            if (documentType === 'PAN') {
+
+            if (documentType === "PAN") {
                 formData.append("panCard", file);
                 if (idNumber) formData.append("panNumber", idNumber);
-            } else if (documentType === 'Aadhar') {
+            } else if (documentType === "Aadhar") {
                 formData.append("aadhar", file);
                 if (idNumber) formData.append("aadharNumber", idNumber);
-            } else if (documentType === 'Signature') {
+            } else if (documentType === "Signature") {
                 formData.append("signature", file);
             }
 
             const res = await apiFetch("/api/account-requests", {
                 method: "PATCH",
-                body: formData
+                body: formData,
             });
 
             if (res.ok) {
@@ -70,18 +75,22 @@ export const ReuploadModal: React.FC<ReuploadModalProps> = ({ isOpen, onClose, d
             description={`Please provide a clear image of your ${documentType} to replace the rejected one.`}
         >
             <form onSubmit={handleSubmit} className="space-y-4">
-                {documentType !== 'Signature' && (
+                {documentType !== "Signature" && (
                     <Input
                         label={`${documentType} Number (Optional if correct)`}
                         value={idNumber}
-                        onChange={(e) => setIdNumber(e.target.value.toUpperCase())}
+                        onChange={(e) =>
+                            setIdNumber(e.target.value.toUpperCase())
+                        }
                         placeholder={`Enter your ${documentType} number`}
                         disabled={isSubmitting}
                     />
                 )}
-                
+
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{documentType} Image</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        {documentType} Image
+                    </label>
                     <input
                         type="file"
                         accept="image/*,.pdf"
@@ -93,10 +102,19 @@ export const ReuploadModal: React.FC<ReuploadModalProps> = ({ isOpen, onClose, d
                 </div>
 
                 <div className="pt-4 flex justify-end gap-3 border-t border-gray-200 mt-6">
-                    <Button type="button" variant="ghost" onClick={onClose} disabled={isSubmitting}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={onClose}
+                        disabled={isSubmitting}
+                    >
                         Cancel
                     </Button>
-                    <Button type="submit" variant="primary" isLoading={isSubmitting}>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        isLoading={isSubmitting}
+                    >
                         Submit for Review
                     </Button>
                 </div>
