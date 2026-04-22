@@ -19,16 +19,11 @@ export default function LandingPage() {
         <div className="py-24 sm:py-32 lg:pb-40">
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center animate-slide-in-from-bottom">
-              <div className="mb-8 flex justify-center">
-                <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-gray-600 dark:text-gray-300 ring-1 ring-gray-900/10 dark:ring-white/10 hover:ring-gray-900/20 dark:hover:ring-white/20 transition-all">
-                  Announcing our new Corporate APIs. <Link href="/features" className="font-semibold text-blue-600 dark:text-blue-400"><span className="absolute inset-0" aria-hidden="true"></span>Read more <span aria-hidden="true">&rarr;</span></Link>
-                </div>
-              </div>
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-6xl">
-                Enterprise Banking for Modern Teams
+                Smart banking made simple
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-                Secure, scalable, and API-first. VaultPay provides the financial infrastructure you need to manage corporate accounts, issue cards, and automate ledger transfers in real-time.
+                VaultPay helps you transfer money, monitor expenses, and manage your finances with a fast, secure, and intuitive banking experience.
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 {!isLoading && (
@@ -63,10 +58,10 @@ export default function LandingPage() {
           <div className="mx-auto max-w-2xl lg:text-center">
             <h2 className="text-base font-semibold leading-7 text-blue-600 dark:text-blue-400 uppercase tracking-widest">Everything you need</h2>
             <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              No compromises on security or speed.
+              Built for simple day-to-day banking.
             </p>
             <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
-              Built on a double-entry ledger architecture with ACID-compliant transactions, VaultPay guarantees mathematical accuracy across all your operations.
+              From checking your balance to sending money and managing cards, VaultPay covers the basics a normal banking website should have without trying to sound like a finance startup pitch deck.
             </p>
           </div>
           
@@ -81,10 +76,10 @@ export default function LandingPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0012 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75z" />
                     </svg>
                   </div>
-                  Corporate Accounts
+                  Savings and Current Accounts
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-400">
-                  Instantly provision multi-currency accounts. Support for USD, EUR, and INR natively with automated reconciliation.
+                  Open an account, check your balance anytime, and view your recent transactions in a clear and familiar layout.
                 </dd>
               </div>
 
@@ -96,10 +91,10 @@ export default function LandingPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z" />
                     </svg>
                   </div>
-                  Virtual & Physical Cards
+                  Debit and Credit Cards
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-400">
-                  Issue PCI-compliant Visa and MasterCard corporate cards to your team instantly. Manage limits down to the penny.
+                  Manage your cards, review usage, and keep spending under control with simple card tools inside your account.
                 </dd>
               </div>
 
@@ -111,10 +106,10 @@ export default function LandingPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                     </svg>
                   </div>
-                  Bank-Grade Security
+                  Safe Login and Protection
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-400">
-                  Military-grade encryption, time-based one-time passwords (TOTP), and complete audit logs for compliance tracking.
+                  Your account stays protected with secure login, password safety, and clear alerts for important account activity.
                 </dd>
               </div>
 
@@ -126,10 +121,10 @@ export default function LandingPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
                     </svg>
                   </div>
-                  Atomic Transactions
+                  Fast Money Transfers
                 </dt>
                 <dd className="mt-2 text-base leading-7 text-gray-600 dark:text-gray-400">
-                  Never lose a cent. Our API uses multi-document atomic locking to ensure transfers fully succeed or roll back cleanly.
+                  Send money between accounts, pay beneficiaries, and track transfer history without dealing with confusing finance jargon.
                 </dd>
               </div>
 

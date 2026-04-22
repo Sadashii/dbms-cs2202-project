@@ -40,15 +40,15 @@ const LoginSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    // Rate limit: 10 attempts per IP per 15 minutes
+    // Rate limit: 10 attempts per IP per 5 minutes
     const reqHeaders = await headers();
     const ip =
       reqHeaders.get("x-forwarded-for") ??
       reqHeaders.get("x-real-ip") ??
       "unknown";
-    if (!checkRateLimit(ip, "login", 10, 15 * 60 * 1000)) {
+    if (!checkRateLimit(ip, "login", 10, 5 * 60 * 1000)) {
       return NextResponse.json(
-        { message: "Too many login attempts. Please try again in 15 minutes." },
+        { message: "Too many login attempts. Please try again in 5 minutes." },
         { status: 429 },
       );
     }

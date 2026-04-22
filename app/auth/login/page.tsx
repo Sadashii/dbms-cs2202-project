@@ -251,7 +251,7 @@ export default function LoginPage() {
               required
             />
 
-            <div className="-mt-2 text-right">
+            <div className="-mt-2 text-center">
               <Link
                 href="/auth/reset-password"
                 className="text-sm font-medium text-blue-600 transition-colors hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext } from "react";
 import { useAuth } from "@/hooks/useAuth"
 import { Navbar } from "@/components/Navbar"
 
@@ -17,35 +17,23 @@ export default function AuthProvider({
 }) {
   // Initialize the auth hook ONLY ONCE here at the root level
   const auth = useAuth();
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Prevent hydration mismatch errors between server and client
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // Show a professional loading state while verifying the session
-  if (!isMounted || auth.isLoading) {
-    return (
-      <AuthContext.Provider value={auth}> {/* <--- ADD THIS WRAPPER */}
-        <div className="min-h-screen flex flex-col bg-slate-50">
-          <Navbar />
-          <div className="flex flex-1 items-center justify-center flex-col">
-            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-sm text-gray-500 animate-pulse">Authenticating securely...</p>
-          </div>
-        </div>
-      </AuthContext.Provider>
-    );
-  }
 
   // Provide the auth object to the entire application tree
   return (
     <AuthContext.Provider value={auth}>
-      <div className="min-h-screen flex flex-col bg-slate-50">
+      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors">
         <Navbar />
         <main className="flex-1 flex flex-col w-full h-full">
-          {children}
+          {auth.isLoading ? (
+            <div className="flex flex-1 items-center justify-center flex-col">
+              <div className="mb-4 h-10 w-10 animate-spin rounded-full border-b-2 border-blue-600"></div>
+              <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+                Authenticating securely...
+              </p>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </AuthContext.Provider>

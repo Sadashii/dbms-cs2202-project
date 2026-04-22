@@ -112,8 +112,6 @@ export const Navbar = () => {
               ) : (
                 <>
                   <NavLink href="/" active={isActive("/")}>Home</NavLink>
-                  <NavLink href="/features" active={isActive("/features")}>Features</NavLink>
-                  <NavLink href="/corporate" active={isActive("/corporate")}>Corporate</NavLink>
                 </>
               )}
             </div>
@@ -261,7 +259,6 @@ export const Navbar = () => {
             ) : (
               <>
                 <MobileNavLink href="/" active={isActive("/")}>Home</MobileNavLink>
-                <MobileNavLink href="/features" active={isActive("/features")}>Features</MobileNavLink>
               </>
             )}
           </div>
