@@ -8,7 +8,6 @@ import { useAuthContext } from "@/components/AuthProvider";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
-import { Modal } from "@/components/ui/modal";
 
 export default function LoginPage() {
     const router = useRouter();
@@ -28,6 +27,9 @@ export default function LoginPage() {
         otp?: string;
     }>({});
     const otpToastIdRef = useRef<string | null>(null);
+
+    const [generatedOtp, setGeneratedOtp] = useState("");
+    const [showOtpModal, setShowOtpModal] = useState(false);
 
     useEffect(() => {
         if (isLoggedIn) {
