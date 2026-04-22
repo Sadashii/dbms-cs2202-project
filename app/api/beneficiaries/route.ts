@@ -37,7 +37,7 @@ export async function POST(req: Request) {
             );
 
         await dbConnect();
-        const { nickName, accountNumber, accountName, bankName, ifscCode } =
+        const { nickName, accountNumber, accountName } =
             await req.json();
 
         if (!nickName || !accountNumber || !accountName) {
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
             return NextResponse.json(
                 {
                     message:
-                        "Beneficiary with this account number is already saved.",
+                        "Recipient with this account number is already saved.",
                 },
                 { status: 400 },
             );
@@ -66,14 +66,12 @@ export async function POST(req: Request) {
             nickName,
             accountNumber,
             accountName,
-            bankName: bankName || "VaultPay Internal",
-            ifscCode: ifscCode || "VLTB0001234",
         });
 
         return NextResponse.json(
             {
                 success: true,
-                message: "Beneficiary saved successfully.",
+                message: "Recipient saved successfully.",
                 beneficiary: newBeneficiary,
             },
             { status: 201 },
@@ -81,7 +79,58 @@ export async function POST(req: Request) {
     } catch (error: any) {
         console.error("Beneficiary Save Error:", error);
         return NextResponse.json(
-            { message: "Failed to save beneficiary." },
+            { message: "Failed to save recipient." },
+            { status: 500 },
+        );
+    }
+}
+
+export async function PATCH(req: Request) {
+    try {
+        const decoded = verifyAuth(await headers());
+        if (!decoded)
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 },
+            );
+
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get("id");
+
+        if (!id)
+            return NextResponse.json(
+                { message: "Recipient ID is required." },
+                { status: 400 },
+            );
+
+        const { nickName } = await req.json();
+        if (!nickName?.trim())
+            return NextResponse.json(
+                { message: "Nickname is required." },
+                { status: 400 },
+            );
+
+        await dbConnect();
+        const updated = await Beneficiary.findOneAndUpdate(
+            { _id: id, userId: decoded.userId },
+            { nickName: nickName.trim() },
+            { new: true },
+        );
+
+        if (!updated)
+            return NextResponse.json(
+                { message: "Recipient not found or unauthorized." },
+                { status: 404 },
+            );
+
+        return NextResponse.json({
+            success: true,
+            message: "Recipient updated.",
+            beneficiary: updated,
+        });
+    } catch (error) {
+        return NextResponse.json(
+            { message: "Failed to update recipient." },
             { status: 500 },
         );
     }
@@ -101,7 +150,7 @@ export async function DELETE(req: Request) {
 
         if (!id)
             return NextResponse.json(
-                { message: "Beneficiary ID is required." },
+                { message: "Recipient ID is required." },
                 { status: 400 },
             );
 
@@ -113,18 +162,18 @@ export async function DELETE(req: Request) {
 
         if (!deleted) {
             return NextResponse.json(
-                { message: "Beneficiary not found or unauthorized." },
+                { message: "Recipient not found or unauthorized." },
                 { status: 404 },
             );
         }
 
         return NextResponse.json({
             success: true,
-            message: "Beneficiary removed.",
+            message: "Recipient removed.",
         });
     } catch (error) {
         return NextResponse.json(
-            { message: "Failed to remove beneficiary." },
+            { message: "Failed to remove recipient." },
             { status: 500 },
         );
     }

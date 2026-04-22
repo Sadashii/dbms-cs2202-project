@@ -37,7 +37,7 @@ export default function AdminMetricsPage() {
                     <span className="group-hover:-translate-x-1 transition-transform">
                         &larr;
                     </span>
-                    Back to Ticket Protocol
+                    Back to Support Center
                 </button>
 
                 <div className="space-y-2">
@@ -66,7 +66,7 @@ export default function AdminMetricsPage() {
                                         {stats.totalTickets}
                                     </p>
                                     <span className="text-xs font-bold text-gray-400 uppercase">
-                                        Protocols
+                                        Tickets
                                     </span>
                                 </div>
                             </div>

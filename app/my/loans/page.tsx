@@ -1,180 +1,26 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useAuthContext } from "@/components/AuthProvider";
-import { useRouter } from "next/navigation";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import EmiCalculator from "@/components/EmiCalculator";
-import toast from "react-hot-toast";
-
-interface Loan {
-    _id: string;
-    loanReference: string;
-    loanType: string;
-    loanReason?: string;
-    loanDescription?: string;
-    principalAmount: number;
-    remainingAmount: number;
-    emiAmount: number;
-    interestRate: number;
-    tenureMonths: number;
-    currency: string;
-    currentStatus: string;
-    nextPaymentDate?: string;
-    accountId: string;
-}
-
-interface LoanPayment {
-    _id: string;
-    paymentReference: string;
-    amountExpected: number;
-    amountPaid: number;
-    principalComponent: number;
-    interestComponent: number;
-    lateFeeComponent: number;
-    dueDate: string;
-    paidDate?: string;
-    currentStatus: string;
-}
+import { useLoans } from "@/hooks/useLoans";
 
 export default function LoansPage() {
     const {
-        user,
-        apiFetch,
-        isLoading: authLoading,
-        isLoggedIn,
-    } = useAuthContext();
-    const router = useRouter();
-    const [loans, setLoans] = useState<Loan[]>([]);
-    const [payments, setPayments] = useState<Record<string, LoanPayment[]>>({});
-    const [isLoading, setIsLoading] = useState(true);
-    const [isProcessing, setIsProcessing] = useState<string | null>(null);
+        loans, payments, isLoading, authLoading,
+        isProcessing, scheduleLoan, setScheduleLoan,
+        historyLoan, setHistoryLoan,
+        fetchLoans, generateSchedule,
+        handleRepay, handleSimulateBilling,
+    } = useLoans();
 
-    const [scheduleLoan, setScheduleLoan] = useState<Loan | null>(null);
-    const [historyLoan, setHistoryLoan] = useState<Loan | null>(null);
+    if (authLoading || isLoading)
+        return (
+            <div className="py-20 flex justify-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        );
 
-    useEffect(() => {
-        if (!authLoading && !isLoggedIn) router.push("/auth/login");
-    }, [authLoading, isLoggedIn, router]);
-
-    const fetchPayments = async (loanId: string) => {
-        try {
-            const res = await apiFetch(`/api/loans/payments?loanId=${loanId}`);
-            if (res.ok) {
-                const data = await res.json();
-                setPayments((prev) => ({ ...prev, [loanId]: data.payments }));
-            }
-        } catch (error) {
-            console.error("Failed to fetch payments", error);
-        }
-    };
-
-    const fetchLoans = async () => {
-        setIsLoading(true);
-        try {
-            const res = await apiFetch("/api/loans");
-            if (res.ok) {
-                const data = await res.json();
-                setLoans(data.loans || []);
-                data.loans.forEach((loan: Loan) => {
-                    fetchPayments(loan._id);
-                });
-            }
-        } catch (error) {
-            console.error("Failed to fetch loans", error);
-        } finally {
-            setIsLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        if (user) fetchLoans();
-    }, [apiFetch, user]);
-
-    const generateSchedule = (loan: Loan) => {
-        let balance = loan.principalAmount;
-        const monthlyRate = loan.interestRate / 12 / 100;
-        const schedule = [];
-        const currentDate = loan.nextPaymentDate
-            ? new Date(loan.nextPaymentDate)
-            : new Date();
-        if (!loan.nextPaymentDate)
-            currentDate.setMonth(currentDate.getMonth() + 1);
-
-        for (let i = 1; i <= loan.tenureMonths; i++) {
-            const interestForMonth = balance * monthlyRate;
-            let principalForMonth = loan.emiAmount - interestForMonth;
-            if (i === loan.tenureMonths || balance <= principalForMonth)
-                principalForMonth = balance;
-            balance -= principalForMonth;
-
-            schedule.push({
-                month: i,
-                date: currentDate.toLocaleDateString("en-IN", {
-                    year: "numeric",
-                    month: "short",
-                    day: "2-digit",
-                }),
-                emi: principalForMonth + interestForMonth,
-                principal: principalForMonth,
-                interest: interestForMonth,
-                balance: Math.max(0, balance),
-            });
-            currentDate.setMonth(currentDate.getMonth() + 1);
-        }
-        return schedule;
-    };
-
-    const handleRepay = async (
-        loanId: string,
-        paymentId: string,
-        type: "EMI" | "FORECLOSE",
-    ) => {
-        if (isProcessing) return;
-        if (
-            !confirm(
-                `Are you sure you want to ${type === "EMI" ? "pay your monthly installment" : "foreclose the entire loan"}?`,
-            )
-        )
-            return;
-        setIsProcessing(loanId);
-        try {
-            const res = await apiFetch("/api/loans/repay", {
-                method: "POST",
-                body: JSON.stringify({ loanId, paymentId, type }),
-            });
-            const data = await res.json();
-            if (res.ok) {
-                toast.success(`${type} Repayment Successful!`);
-                await fetchLoans();
-            } else {
-                toast.error(data.message || "Failed to process repayment.");
-            }
-        } catch (error) {
-            toast.error("Network error during repayment.");
-        } finally {
-            setIsProcessing(null);
-        }
-    };
-
-    const handleSimulateBilling = async (loanId: string) => {
-        setIsProcessing(loanId);
-        try {
-            const res = await apiFetch("/api/loans/payments", {
-                method: "POST",
-                body: JSON.stringify({ loanId }),
-            });
-            if (res.ok) {
-                toast.success("EMI Billed Successfully!");
-                await fetchPayments(loanId);
-                await fetchLoans();
-            }
-        } catch (error) {
-            console.error("Billing error", error);
-        } finally {
-            setIsProcessing(null);
-        }
-    };
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12 transition-colors">
@@ -216,7 +62,7 @@ export default function LoansPage() {
                                 No active loans found
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
-                                Start your journey by calculating an EMI and
+                                Start your journey by calculating your Monthly Payment (EMI) and
                                 submitting an application.
                             </p>
                             <Button
@@ -276,7 +122,7 @@ export default function LoansPage() {
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div>
                                                     <p className="text-xs font-bold text-gray-400 uppercase">
-                                                        Remaining Balance
+                                                        Balance Left
                                                     </p>
                                                     <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">
                                                         ₹
@@ -287,7 +133,7 @@ export default function LoansPage() {
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-xs font-bold text-gray-400 uppercase">
-                                                        EMI Amount
+                                                        Monthly Payment (EMI)
                                                     </p>
                                                     <p className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-1">
                                                         ₹
@@ -302,7 +148,7 @@ export default function LoansPage() {
                                                 <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
                                                     <span>
                                                         {progress.toFixed(1)}%
-                                                        Repaid
+                                                        Paid Back
                                                     </span>
                                                     <span>
                                                         {loan.interestRate}%
@@ -375,7 +221,7 @@ export default function LoansPage() {
                                                 ) ? (
                                                     <div className="flex items-center justify-between gap-4">
                                                         <p className="text-sm font-bold text-gray-900 dark:text-white">
-                                                            Active Invoice Due:{" "}
+                                                            Active Bill Due:{" "}
                                                             <span className="text-red-600">
                                                                 ₹
                                                                 {payments[
@@ -411,7 +257,7 @@ export default function LoansPage() {
                                                                 loan._id
                                                             }
                                                         >
-                                                            Pay EMI
+                                                            Pay Monthly Amount
                                                         </Button>
                                                     </div>
                                                 ) : (
@@ -461,7 +307,7 @@ export default function LoansPage() {
                     <div className="bg-white dark:bg-slate-900 rounded-2xl w-full max-w-4xl max-h-[80vh] flex flex-col border dark:border-slate-800 animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
                             <h3 className="text-xl font-bold dark:text-white">
-                                Amortization Schedule
+                                Payment Schedule
                             </h3>
                             <button
                                 onClick={() => setScheduleLoan(null)}
@@ -470,21 +316,21 @@ export default function LoansPage() {
                                 ✕
                             </button>
                         </div>
-                        <div className="flex-1 overflow-auto">
+                        <div className="flex-1 overflow-auto custom-scrollbar">
                             <table className="w-full text-left">
                                 <thead className="sticky top-0 bg-gray-100 dark:bg-slate-800 text-[10px] font-bold uppercase text-gray-500">
                                     <tr>
                                         <th className="p-4">Month</th>
                                         <th className="p-4">Date</th>
-                                        <th className="p-4 text-right">EMI</th>
+                                        <th className="p-4 text-right">Payment</th>
                                         <th className="p-4 text-right">
-                                            Principal
+                                            Original Amount
                                         </th>
                                         <th className="p-4 text-right">
                                             Interest
                                         </th>
                                         <th className="p-4 text-right">
-                                            Balance
+                                            Remaining Balance
                                         </th>
                                     </tr>
                                 </thead>
@@ -550,7 +396,7 @@ export default function LoansPage() {
                                 ✕
                             </button>
                         </div>
-                        <div className="flex-1 overflow-auto p-4">
+                        <div className="flex-1 overflow-auto p-4 custom-scrollbar">
                             {payments[historyLoan._id]?.filter(
                                 (p) => p.currentStatus !== "Pending",
                             ).length === 0 ? (

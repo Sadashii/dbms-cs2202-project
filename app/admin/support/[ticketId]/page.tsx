@@ -147,7 +147,7 @@ export default function AdminTicketViewPage() {
                     </button>
 
                     <h2 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-6">
-                        Protocol Metadata
+                        Ticket Details
                     </h2>
 
                     <div className="space-y-6 flex-1">
@@ -239,7 +239,7 @@ export default function AdminTicketViewPage() {
                                 {ticket.subject}
                             </h1>
                             <p className="text-[10px] font-mono text-gray-400 dark:text-gray-500 uppercase tracking-widest">
-                                Protocol ID: {ticket.ticketId}
+                                Ticket ID: {ticket.ticketId}
                             </p>
                         </div>
                         <div className="flex items-center gap-2">

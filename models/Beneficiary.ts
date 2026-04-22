@@ -34,17 +34,6 @@ const BeneficiarySchema = new Schema<IBeneficiary>(
             required: true,
             trim: true,
         },
-        bankName: {
-            type: String,
-            required: true,
-            default: "VaultPay Internal",
-        },
-        ifscCode: {
-            type: String,
-            required: true,
-            uppercase: true,
-            default: "VLTB0001234",
-        },
     },
     {
         timestamps: true,

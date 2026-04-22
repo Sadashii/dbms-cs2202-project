@@ -137,6 +137,12 @@ export const Navbar = () => {
                                         >
                                             Support
                                         </NavLink>
+                                        <NavLink
+                                            href="/my/beneficiaries"
+                                            active={isActive("/my/beneficiaries")}
+                                        >
+                                            Saved Recipients
+                                        </NavLink>
                                     </>
                                 ) : null
                             ) : (
@@ -392,6 +398,12 @@ export const Navbar = () => {
                                         active={isActive("/my/support")}
                                     >
                                         Support
+                                    </MobileNavLink>
+                                    <MobileNavLink
+                                        href="/my/beneficiaries"
+                                        active={isActive("/my/beneficiaries")}
+                                    >
+                                        Saved Recipients
                                     </MobileNavLink>
                                     <MobileNavLink
                                         href="/my/profile"

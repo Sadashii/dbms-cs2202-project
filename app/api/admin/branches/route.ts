@@ -127,9 +127,20 @@ export async function POST(request: Request) {
                 zipCode: body.address.zipCode,
                 country: body.address.country || "India",
             },
+            ...(body.latitude != null &&
+                body.longitude != null && {
+                    location: {
+                        type: "Point",
+                        coordinates: [
+                            parseFloat(body.longitude),
+                            parseFloat(body.latitude),
+                        ],
+                    },
+                }),
             contactInfo: {
                 email: body.contactInfo.email,
                 phone: body.contactInfo.phone,
+                fax: body.contactInfo.fax,
             },
             operationalHours: body.operationalHours || [
                 { day: "Monday", isOpen: true },
