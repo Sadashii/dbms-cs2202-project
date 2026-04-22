@@ -9,7 +9,23 @@ import { headers } from "next/headers";
 import { createAuditLog } from "@/lib/audit";
 import * as bcrypt from "bcryptjs";
 
-export async function GET(req: Request) {
+type SerializedCard = {
+    currentStatus: string;
+    limits?: {
+        dailyWithdrawalLimit?: { toString(): string };
+        dailyOnlineLimit?: { toString(): string };
+        contactlessLimit?: { toString(): string };
+        outstandingAmount?: { toString(): string };
+        creditLimit?: { toString(): string };
+    };
+    isOnlineEnabled?: boolean;
+    isInternationalEnabled?: boolean;
+} & Record<string, unknown>;
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+
+export async function GET() {
     try {
         const decoded = verifyAuth(await headers());
         if (!decoded)
@@ -21,33 +37,42 @@ export async function GET(req: Request) {
         await dbConnect();
         const cards = await Card.find({ userId: decoded.userId }).lean();
 
-        const formattedCards = cards.map((card: any) => ({
-            ...card,
-            limits: {
-                dailyWithdrawalLimit: parseFloat(
-                    card.limits?.dailyWithdrawalLimit?.toString() || "50000",
-                ),
-                dailyOnlineLimit: parseFloat(
-                    card.limits?.dailyOnlineLimit?.toString() || "100000",
-                ),
-                contactlessLimit: parseFloat(
-                    card.limits?.contactlessLimit?.toString() || "5000",
-                ),
-                outstandingAmount: parseFloat(
-                    card.limits?.outstandingAmount?.toString() || "0",
-                ),
-                creditLimit: parseFloat(
-                    card.limits?.creditLimit?.toString() || "0",
-                ),
-            },
-            isOnlineEnabled: card.isOnlineEnabled ?? true,
-            isInternationalEnabled: card.isInternationalEnabled ?? false,
-        }));
+        const formattedCards = cards.map((rawCard) => {
+            const card = rawCard as SerializedCard;
+
+            return {
+                ...card,
+                currentStatus:
+                    card.currentStatus === "Blocked"
+                        ? "Frozen"
+                        : card.currentStatus,
+                limits: {
+                    dailyWithdrawalLimit: parseFloat(
+                        card.limits?.dailyWithdrawalLimit?.toString() ||
+                            "50000",
+                    ),
+                    dailyOnlineLimit: parseFloat(
+                        card.limits?.dailyOnlineLimit?.toString() || "100000",
+                    ),
+                    contactlessLimit: parseFloat(
+                        card.limits?.contactlessLimit?.toString() || "5000",
+                    ),
+                    outstandingAmount: parseFloat(
+                        card.limits?.outstandingAmount?.toString() || "0",
+                    ),
+                    creditLimit: parseFloat(
+                        card.limits?.creditLimit?.toString() || "0",
+                    ),
+                },
+                isOnlineEnabled: card.isOnlineEnabled ?? true,
+                isInternationalEnabled: card.isInternationalEnabled ?? false,
+            };
+        });
 
         return NextResponse.json({ cards: formattedCards }, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         return NextResponse.json(
-            { message: error.message || "Internal server error." },
+            { message: getErrorMessage(error, "Internal server error.") },
             { status: 500 },
         );
     }
@@ -65,7 +90,8 @@ export async function POST(req: Request) {
         await dbConnect();
         const body = await req.json();
 
-        let { cardType, cardNetwork, accountId, creditLimit } = body;
+        let { cardType, cardNetwork, accountId } = body;
+        const { creditLimit } = body;
         if (!cardType || cardType === "Virtual") cardType = "Debit";
         if (!cardNetwork) cardNetwork = "Visa";
 
@@ -156,10 +182,10 @@ export async function POST(req: Request) {
             { message: "Card issued successfully.", card: newCard },
             { status: 201 },
         );
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Card POST Error:", error);
         return NextResponse.json(
-            { message: error.message || "Failed to create card in DB." },
+            { message: getErrorMessage(error, "Failed to create card in DB.") },
             { status: 500 },
         );
     }
@@ -192,8 +218,16 @@ export async function PATCH(req: Request) {
         const prevLimits = JSON.parse(JSON.stringify(card.limits));
 
         if (action === "TOGGLE_STATUS") {
+            if (card.currentStatus === "Closed") {
+                return NextResponse.json(
+                    { message: "Closed cards cannot be updated." },
+                    { status: 400 },
+                );
+            }
+
             card.currentStatus =
-                card.currentStatus === "Active" ? "Blocked" : "Active";
+                card.currentStatus === "Active" ? "Frozen" : "Active";
+            await card.save();
         } else if (action === "TOGGLE_FEATURE") {
             const { feature } = data;
             if (feature === "online") {
@@ -210,14 +244,47 @@ export async function PATCH(req: Request) {
             return NextResponse.json({
                 message: `Feature updated successfully.`,
             });
-        }
-
-        if (action === "UPDATE_LIMITS") {
+        } else if (action === "UPDATE_LIMITS") {
             card.limits.dailyOnlineLimit = data.onlineLimit;
             card.limits.dailyWithdrawalLimit = data.atmLimit;
             card.limits.contactlessLimit = data.contactlessLimit;
+            await card.save();
+        } else if (action === "CHANGE_PIN") {
+            if (!value || !/^\d{4}$/.test(value)) {
+                return NextResponse.json(
+                    { message: "PIN must be exactly 4 digits." },
+                    { status: 400 },
+                );
+            }
+
+            card.pinHash = await bcrypt.hash(value, 10);
+            await card.save();
         } else if (action === "DELETE_CARD") {
-            card.currentStatus = "Closed";
+            if (!["Frozen", "Blocked"].includes(card.currentStatus)) {
+                return NextResponse.json(
+                    {
+                        message:
+                            "Card must be frozen before it can be permanently deleted.",
+                    },
+                    { status: 400 },
+                );
+            }
+
+            if (
+                card.cardType === "Credit" &&
+                parseFloat(card.limits?.outstandingAmount?.toString() || "0") >
+                    0
+            ) {
+                return NextResponse.json(
+                    {
+                        message:
+                            "Credit cards with an outstanding balance cannot be deleted.",
+                    },
+                    { status: 400 },
+                );
+            }
+
+            await card.deleteOne();
         } else {
             return NextResponse.json(
                 { message: "Invalid action." },
@@ -225,14 +292,14 @@ export async function PATCH(req: Request) {
             );
         }
 
-        await card.save();
-
         await createAuditLog({
             userId: decoded.userId,
             userRole: decoded.role,
             actionType:
                 action === "DELETE_CARD"
                     ? "CARD_DELETED"
+                    : action === "CHANGE_PIN"
+                      ? "CARD_PIN_CHANGED"
                     : "CARD_STATUS_CHANGED",
             category: "Operational",
             severity: "Medium",
@@ -241,9 +308,13 @@ export async function PATCH(req: Request) {
             description:
                 action === "TOGGLE_STATUS"
                     ? `Card status changed from ${prevState} to ${card.currentStatus}`
-                    : action === "DELETE_CARD"
-                      ? `Card ${card.cardReference} marked as Closed`
-                      : `Card limits updated`,
+                : action === "DELETE_CARD"
+                  ? `Card ${card.cardReference} permanently deleted`
+                : action === "CHANGE_PIN"
+                  ? `Card PIN changed for ${card.cardReference}`
+                : action === "UPDATE_LIMITS"
+                  ? `Card limits updated`
+                  : `Card updated`,
             currentStatus: "Success",
             payload: {
                 previousState: JSON.stringify({
@@ -251,20 +322,30 @@ export async function PATCH(req: Request) {
                     limits: prevLimits,
                 }),
                 newState: JSON.stringify({
-                    status: card.currentStatus,
-                    limits: card.limits,
+                    status:
+                        action === "DELETE_CARD" ? "Deleted" : card.currentStatus,
+                    limits:
+                        action === "DELETE_CARD"
+                            ? prevLimits
+                            : card.limits,
                 }),
             },
         });
 
         return NextResponse.json(
-            { message: "Card updated successfully.", card },
+            {
+                message:
+                    action === "DELETE_CARD"
+                        ? "Card permanently deleted."
+                        : "Card updated successfully.",
+                card: action === "DELETE_CARD" ? null : card,
+            },
             { status: 200 },
         );
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Card PATCH Error:", error);
         return NextResponse.json(
-            { message: error.message || "Internal server error." },
+            { message: getErrorMessage(error, "Internal server error.") },
             { status: 500 },
         );
     }

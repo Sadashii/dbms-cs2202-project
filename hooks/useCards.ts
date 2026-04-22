@@ -133,6 +133,8 @@ export const useCards = () => {
                         );
                         if (updatedSelected) setSelectedCard(updatedSelected);
                     }
+                } else {
+                    setSelectedCard(null);
                 }
             }
         } catch (error) {
@@ -219,8 +221,10 @@ export const useCards = () => {
                     `Server Error: ${data.message || "Unknown error occurred"}`,
                 );
             }
-        } catch (error: any) {
-            toast.error(`Network Error: ${error.message}`);
+        } catch (error: unknown) {
+            toast.error(
+                `Network Error: ${error instanceof Error ? error.message : "Failed to create card."}`,
+            );
         } finally {
             setIsGenerating(false);
         }
@@ -281,7 +285,7 @@ export const useCards = () => {
                 const d = await res.json();
                 toast.error(d.message || "Failed to update PIN.");
             }
-        } catch (error) {
+        } catch {
             toast.error("Failed to update PIN.");
         } finally {
             setIsSubmittingPin(false);
@@ -302,7 +306,8 @@ export const useCards = () => {
         cardId: string,
         currentStatus: string,
     ) => {
-        const action = currentStatus === "Active" ? "Freeze" : "Unfreeze";
+        const isFrozen = ["Frozen", "Blocked"].includes(currentStatus);
+        const action = isFrozen ? "Unfreeze" : "Freeze";
         if (!confirm(`Are you sure you want to ${action} this card?`)) return;
 
         try {
@@ -310,9 +315,21 @@ export const useCards = () => {
                 method: "PATCH",
                 body: JSON.stringify({ cardId, action: "TOGGLE_STATUS" }),
             });
-            if (res.ok) fetchCards();
+            const data = await res.json();
+
+            if (res.ok) {
+                toast.success(
+                    `Card ${action === "Freeze" ? "frozen" : "reactivated"} successfully.`,
+                );
+                await fetchCards();
+            } else {
+                toast.error(
+                    data.message || `Failed to ${action.toLowerCase()} card.`,
+                );
+            }
         } catch (error) {
             console.error("Status update failed", error);
+            toast.error(`Failed to ${action.toLowerCase()} card.`);
         }
     };
 
@@ -348,7 +365,7 @@ export const useCards = () => {
         const cardToDelete = cards.find((c) => c._id === cardId);
         if (!cardToDelete) return;
 
-        if (cardToDelete.currentStatus !== "Blocked") {
+        if (!["Frozen", "Blocked"].includes(cardToDelete.currentStatus)) {
             toast.error("Card must be Frozen before it can be deleted.");
             return;
         }
@@ -371,14 +388,16 @@ export const useCards = () => {
                 method: "PATCH",
                 body: JSON.stringify({ cardId, action: "DELETE_CARD" }),
             });
+            const data = await res.json();
             if (res.ok) {
                 toast.success("Card deleted successfully.");
-                fetchCards();
+                await fetchCards();
             } else {
-                toast.error("Failed to delete card.");
+                toast.error(data.message || "Failed to delete card.");
             }
         } catch (error) {
             console.error("Deletion failed", error);
+            toast.error("Failed to delete card.");
         }
     };
 

@@ -7,7 +7,7 @@ interface CardListProps {
     virtualCards: Card[];
     selectedCard: Card | null;
     flippedCardId: string | null;
-    user: any;
+    user: { firstName?: string } | null;
     handleCardClick: (card: Card) => void;
 }
 
@@ -41,6 +41,9 @@ export const CardList: React.FC<CardListProps> = ({
     user,
     handleCardClick,
 }) => {
+    const isFrozenCard = (status: string) =>
+        status === "Frozen" || status === "Blocked";
+
     return (
         <div className="lg:col-span-1 space-y-4">
             <h3 className="font-semibold text-gray-900 dark:text-white transition-colors">
@@ -69,7 +72,7 @@ export const CardList: React.FC<CardListProps> = ({
                                         className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? "[transform:rotateY(180deg)]" : ""} ${isSelected ? "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-slate-950 rounded-2xl shadow-xl scale-[1.02]" : "hover:scale-[1.01]"}`}
                                     >
                                         <div
-                                            className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === "Blocked")}`}
+                                            className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, isFrozenCard(card.currentStatus))}`}
                                         >
                                             <div className="flex justify-between items-start z-20">
                                                 <div className="font-bold text-xs opacity-80">
@@ -100,7 +103,7 @@ export const CardList: React.FC<CardListProps> = ({
                                             </div>
                                         </div>
                                         <div
-                                            className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === "Blocked")}`}
+                                            className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, isFrozenCard(card.currentStatus))}`}
                                         >
                                             <p className="text-[10px] text-center opacity-80">
                                                 Tap to flip back
@@ -134,7 +137,7 @@ export const CardList: React.FC<CardListProps> = ({
                                         className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? "[transform:rotateY(180deg)]" : ""} ${isSelected ? "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-slate-950 rounded-2xl shadow-xl scale-[1.02]" : "hover:scale-[1.01]"}`}
                                     >
                                         <div
-                                            className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === "Blocked")}`}
+                                            className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, isFrozenCard(card.currentStatus))}`}
                                         >
                                             <div className="flex justify-between items-start z-20">
                                                 <div className="font-bold text-xs opacity-80">
@@ -165,7 +168,7 @@ export const CardList: React.FC<CardListProps> = ({
                                             </div>
                                         </div>
                                         <div
-                                            className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === "Blocked")}`}
+                                            className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, isFrozenCard(card.currentStatus))}`}
                                         >
                                             <p className="text-[10px] text-center opacity-80 font-mono">
                                                 Outstanding: ₹
@@ -197,7 +200,7 @@ export const CardList: React.FC<CardListProps> = ({
                                         className={`w-full h-full transition-all duration-500 [transform-style:preserve-3d] ${isFlipped ? "[transform:rotateY(180deg)]" : ""} ${isSelected ? "ring-2 ring-blue-500 dark:ring-blue-400 ring-offset-2 dark:ring-offset-slate-950 rounded-2xl shadow-xl scale-[1.02]" : "hover:scale-[1.01]"}`}
                                     >
                                         <div
-                                            className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === "Blocked")}`}
+                                            className={`absolute inset-0 [backface-visibility:hidden] rounded-2xl p-5 flex flex-col justify-between overflow-hidden shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, isFrozenCard(card.currentStatus))}`}
                                         >
                                             <div className="flex justify-between items-start z-20">
                                                 <div className="font-bold text-xs opacity-80">
@@ -228,7 +231,7 @@ export const CardList: React.FC<CardListProps> = ({
                                             </div>
                                         </div>
                                         <div
-                                            className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, card.currentStatus === "Blocked")}`}
+                                            className={`absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl p-5 flex flex-col justify-center items-center shadow-lg ${getCardStyle(card.cardType, card.cardNetwork, isFrozenCard(card.currentStatus))}`}
                                         >
                                             <p className="text-[10px] text-center opacity-80">
                                                 Virtual Security Enabled

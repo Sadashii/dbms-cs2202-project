@@ -25,6 +25,14 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
 
     if (!selectedCard) return null;
 
+    const isFrozen = ["Frozen", "Blocked"].includes(selectedCard.currentStatus);
+    const canPermanentlyDelete =
+        isFrozen &&
+        !(
+            selectedCard.cardType === "Credit" &&
+            (selectedCard.limits?.outstandingAmount || 0) > 0
+        );
+
     return (
         <div className="lg:col-span-2 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden flex flex-col transition-colors">
             <div className="px-6 py-5 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50 transition-colors">
@@ -38,7 +46,7 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                 </div>
                 <div className="flex items-center gap-3">
                     <span
-                        className={`px-3 py-1 text-xs font-bold rounded-full ${selectedCard.currentStatus === "Active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : selectedCard.currentStatus === "Closed" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
+                        className={`px-3 py-1 text-xs font-bold rounded-full ${selectedCard.currentStatus === "Active" ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" : selectedCard.currentStatus === "Closed" ? "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400" : selectedCard.currentStatus === "Frozen" || selectedCard.currentStatus === "Blocked" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"}`}
                     >
                         {selectedCard.currentStatus}
                     </span>
@@ -53,26 +61,21 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                 }
                                 className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors uppercase tracking-wider"
                             >
-                                {selectedCard.currentStatus === "Active"
-                                    ? "Freeze"
-                                    : "Unfreeze"}
+                                {isFrozen ? "Unfreeze" : "Freeze"}
                             </button>
 
                             <button
                                 onClick={() =>
                                     handleDeleteCard(selectedCard._id)
                                 }
+                                disabled={!canPermanentlyDelete}
                                 className={`text-xs font-bold transition-colors uppercase tracking-wider ${
-                                    selectedCard.currentStatus === "Blocked"
-                                        ? selectedCard.cardType === "Credit" &&
-                                          (selectedCard.limits
-                                              ?.outstandingAmount || 0) > 0
-                                            ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
-                                            : "text-red-600 dark:text-red-500 hover:text-red-800 dark:hover:text-red-400"
+                                    canPermanentlyDelete
+                                        ? "text-red-600 dark:text-red-500 hover:text-red-800 dark:hover:text-red-400"
                                         : "text-gray-300 dark:text-gray-600 cursor-not-allowed"
                                 }`}
                                 title={
-                                    selectedCard.currentStatus !== "Blocked"
+                                    !isFrozen
                                         ? "Freeze card first"
                                         : selectedCard.cardType === "Credit" &&
                                             (selectedCard.limits
