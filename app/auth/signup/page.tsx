@@ -79,7 +79,7 @@ export default function SignupPage() {
                     />
 
                     <Input
-                        label="Corporate Email Address"
+                        label="Email Address"
                         type="email"
                         id="email"
                         value={email}

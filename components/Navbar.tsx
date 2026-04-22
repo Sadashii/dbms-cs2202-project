@@ -88,7 +88,7 @@ export const Navbar = () => {
         <nav className="bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800 shadow-sm sticky top-0 z-50 transition-colors">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between h-16">
-                    {}
+                    { }
                     <div className="flex">
                         <div className="flex-shrink-0 flex items-center">
                             <Link href="/" className="flex items-center gap-2">
@@ -150,18 +150,12 @@ export const Navbar = () => {
                                     >
                                         Features
                                     </NavLink>
-                                    <NavLink
-                                        href="/corporate"
-                                        active={isActive("/corporate")}
-                                    >
-                                        Corporate
-                                    </NavLink>
                                 </>
                             )}
                         </div>
                     </div>
 
-                    {}
+                    { }
                     <div className="flex items-center">
                         <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
                             <ThemeToggle />
@@ -169,7 +163,7 @@ export const Navbar = () => {
                             {!isLoading &&
                                 (isLoggedIn ? (
                                     <div className="flex items-center gap-4">
-                                        {}
+                                        { }
                                         <div
                                             className="relative"
                                             ref={notifRef}
@@ -202,7 +196,7 @@ export const Navbar = () => {
                                                 )}
                                             </button>
 
-                                            {}
+                                            { }
                                             {isNotifOpen && (
                                                 <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 overflow-hidden z-50 animate-fade-in origin-top-right transition-colors">
                                                     <div className="p-3 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
@@ -222,7 +216,7 @@ export const Navbar = () => {
                                                     </div>
                                                     <div className="max-h-[60vh] overflow-y-auto custom-scrollbar">
                                                         {notifications.length ===
-                                                        0 ? (
+                                                            0 ? (
                                                             <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm flex flex-col items-center">
                                                                 No notifications
                                                             </div>
@@ -273,7 +267,7 @@ export const Navbar = () => {
 
                                         <div className="h-6 w-px bg-gray-200 dark:bg-slate-800 mx-2"></div>
 
-                                        {}
+                                        { }
                                         <Link
                                             href="/my/profile"
                                             className="flex items-center gap-3 group transition-opacity hover:opacity-80"
@@ -318,7 +312,7 @@ export const Navbar = () => {
                                 ))}
                         </div>
 
-                        {}
+                        { }
                         <div className="-mr-2 flex items-center sm:hidden gap-2">
                             <ThemeToggle />
                             <button
@@ -362,7 +356,7 @@ export const Navbar = () => {
                 </div>
             </div>
 
-            {}
+            { }
             {isMobileMenuOpen && (
                 <div className="sm:hidden border-t border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950 transition-colors">
                     <div className="pt-2 pb-3 space-y-1">
@@ -489,11 +483,10 @@ const NavLink = ({
 }) => (
     <Link
         href={href}
-        className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${
-            active
+        className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium transition-colors ${active
                 ? "border-blue-600 text-gray-900 dark:text-white"
                 : "border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-slate-700 hover:text-gray-700 dark:hover:text-gray-300"
-        }`}
+            }`}
     >
         {children}
     </Link>
@@ -510,11 +503,10 @@ const MobileNavLink = ({
 }) => (
     <Link
         href={href}
-        className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${
-            active
+        className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium transition-colors ${active
                 ? "bg-blue-50 dark:bg-blue-900/20 border-blue-600 text-blue-700 dark:text-blue-400"
                 : "border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-900 hover:border-gray-300 dark:hover:border-slate-700 hover:text-gray-800 dark:hover:text-gray-200"
-        }`}
+            }`}
     >
         {children}
     </Link>

@@ -13,7 +13,7 @@ const AuthProvider = dynamic(() => import("@/components/AuthProvider"), {
 
 export default function AppProviders({ children }: { children: React.ReactNode }) {
   return (
-    <ThemeProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>{children}</AuthProvider>
     </ThemeProvider>
   );

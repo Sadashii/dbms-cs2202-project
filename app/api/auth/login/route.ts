@@ -144,8 +144,10 @@ export async function POST(req: Request) {
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
             const userAgent = reqHeaders.get("user-agent") || "Unknown Device";
-            const location =
-                reqHeaders.get("cf-ipcountry") || "Unknown Location";
+            
+            const country = reqHeaders.get("x-vercel-ip-country") || reqHeaders.get("cf-ipcountry");
+            const city = reqHeaders.get("x-vercel-ip-city");
+            const location = city && country ? `${city}, ${country}` : (country || "Unknown Location");
 
             await Session.create({
                 userId: user._id,
