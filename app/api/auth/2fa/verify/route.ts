@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
         }
 
-        user.isTwoFactorEnabled = true;
-        await user.save();
+        await User.findByIdAndUpdate(authPayload.userId, {
+            $set: { isTwoFactorEnabled: true }
+        });
 
         return NextResponse.json({ message: "2FA enabled successfully" }, { status: 200 });
     } catch (err) {

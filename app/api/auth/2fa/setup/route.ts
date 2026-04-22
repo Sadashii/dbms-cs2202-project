@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const user = await User.findById(authPayload.userId);
+        const user = await User.findById(authPayload.userId).select("email");
         if (!user) {
             return NextResponse.json({ error: "User not found" }, { status: 404 });
         }
@@ -23,8 +23,11 @@ export async function POST(req: NextRequest) {
         const qrCodeUrl = await qrcode.toDataURL(otpauth);
 
         // Save secret temporarily until verified
-        user.twoFactorSecret = secret.base32;
-        await user.save();
+        // Using findByIdAndUpdate to avoid VersionError (optimistic concurrency) 
+        // which can happen if multiple setup requests are made simultaneously
+        await User.findByIdAndUpdate(authPayload.userId, {
+            $set: { twoFactorSecret: secret.base32 }
+        });
 
         return NextResponse.json({ secret: secret.base32, qrCodeUrl }, { status: 200 });
     } catch (err: any) {
