@@ -114,6 +114,12 @@ export default function DashboardOverview() {
     if (isLoading) {
         return (
             <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none p-6">
+                <TwoFactorModal 
+                    isOpen={show2FAPrompt} 
+                    onClose={() => { setShow2FAPrompt(false); sessionStorage.setItem('2fa_prompted', 'true'); }} 
+                    onSuccess={() => { setShow2FAPrompt(false); sessionStorage.setItem('2fa_prompted', 'true'); router.refresh(); }} 
+                    apiFetch={apiFetch} 
+                />
                 <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16 px-4 sm:px-6 pt-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <div className="space-y-2"><Skeleton className="h-8 w-64" /><Skeleton className="h-4 w-40" /></div>
@@ -137,7 +143,12 @@ export default function DashboardOverview() {
     return (
         <main className="flex-1 relative z-0 overflow-y-auto focus:outline-none bg-slate-50 dark:bg-slate-950 transition-colors h-full w-full">
             <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16 px-4 sm:px-6 pt-4">
-                <TwoFactorModal isOpen={show2FAPrompt} onClose={() => setShow2FAPrompt(false)} onSuccess={() => { setShow2FAPrompt(false); router.refresh(); }} apiFetch={apiFetch} />
+                <TwoFactorModal 
+                    isOpen={show2FAPrompt} 
+                    onClose={() => { setShow2FAPrompt(false); sessionStorage.setItem('2fa_prompted', 'true'); }} 
+                    onSuccess={() => { setShow2FAPrompt(false); sessionStorage.setItem('2fa_prompted', 'true'); router.refresh(); }} 
+                    apiFetch={apiFetch} 
+                />
 
                 {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

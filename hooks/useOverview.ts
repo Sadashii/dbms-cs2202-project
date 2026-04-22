@@ -57,7 +57,6 @@ export const useOverview = () => {
         
         if (!user.isTwoFactorEnabled && !sessionStorage.getItem('2fa_prompted')) {
             setShow2FAPrompt(true);
-            sessionStorage.setItem('2fa_prompted', 'true');
         }
     }, [user, apiFetch]);
 
