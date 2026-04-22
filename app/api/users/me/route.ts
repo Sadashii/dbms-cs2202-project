@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/User";
 import dbConnect  from "@/lib/mongodb"; // Ensure this path matches your DB connection file
 import { verifyAuth } from "@/lib/auth"; 
+import { backfillMissingCustomerIds, ensureUserHasValidCustomerId } from "@/lib/customerId";
 
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
+    await backfillMissingCustomerIds();
 
     // 1. Get the full decoded token payload
     const authPayload = verifyAuth(req.headers);
@@ -16,7 +18,7 @@ export async function GET(req: NextRequest) {
     }
 
     // 3. Search using JUST the ID string
-    const user = await User.findById(authPayload.userId);
+    const user = await ensureUserHasValidCustomerId(authPayload.userId);
     
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
@@ -33,6 +35,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     await dbConnect();
+    await backfillMissingCustomerIds();
 
     // 1. Get the full decoded token payload
     const authPayload = verifyAuth(req.headers);
@@ -46,7 +49,7 @@ export async function PATCH(req: NextRequest) {
     const { firstName, lastName, phone, address } = body;
 
     // 3. Search using JUST the ID string
-    const user = await User.findById(authPayload.userId);
+    const user = await ensureUserHasValidCustomerId(authPayload.userId);
     
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });

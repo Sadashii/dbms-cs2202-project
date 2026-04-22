@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import AccountRequest from "@/models/AccountRequests";
 import KYC from "@/models/KYC";
 import {verifyAuth} from "@/lib/auth";
+import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
 import path from "path";
 import fs from "fs/promises";
 
@@ -106,8 +107,10 @@ export async function POST(req: NextRequest) {
                 fileName: signature.name,
                 fileType: 'Full'
             }],
-            currentStatus: 'Pending'
+            currentStatus: 'Verified'
         });
+
+        await autoApproveSignatureDocuments(userId);
 
         return NextResponse.json(
             { message: "Account request and KYC submitted successfully.", request: newAccountRequest },
@@ -140,54 +143,86 @@ export async function PATCH(req: NextRequest) {
         if (!request) return NextResponse.json({ message: "No active account request found for remediation." }, { status: 404 });
 
         const updates: any = {};
+        const createKycRecord = async ({
+            documentType,
+            fileUrl,
+            fileName,
+            fileType,
+            currentStatus,
+            documentNumber,
+        }: {
+            documentType: 'PAN' | 'Aadhar' | 'Signature';
+            fileUrl: string;
+            fileName: string;
+            fileType: 'Front' | 'Full';
+            currentStatus: 'Pending' | 'Verified';
+            documentNumber?: string;
+        }) => {
+            const referencePrefix = documentType === 'Aadhar' ? 'AADHAR' : documentType.toUpperCase();
+            await KYC.create({
+                kycReference: `${referencePrefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+                userId,
+                documentType,
+                documentDetails: documentType === 'Signature'
+                    ? { issuedCountry: 'India' }
+                    : {
+                        encryptedNumber: documentNumber ? Buffer.from(documentNumber).toString('base64') : undefined,
+                        numberHash: documentNumber ? Buffer.from(documentNumber).toString('hex') : undefined,
+                        issuedCountry: 'India'
+                    },
+                attachments: [{
+                    fileUrl,
+                    fileName,
+                    fileType
+                }],
+                currentStatus
+            });
+        };
         
         if (panCard || (kycType === 'PAN' && panCard)) {
             const url = await saveFile(panCard, 'pan');
             request.kycDocuments.panCardFileUrl = url;
-            await KYC.findOneAndUpdate(
-                { userId, documentType: 'PAN' }, 
-                { 
-                    currentStatus: 'Pending', 
-                    attachments: [{ fileUrl: url, fileName: panCard.name, fileType: 'Front' }],
-                    documentDetails: panNumber ? { encryptedNumber: Buffer.from(panNumber).toString('base64'), numberHash: Buffer.from(panNumber).toString('hex') } : undefined
-                }, 
-                { upsert: true }
-            );
+            await createKycRecord({
+                documentType: 'PAN',
+                fileUrl: url,
+                fileName: panCard.name,
+                fileType: 'Front',
+                currentStatus: 'Pending',
+                documentNumber: panNumber,
+            });
             updates.pan = "Updated";
         }
 
         if (aadhar || (kycType === 'Aadhar' && aadhar)) {
             const url = await saveFile(aadhar, 'aadhar');
             request.kycDocuments.aadharFileUrl = url;
-            await KYC.findOneAndUpdate(
-                { userId, documentType: 'Aadhar' }, 
-                { 
-                    currentStatus: 'Pending', 
-                    attachments: [{ fileUrl: url, fileName: aadhar.name, fileType: 'Front' }],
-                    documentDetails: aadharNumber ? { encryptedNumber: Buffer.from(aadharNumber).toString('base64'), numberHash: Buffer.from(aadharNumber).toString('hex') } : undefined
-                }, 
-                { upsert: true }
-            );
+            await createKycRecord({
+                documentType: 'Aadhar',
+                fileUrl: url,
+                fileName: aadhar.name,
+                fileType: 'Front',
+                currentStatus: 'Pending',
+                documentNumber: aadharNumber,
+            });
             updates.aadhar = "Updated";
         }
 
         if (signature || (kycType === 'Signature' && signature)) {
             const url = await saveFile(signature, 'signature');
             request.kycDocuments.signatureFileUrl = url;
-            await KYC.findOneAndUpdate(
-                { userId, documentType: 'Signature' },
-                {
-                    currentStatus: 'Pending',
-                    attachments: [{ fileUrl: url, fileName: signature.name, fileType: 'Full' }],
-                    documentDetails: { issuedCountry: 'India' }
-                },
-                { upsert: true }
-            );
+            await createKycRecord({
+                documentType: 'Signature',
+                fileUrl: url,
+                fileName: signature.name,
+                fileType: 'Full',
+                currentStatus: 'Verified',
+            });
             updates.signature = "Updated";
         }
 
         request.currentStatus = "Pending_KYC";
         await request.save();
+        await autoApproveSignatureDocuments(userId);
 
         return NextResponse.json({ message: "Documents re-submitted successfully.", updates });
 

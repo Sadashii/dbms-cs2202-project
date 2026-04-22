@@ -45,6 +45,8 @@ async function dbConnect() {
     try {
         // Wait for the connection to resolve
         cached.conn = await cached.promise;
+        const { backfillMissingCustomerIds } = await import("@/lib/customerId");
+        await backfillMissingCustomerIds();
     } catch (e) {
         // If the connection fails, clear the promise so the app can try again on the next request
         cached.promise = null;

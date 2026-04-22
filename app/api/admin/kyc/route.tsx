@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import KYC from "@/models/KYC";
-import User from "@/models/User"; // Required to populate
+import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
 
 export async function GET(req: NextRequest) {
     try {
         await dbConnect();
 
+        const signatureOwners = await KYC.distinct("userId", {
+            documentType: "Signature",
+            currentStatus: { $ne: "Verified" }
+        });
+
+        await Promise.all(signatureOwners.map((userId) => autoApproveSignatureDocuments(String(userId))));
+
         // Fetch KYCs. Custom sorting: Pending and In-Review first, then by date.
         const kycRecords = await KYC.find()
-            .populate({ path: 'userId', select: 'email firstName lastName' })
+            .populate({ path: 'userId', select: 'email firstName lastName customerId' })
             .sort({ currentStatus: -1, createdAt: -1 }) 
             .lean();
 

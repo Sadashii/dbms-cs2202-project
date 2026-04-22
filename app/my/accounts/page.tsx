@@ -19,7 +19,7 @@ interface Account {
 }
 
 export default function AccountsPage() {
-  const { apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
+  const { apiFetch, isLoading: authLoading, isLoggedIn, user } = useAuthContext();
   const router = useRouter();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -306,6 +306,11 @@ export default function AccountsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Your Accounts</h1>
           <p className="text-sm text-gray-500 dark:text-gray-400">Manage your balances and execute transfers.</p>
+          {user?.customerId && (
+            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+              Customer ID: <span className="font-mono">{user.customerId}</span>
+            </p>
+          )}
         </div>
         <div className="flex gap-3">
             <Button onClick={() => setIsNewAccountModalOpen(true)} variant="outline" className="dark:bg-transparent dark:border-slate-700 dark:text-white dark:hover:bg-slate-800">
@@ -334,7 +339,7 @@ export default function AccountsPage() {
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {['PAN', 'Aadhar', 'Signature'].map(type => {
-                      const kyc = kycs.find(k => k.documentType === type) || (type === 'Signature' ? { currentStatus: 'Pending' } : null);
+                      const kyc = kycs.find(k => k.documentType === type) || (type === 'Signature' ? { currentStatus: 'Verified' } : null);
                       const status = kyc?.currentStatus || 'Not Submitted';
                       
                       return (

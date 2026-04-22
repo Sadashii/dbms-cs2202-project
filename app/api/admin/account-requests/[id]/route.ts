@@ -6,6 +6,7 @@ import KYC from "@/models/KYC";
 import Accounts from "@/models/Accounts";
 import { verifyAuth } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
+import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
 
 export async function PATCH(
     req: NextRequest,
@@ -67,10 +68,12 @@ export async function PATCH(
             return NextResponse.json({ message: "Account already approved" }, { status: 400 });
         }
 
+        await autoApproveSignatureDocuments(String(accountReq.userId));
+
         const userKycs = await KYC.find({ userId: accountReq.userId });
         
         // Define required document types
-        const requiredDocs = ['PAN', 'Aadhar', 'Signature'];
+        const requiredDocs = ['PAN', 'Aadhar'];
         const foundDocs = userKycs.filter(k => requiredDocs.includes(k.documentType));
         
         const allVerified = foundDocs.length === requiredDocs.length && foundDocs.every(k => k.currentStatus === 'Verified');
