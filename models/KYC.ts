@@ -74,7 +74,7 @@ const KYCSchema = new Schema<IKYC>({
         encryptedNumber: { type: String, required: false, immutable: true },
         numberHash: { type: String, required: false, index: true, immutable: true },
         expiryDate: { type: Date, immutable: true },
-        issuedCountry: { type: String, required: true, default: 'India', immutable: true }
+        issuedCountry: { type: String, required: false, default: 'India' }
     },
     attachments: [{
         fileUrl: { type: String, required: true, immutable: true },
@@ -115,6 +115,20 @@ const KYCSchema = new Schema<IKYC>({
 
 // Automatically track KYC lifecycle changes
 KYCSchema.pre('save', async function() {
+    if (!this.documentDetails) {
+        this.documentDetails = { issuedCountry: 'India' } as any;
+    } else if (!this.documentDetails.issuedCountry) {
+        this.documentDetails.issuedCountry = 'India';
+    }
+
+    if (!Array.isArray(this.statusHistory)) {
+        this.statusHistory = [];
+    }
+
+    if (!this.metadata) {
+        this.metadata = {};
+    }
+
     if (this.isModified('currentStatus')) {
         this.statusHistory.push({
             state: this.currentStatus,

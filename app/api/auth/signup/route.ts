@@ -2,10 +2,12 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { backfillMissingCustomerIds } from "@/lib/customerId";
 
 export async function POST(req: Request) {
     try {
         await dbConnect();
+        await backfillMissingCustomerIds();
         const body = await req.json();
         const { name, email, password } = body;
 
@@ -28,7 +30,7 @@ export async function POST(req: Request) {
         const lastName = nameParts.slice(1).join(" ") || "N/A";
 
         // Create the user (status defaults to Pending_KYC based on your Schema)
-        await User.create({
+        const createdUser = await User.create({
             firstName,
             lastName,
             email,
@@ -36,7 +38,10 @@ export async function POST(req: Request) {
         });
 
         return NextResponse.json(
-            { message: "Account created successfully. Please log in to continue." },
+            {
+                message: "Account created successfully. Please log in to continue.",
+                customerId: createdUser.customerId,
+            },
             { status: 201 }
         );
 

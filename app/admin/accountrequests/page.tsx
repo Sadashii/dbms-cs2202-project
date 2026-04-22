@@ -204,7 +204,7 @@ export default function AdminAccountRequestsPage() {
                   <tr><td colSpan={5} className="p-20 text-center text-gray-300 dark:text-slate-700 font-black italic uppercase">No Matching Protocols</td></tr>
                 ) : (
                   paginatedRequests.map((req) => {
-                    const requiredDocs = ['PAN', 'Aadhar', 'Signature'];
+                    const requiredDocs = ['PAN', 'Aadhar'];
                     const verifiedDocsCount = (req.kycs || []).filter(k => requiredDocs.includes(k.documentType) && k.currentStatus === 'Verified').length;
                     const totalRequired = requiredDocs.length;
                     const progressPercent = (verifiedDocsCount / totalRequired) * 100;

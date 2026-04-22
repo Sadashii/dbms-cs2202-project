@@ -11,6 +11,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createAuditLog } from "@/lib/audit";
+import { backfillMissingCustomerIds, isCustomerId, normalizeCustomerId } from "@/lib/customerId";
 
 const SERVER_SECRET = process.env.OTP_SECRET || "my-otp-secret";
 
@@ -32,7 +33,7 @@ export function generateHashTimeOTP(
 
 const LoginSchema = z.object({
   process: z.enum(["generateotp", "verifyotp"]),
-  email: z.string().email("Invalid email address").toLowerCase(),
+  identifier: z.string().min(1, "Email or customer ID is required").trim(),
   password: z.string().min(8, "Password must be at least 8 characters"),
   otp: z.string().length(6).optional(),
 });
@@ -53,6 +54,7 @@ export async function POST(req: Request) {
     }
 
     await dbConnect();
+    await backfillMissingCustomerIds();
     const rawBody = await req.json();
     const parseResult = LoginSchema.safeParse(rawBody);
     if (!parseResult.success) {
@@ -61,10 +63,15 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    const { process: requestprocess, email, password, otp } = parseResult.data; // 1. Authenticate User Credentials
+    const { process: requestprocess, identifier, password, otp } = parseResult.data; // 1. Authenticate User Credentials
     // We must explicitly .select('+passwords') because we set select: false in the Schema
 
-    const user = await User.findOne({ email: email.toLowerCase() }).select(
+    const normalizedIdentifier = identifier.trim();
+    const userLookup = isCustomerId(normalizedIdentifier)
+      ? { customerId: normalizeCustomerId(normalizedIdentifier) }
+      : { email: normalizedIdentifier.toLowerCase() };
+
+    const user = await User.findOne(userLookup).select(
       "+passwords",
     );
     if (!user) {
@@ -86,7 +93,7 @@ export async function POST(req: Request) {
     if (requestprocess === "generateotp") {
       const totp = generateHashTimeOTP(latestPassword.hash);
       console.log(`============= MOCK SMS/EMAIL =============`);
-      console.log(`To: ${email}`);
+      console.log(`To: ${user.email}`);
       console.log(`Subject: VaultPay Login Verification`);
       console.log(
         `Message: Your Secure OTP is: ${totp}. Do not share this. It expires in 60 seconds.`,
@@ -100,7 +107,10 @@ export async function POST(req: Request) {
         expiresAt: new Date(Date.now() + 5 * 60 * 1000), // Keep for 5 minutes
       });
       return NextResponse.json(
-        { message: "OTP sent to your registered email/device." },
+        {
+          message: "OTP sent to your registered email/device.",
+          otp: totp,
+        },
         { status: 200 },
       );
     } // 3. Handle OTP Verification (Step 2)
@@ -147,6 +157,7 @@ export async function POST(req: Request) {
         _id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
+        customerId: user.customerId,
         email: user.email,
         role: user.role,
         currentStatus: user.currentStatus,

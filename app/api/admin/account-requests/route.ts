@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import AccountRequest from "@/models/AccountRequests";
 import KYC from "@/models/KYC";
 import { verifyAuth } from "@/lib/auth";
+import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
 
 export async function GET(req: NextRequest) {
     try {
@@ -25,9 +26,12 @@ export async function GET(req: NextRequest) {
 
         const enhancedRequests = await Promise.all(
             requests.map(async (request) => {
+                await autoApproveSignatureDocuments(String(request.userId._id));
+
                 const fileUrls = [
                     request.kycDocuments?.panCardFileUrl,
-                    request.kycDocuments?.aadharFileUrl
+                    request.kycDocuments?.aadharFileUrl,
+                    request.kycDocuments?.signatureFileUrl
                 ].filter(Boolean);
 
                 const userKycs = await KYC.find({ 

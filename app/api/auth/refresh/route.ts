@@ -4,6 +4,7 @@ import dbConnect from "@/lib/mongodb";
 import Session from "@/models/Session";
 import User from "@/models/User";
 import jwt from "jsonwebtoken";
+import { backfillMissingCustomerIds, ensureUserHasValidCustomerId } from "@/lib/customerId";
 
 export async function POST() {
     try {
@@ -23,6 +24,7 @@ export async function POST() {
         }
 
         await dbConnect();
+        await backfillMissingCustomerIds();
 
         // Ensure session exists in DB (meaning it wasn't revoked)
         const activeSession = await Session.findOne({ refreshToken });
@@ -31,7 +33,7 @@ export async function POST() {
         }
 
         // Fetch user data
-        const user = await User.findById(decoded.userId);
+        const user = await ensureUserHasValidCustomerId(decoded.userId);
         if (!user || user.currentStatus === 'Disabled' || user.currentStatus === 'Suspended') {
             return NextResponse.json({ message: "User account is suspended or disabled." }, { status: 403 });
         }
@@ -47,6 +49,7 @@ export async function POST() {
             _id: user._id,
             firstName: user.firstName,
             lastName: user.lastName,
+            customerId: user.customerId,
             email: user.email,
             role: user.role,
             currentStatus: user.currentStatus,

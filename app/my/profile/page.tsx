@@ -19,6 +19,7 @@ interface UserProfile {
   _id: string;
   firstName: string;
   lastName: string;
+  customerId: string;
   email: string;
   isEmailVerified: boolean;
   phone?: string;
@@ -33,6 +34,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSubmittingDeletionRequest, setIsSubmittingDeletionRequest] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "general" | "security" | "preferences"
   >("general");
@@ -138,6 +140,27 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAccountRequest = async () => {
+    setIsSubmittingDeletionRequest(true);
+    try {
+      const res = await apiFetch("/api/users/me/delete-request", {
+        method: "POST",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Could not create deletion request.");
+        return;
+      }
+
+      toast.success(data.message || "Deletion request submitted.");
+    } catch (error) {
+      toast.error("A network error occurred.");
+    } finally {
+      setIsSubmittingDeletionRequest(false);
+    }
+  };
+
   if (authLoading || isLoading)
     return (
       <div className="py-20 flex justify-center">
@@ -170,6 +193,12 @@ export default function ProfilePage() {
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 font-mono mt-1">
               {profile.email}
+            </p>
+            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">
+              Customer ID
+            </p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 font-mono mt-1">
+              {profile.customerId}
             </p>
             <div className="mt-6 pt-6 border-t border-gray-100 dark:border-slate-800 flex flex-col gap-2">
               <span className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800/30">
@@ -238,6 +267,17 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors">
+                      Customer ID
+                    </label>
+                    <input
+                      type="text"
+                      value={profile.customerId}
+                      disabled
+                      className="w-full border border-gray-200 dark:border-slate-700 rounded-lg px-4 py-2.5 bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-gray-400 cursor-not-allowed transition-colors font-mono"
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 transition-colors">
                       Email Address
@@ -578,6 +618,8 @@ export default function ProfilePage() {
                 <Button
                   variant="outline"
                   className="border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  isLoading={isSubmittingDeletionRequest}
+                  onClick={handleDeleteAccountRequest}
                 >
                   Request Account Deletion
                 </Button>
