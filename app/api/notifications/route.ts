@@ -24,9 +24,15 @@ const getUserAuth = async (request: Request) => {
 export async function GET(request: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "notifications-get", 100, 15 * 60 * 1000)) {
-            return NextResponse.json({ message: "Too many requests" }, { status: 429 });
+            return NextResponse.json(
+                { message: "Too many requests" },
+                { status: 429 },
+            );
         }
         const user = await getUserAuth(request);
         if (!user)
@@ -50,9 +56,15 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "notifications-patch", 20, 15 * 60 * 1000)) {
-            return NextResponse.json({ message: "Too many requests" }, { status: 429 });
+            return NextResponse.json(
+                { message: "Too many requests" },
+                { status: 429 },
+            );
         }
         const user = await getUserAuth(request);
         if (!user)

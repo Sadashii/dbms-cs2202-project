@@ -13,7 +13,12 @@ export interface Account {
 }
 
 export const useAccounts = () => {
-    const { apiFetch, isLoading: authLoading, isLoggedIn, user } = useAuthContext();
+    const {
+        apiFetch,
+        isLoading: authLoading,
+        isLoggedIn,
+        user,
+    } = useAuthContext();
     const router = useRouter();
 
     const [accounts, setAccounts] = useState<Account[]>([]);
@@ -210,7 +215,9 @@ export const useAccounts = () => {
                     setTransferError(data.message || "Transfer failed.");
                 } else {
                     await handleSaveBeneficiaryFlow();
-                    resetForm(`Transfer Successful! Ref ID: ${data.referenceId}`);
+                    resetForm(
+                        `Transfer Successful! Ref ID: ${data.referenceId}`,
+                    );
                     fetchAccounts();
                 }
             }
@@ -221,14 +228,19 @@ export const useAccounts = () => {
         }
     };
 
-    const updateScheduleStatus = async (scheduleId: string, currentStatus: string) => {
+    const updateScheduleStatus = async (
+        scheduleId: string,
+        currentStatus: string,
+    ) => {
         try {
             const res = await apiFetch("/api/scheduledpayments", {
                 method: "PATCH",
                 body: JSON.stringify({ scheduleId, currentStatus }),
             });
             if (res.ok) {
-                toast.success(`Schedule ${currentStatus.toLowerCase()} successfully.`);
+                toast.success(
+                    `Schedule ${currentStatus.toLowerCase()} successfully.`,
+                );
                 fetchSchedules();
             }
         } catch {
@@ -262,7 +274,9 @@ export const useAccounts = () => {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.message || "Failed to submit request");
+                throw new Error(
+                    errorData.message || "Failed to submit request",
+                );
             }
 
             toast.success("Registration submitted successfully.");
@@ -277,11 +291,15 @@ export const useAccounts = () => {
     };
 
     const handleWithdrawRequest = async (requestId: string) => {
-        if (!confirm("Are you sure you want to withdraw this account request?")) return;
+        if (!confirm("Are you sure you want to withdraw this account request?"))
+            return;
         try {
-            const res = await apiFetch(`/api/account-requests?id=${requestId}`, {
-                method: "DELETE",
-            });
+            const res = await apiFetch(
+                `/api/account-requests?id=${requestId}`,
+                {
+                    method: "DELETE",
+                },
+            );
             if (res.ok) {
                 toast.success("Account request withdrawn.");
                 fetchKycs();
@@ -311,7 +329,8 @@ export const useAccounts = () => {
         isLoading,
         authLoading,
         accounts,
-        page, setPage,
+        page,
+        setPage,
         totalPages,
         total,
         kycs,
@@ -319,30 +338,50 @@ export const useAccounts = () => {
         schedules,
         branches,
         beneficiaries,
-        isTransferModalOpen, setIsTransferModalOpen,
+        isTransferModalOpen,
+        setIsTransferModalOpen,
         isTransferring,
         transferError,
-        fromAccountId, setFromAccountId,
-        toAccountNumber, setToAccountNumber,
-        amount, setAmount,
-        memo, setMemo,
-        saveBeneficiary, setSaveBeneficiary,
-        beneficiaryNickName, setBeneficiaryNickName,
-        isScheduled, setIsScheduled,
-        frequency, setFrequency,
-        startDate, setStartDate,
-        isNewAccountModalOpen, setIsNewAccountModalOpen,
+        fromAccountId,
+        setFromAccountId,
+        toAccountNumber,
+        setToAccountNumber,
+        amount,
+        setAmount,
+        memo,
+        setMemo,
+        saveBeneficiary,
+        setSaveBeneficiary,
+        beneficiaryNickName,
+        setBeneficiaryNickName,
+        isScheduled,
+        setIsScheduled,
+        frequency,
+        setFrequency,
+        startDate,
+        setStartDate,
+        isNewAccountModalOpen,
+        setIsNewAccountModalOpen,
         isSubmittingKYC,
         kycStatus,
-        newAccountType, setNewAccountType,
-        selectedBranchId, setSelectedBranchId,
-        isReuploadModalOpen, setIsReuploadModalOpen,
-        reuploadDocType, setReuploadDocType,
-        panFile, setPanFile,
-        panNumber, setPanNumber,
-        aadharFile, setAadharFile,
-        aadharNumber, setAadharNumber,
-        signatureFile, setSignatureFile,
+        newAccountType,
+        setNewAccountType,
+        selectedBranchId,
+        setSelectedBranchId,
+        isReuploadModalOpen,
+        setIsReuploadModalOpen,
+        reuploadDocType,
+        setReuploadDocType,
+        panFile,
+        setPanFile,
+        panNumber,
+        setPanNumber,
+        aadharFile,
+        setAadharFile,
+        aadharNumber,
+        setAadharNumber,
+        signatureFile,
+        setSignatureFile,
         fetchAccounts,
         fetchKycs,
         fetchSchedules,

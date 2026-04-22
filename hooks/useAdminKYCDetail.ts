@@ -64,7 +64,9 @@ export const useAdminKYCDetail = () => {
     const [processingId, setProcessingId] = useState<string | null>(null);
     const [rejectingId, setRejectingId] = useState<string | null>(null);
     const [rejectionReason, setRejectionReason] = useState("");
-    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+        null,
+    );
 
     const fetchBundle = async () => {
         setIsLoading(true);
@@ -127,9 +129,15 @@ export const useAdminKYCDetail = () => {
     const statusSummary = useMemo(() => {
         const documents = bundle?.documents || [];
         return {
-            verified: documents.filter((doc) => doc.currentStatus === "Verified").length,
-            rejected: documents.filter((doc) => doc.currentStatus === "Rejected").length,
-            pending: documents.filter((doc) => ["Pending", "In-Review"].includes(doc.currentStatus)).length,
+            verified: documents.filter(
+                (doc) => doc.currentStatus === "Verified",
+            ).length,
+            rejected: documents.filter(
+                (doc) => doc.currentStatus === "Rejected",
+            ).length,
+            pending: documents.filter((doc) =>
+                ["Pending", "In-Review"].includes(doc.currentStatus),
+            ).length,
         };
     }, [bundle]);
 
@@ -146,7 +154,9 @@ export const useAdminKYCDetail = () => {
 
         return Array.from(groups.values()).map((docs) => {
             return docs.sort(
-                (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+                (a, b) =>
+                    new Date(b.updatedAt).getTime() -
+                    new Date(a.updatedAt).getTime(),
             );
         });
     }, [bundle]);
@@ -155,7 +165,9 @@ export const useAdminKYCDetail = () => {
         if (!bundle?.documents?.length) return null;
 
         return (
-            bundle.documents.find((document) => document._id === selectedDocumentId) ||
+            bundle.documents.find(
+                (document) => document._id === selectedDocumentId,
+            ) ||
             groupedDocuments[0]?.[0] ||
             bundle.documents[0]
         );
@@ -163,21 +175,28 @@ export const useAdminKYCDetail = () => {
 
     const selectedDocumentGroup = useMemo(() => {
         if (!selectedDocument || !groupedDocuments.length) return [];
-        return groupedDocuments.find((g) => g[0].documentType === selectedDocument.documentType) || [];
+        return (
+            groupedDocuments.find(
+                (g) => g[0].documentType === selectedDocument.documentType,
+            ) || []
+        );
     }, [selectedDocument, groupedDocuments]);
 
     return {
         bundle,
         isLoading,
         processingId,
-        rejectingId, setRejectingId,
-        rejectionReason, setRejectionReason,
-        selectedDocumentId, setSelectedDocumentId,
+        rejectingId,
+        setRejectingId,
+        rejectionReason,
+        setRejectionReason,
+        selectedDocumentId,
+        setSelectedDocumentId,
         handleUpdateStatus,
         statusSummary,
         groupedDocuments,
         selectedDocument,
         selectedDocumentGroup,
-        router
+        router,
     };
 };

@@ -290,24 +290,45 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
     try {
         const decoded = verifyAuth(await headers());
-        if (!decoded) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+        if (!decoded)
+            return NextResponse.json(
+                { message: "Unauthorized" },
+                { status: 401 },
+            );
 
         await dbConnect();
         const userId = decoded.userId;
         const { searchParams } = new URL(req.url);
         const requestId = searchParams.get("id");
 
-        if (!requestId) return NextResponse.json({ message: "Request ID is required" }, { status: 400 });
+        if (!requestId)
+            return NextResponse.json(
+                { message: "Request ID is required" },
+                { status: 400 },
+            );
 
-        const request = await AccountRequest.findOne({ _id: requestId, userId, currentStatus: { $ne: "Approved" } });
-        if (!request) return NextResponse.json({ message: "Request not found or cannot be withdrawn" }, { status: 404 });
+        const request = await AccountRequest.findOne({
+            _id: requestId,
+            userId,
+            currentStatus: { $ne: "Approved" },
+        });
+        if (!request)
+            return NextResponse.json(
+                { message: "Request not found or cannot be withdrawn" },
+                { status: 404 },
+            );
 
         await AccountRequest.deleteOne({ _id: requestId });
         await KYC.deleteMany({ accountRequestId: requestId });
 
-        return NextResponse.json({ message: "Account request withdrawn successfully" });
+        return NextResponse.json({
+            message: "Account request withdrawn successfully",
+        });
     } catch (error: any) {
         console.error("Withdraw Request Error:", error);
-        return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+        return NextResponse.json(
+            { message: "Internal server error" },
+            { status: 500 },
+        );
     }
 }

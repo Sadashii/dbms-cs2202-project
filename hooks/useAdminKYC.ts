@@ -16,7 +16,12 @@ export interface KYCRecord {
     userId: UserInfo;
     documentType: string;
     currentStatus: string;
-    attachments: { fileUrl: string; fileName: string; fileType: string; uploadedAt: string }[];
+    attachments: {
+        fileUrl: string;
+        fileName: string;
+        fileType: string;
+        uploadedAt: string;
+    }[];
     createdAt: string;
     documentDetails?: { issuedCountry?: string; expiryDate?: string };
     verifiedAt?: string;
@@ -33,8 +38,18 @@ export interface KYCReviewGroup {
     latestActivityAt: string;
     highestPriorityStatus: string;
     hasReuploaded: boolean;
-    documents: Array<{ id: string; type: string; status: string; reference: string }>;
-    stats: { total: number; pending: number; verified: number; rejected: number };
+    documents: Array<{
+        id: string;
+        type: string;
+        status: string;
+        reference: string;
+    }>;
+    stats: {
+        total: number;
+        pending: number;
+        verified: number;
+        rejected: number;
+    };
 }
 
 const STATUS_PRIORITY: Record<string, number> = {
@@ -81,12 +96,17 @@ export const useAdminKYC = () => {
             const groupKey = kyc.accountRequestId || kyc.userId?._id || kyc._id;
             const existingGroup = grouped.get(groupKey);
             const fullName =
-                `${kyc.userId?.firstName || ""} ${kyc.userId?.lastName || ""}`.trim() || "Unknown Customer";
+                `${kyc.userId?.firstName || ""} ${kyc.userId?.lastName || ""}`.trim() ||
+                "Unknown Customer";
 
             const currentTimestamp = new Date(kyc.createdAt).getTime();
-            const existingTimestamp = existingGroup ? new Date(existingGroup.latestActivityAt).getTime() : 0;
+            const existingTimestamp = existingGroup
+                ? new Date(existingGroup.latestActivityAt).getTime()
+                : 0;
             const currentPriority = STATUS_PRIORITY[kyc.currentStatus] ?? 99;
-            const existingPriority = existingGroup ? (STATUS_PRIORITY[existingGroup.highestPriorityStatus] ?? 99) : 99;
+            const existingPriority = existingGroup
+                ? (STATUS_PRIORITY[existingGroup.highestPriorityStatus] ?? 99)
+                : 99;
 
             if (!existingGroup) {
                 grouped.set(groupKey, {
@@ -97,10 +117,21 @@ export const useAdminKYC = () => {
                     latestActivityAt: kyc.createdAt,
                     highestPriorityStatus: kyc.currentStatus,
                     hasReuploaded: Boolean(kyc.isReuploaded),
-                    documents: [{ id: kyc._id, type: kyc.documentType, status: kyc.currentStatus, reference: kyc.kycReference }],
+                    documents: [
+                        {
+                            id: kyc._id,
+                            type: kyc.documentType,
+                            status: kyc.currentStatus,
+                            reference: kyc.kycReference,
+                        },
+                    ],
                     stats: {
                         total: 1,
-                        pending: ["Pending", "In-Review"].includes(kyc.currentStatus) ? 1 : 0,
+                        pending: ["Pending", "In-Review"].includes(
+                            kyc.currentStatus,
+                        )
+                            ? 1
+                            : 0,
                         verified: kyc.currentStatus === "Verified" ? 1 : 0,
                         rejected: kyc.currentStatus === "Rejected" ? 1 : 0,
                     },
@@ -108,14 +139,30 @@ export const useAdminKYC = () => {
                 continue;
             }
 
-            existingGroup.documents.push({ id: kyc._id, type: kyc.documentType, status: kyc.currentStatus, reference: kyc.kycReference });
+            existingGroup.documents.push({
+                id: kyc._id,
+                type: kyc.documentType,
+                status: kyc.currentStatus,
+                reference: kyc.kycReference,
+            });
             existingGroup.stats.total += 1;
-            existingGroup.stats.pending += ["Pending", "In-Review"].includes(kyc.currentStatus) ? 1 : 0;
-            existingGroup.stats.verified += kyc.currentStatus === "Verified" ? 1 : 0;
-            existingGroup.stats.rejected += kyc.currentStatus === "Rejected" ? 1 : 0;
-            existingGroup.hasReuploaded = existingGroup.hasReuploaded || Boolean(kyc.isReuploaded);
+            existingGroup.stats.pending += ["Pending", "In-Review"].includes(
+                kyc.currentStatus,
+            )
+                ? 1
+                : 0;
+            existingGroup.stats.verified +=
+                kyc.currentStatus === "Verified" ? 1 : 0;
+            existingGroup.stats.rejected +=
+                kyc.currentStatus === "Rejected" ? 1 : 0;
+            existingGroup.hasReuploaded =
+                existingGroup.hasReuploaded || Boolean(kyc.isReuploaded);
 
-            if (currentPriority < existingPriority || (currentPriority === existingPriority && currentTimestamp > existingTimestamp)) {
+            if (
+                currentPriority < existingPriority ||
+                (currentPriority === existingPriority &&
+                    currentTimestamp > existingTimestamp)
+            ) {
                 existingGroup.highestPriorityStatus = kyc.currentStatus;
             }
             if (currentTimestamp > existingTimestamp) {
@@ -127,13 +174,20 @@ export const useAdminKYC = () => {
             .map((group) => ({
                 ...group,
                 documents: group.documents.sort((a, b) => {
-                    const diff = (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99);
+                    const diff =
+                        (STATUS_PRIORITY[a.status] ?? 99) -
+                        (STATUS_PRIORITY[b.status] ?? 99);
                     return diff !== 0 ? diff : a.type.localeCompare(b.type);
                 }),
             }))
             .sort((a, b) => {
-                const diff = (STATUS_PRIORITY[a.highestPriorityStatus] ?? 99) - (STATUS_PRIORITY[b.highestPriorityStatus] ?? 99);
-                return diff !== 0 ? diff : new Date(b.latestActivityAt).getTime() - new Date(a.latestActivityAt).getTime();
+                const diff =
+                    (STATUS_PRIORITY[a.highestPriorityStatus] ?? 99) -
+                    (STATUS_PRIORITY[b.highestPriorityStatus] ?? 99);
+                return diff !== 0
+                    ? diff
+                    : new Date(b.latestActivityAt).getTime() -
+                          new Date(a.latestActivityAt).getTime();
             });
     }, [kycRecords]);
 
@@ -144,24 +198,43 @@ export const useAdminKYC = () => {
             group.name.toLowerCase().includes(query) ||
             group.email.toLowerCase().includes(query) ||
             group.customerId?.toLowerCase().includes(query) ||
-            group.documents.some((d) => d.reference.toLowerCase().includes(query) || d.type.toLowerCase().includes(query));
-        const matchesStatus = statusFilter === "All" || group.documents.some((d) => d.status === statusFilter);
-        const matchesDocType = docTypeFilter === "All" || group.documents.some((d) => d.type === docTypeFilter);
+            group.documents.some(
+                (d) =>
+                    d.reference.toLowerCase().includes(query) ||
+                    d.type.toLowerCase().includes(query),
+            );
+        const matchesStatus =
+            statusFilter === "All" ||
+            group.documents.some((d) => d.status === statusFilter);
+        const matchesDocType =
+            docTypeFilter === "All" ||
+            group.documents.some((d) => d.type === docTypeFilter);
         const matchesReupload = !reuploadFilter || group.hasReuploaded;
-        return matchesSearch && matchesStatus && matchesDocType && matchesReupload;
+        return (
+            matchesSearch && matchesStatus && matchesDocType && matchesReupload
+        );
     });
 
     const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
-    const paginatedRecords = filteredRecords.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+    const paginatedRecords = filteredRecords.slice(
+        (currentPage - 1) * itemsPerPage,
+        currentPage * itemsPerPage,
+    );
 
     return {
         isLoading,
-        searchQuery, setSearchQuery,
-        statusFilter, setStatusFilter,
-        docTypeFilter, setDocTypeFilter,
-        reuploadFilter, setReuploadFilter,
-        currentPage, setCurrentPage,
-        totalPages, paginatedRecords,
+        searchQuery,
+        setSearchQuery,
+        statusFilter,
+        setStatusFilter,
+        docTypeFilter,
+        setDocTypeFilter,
+        reuploadFilter,
+        setReuploadFilter,
+        currentPage,
+        setCurrentPage,
+        totalPages,
+        paginatedRecords,
         router,
     };
 };

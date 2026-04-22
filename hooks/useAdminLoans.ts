@@ -67,8 +67,9 @@ export const useAdminLoans = () => {
     return {
         pendingLoans,
         isLoading,
-        reviewLoan, setReviewLoan,
+        reviewLoan,
+        setReviewLoan,
         handleAction,
-        fetchPending
+        fetchPending,
     };
 };

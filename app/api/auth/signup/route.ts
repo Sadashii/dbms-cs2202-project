@@ -9,10 +9,16 @@ import { checkRateLimit } from "@/lib/rateLimit";
 export async function POST(req: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "signup", 5, 60 * 60 * 1000)) {
             return NextResponse.json(
-                { message: "Too many signup attempts. Please try again in an hour." },
+                {
+                    message:
+                        "Too many signup attempts. Please try again in an hour.",
+                },
                 { status: 429 },
             );
         }

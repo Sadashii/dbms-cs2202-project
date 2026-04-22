@@ -9,7 +9,10 @@ interface PreferencesTabProps {
     setNotifs: (notifs: any) => void;
 }
 
-export const PreferencesTab: React.FC<PreferencesTabProps> = ({ notifs, setNotifs }) => {
+export const PreferencesTab: React.FC<PreferencesTabProps> = ({
+    notifs,
+    setNotifs,
+}) => {
     return (
         <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-6 md:p-8 shadow-sm transition-colors animate-fade-in">
             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">
@@ -34,7 +37,8 @@ export const PreferencesTab: React.FC<PreferencesTabProps> = ({ notifs, setNotif
                             Email Transaction Alerts
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            Receive emails for all debit and credit transactions.
+                            Receive emails for all debit and credit
+                            transactions.
                         </p>
                     </div>
                 </label>
@@ -56,7 +60,8 @@ export const PreferencesTab: React.FC<PreferencesTabProps> = ({ notifs, setNotif
                             Security SMS Alerts
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            Get instant texts for logins from new devices or password changes.
+                            Get instant texts for logins from new devices or
+                            password changes.
                         </p>
                     </div>
                 </label>
@@ -78,7 +83,8 @@ export const PreferencesTab: React.FC<PreferencesTabProps> = ({ notifs, setNotif
                             Marketing & Promotions
                         </p>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                            Receive offers, credit card upgrades, and loan pre-approvals.
+                            Receive offers, credit card upgrades, and loan
+                            pre-approvals.
                         </p>
                     </div>
                 </label>

@@ -7,11 +7,19 @@ import { useLoans } from "@/hooks/useLoans";
 
 export default function LoansPage() {
     const {
-        loans, payments, isLoading, authLoading,
-        isProcessing, scheduleLoan, setScheduleLoan,
-        historyLoan, setHistoryLoan,
-        fetchLoans, generateSchedule,
-        handleRepay, handleSimulateBilling,
+        loans,
+        payments,
+        isLoading,
+        authLoading,
+        isProcessing,
+        scheduleLoan,
+        setScheduleLoan,
+        historyLoan,
+        setHistoryLoan,
+        fetchLoans,
+        generateSchedule,
+        handleRepay,
+        handleSimulateBilling,
     } = useLoans();
 
     if (authLoading || isLoading)
@@ -20,7 +28,6 @@ export default function LoansPage() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
             </div>
         );
-
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 animate-fade-in pb-12 transition-colors">
@@ -62,8 +69,8 @@ export default function LoansPage() {
                                 No active loans found
                             </h3>
                             <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs mx-auto mb-6">
-                                Start your journey by calculating your Monthly Payment (EMI) and
-                                submitting an application.
+                                Start your journey by calculating your Monthly
+                                Payment (EMI) and submitting an application.
                             </p>
                             <Button
                                 onClick={() =>
@@ -322,7 +329,9 @@ export default function LoansPage() {
                                     <tr>
                                         <th className="p-4">Month</th>
                                         <th className="p-4">Date</th>
-                                        <th className="p-4 text-right">Payment</th>
+                                        <th className="p-4 text-right">
+                                            Payment
+                                        </th>
                                         <th className="p-4 text-right">
                                             Original Amount
                                         </th>

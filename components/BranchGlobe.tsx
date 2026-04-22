@@ -12,7 +12,11 @@ interface Branch {
     };
 }
 
-export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { height?: string }) {
+export default function BranchGlobe({
+    height = "h-[400px] md:h-[600px]",
+}: {
+    height?: string;
+}) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [hoveredBranch, setHoveredBranch] = useState<Branch | null>(null);
@@ -21,7 +25,9 @@ export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { hei
         fetch("/api/branches")
             .then((res) => res.json())
             .then((data) => setBranches(data.branches || []))
-            .catch((err) => console.error("Failed to fetch branches for globe", err));
+            .catch((err) =>
+                console.error("Failed to fetch branches for globe", err),
+            );
     }, []);
 
     useEffect(() => {
@@ -33,10 +39,18 @@ export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { hei
 
         // Scene setup
         const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+        const camera = new THREE.PerspectiveCamera(
+            45,
+            width / height,
+            0.1,
+            1000,
+        );
         camera.position.z = 200;
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        const renderer = new THREE.WebGLRenderer({
+            antialias: true,
+            alpha: true,
+        });
         renderer.setSize(width, height);
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
@@ -62,7 +76,11 @@ export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { hei
         scene.add(globe);
 
         // Wireframe overlay for premium feel
-        const wireframeGeometry = new THREE.SphereGeometry(radius + 0.2, 32, 32);
+        const wireframeGeometry = new THREE.SphereGeometry(
+            radius + 0.2,
+            32,
+            32,
+        );
         const wireframeMaterial = new THREE.MeshBasicMaterial({
             color: 0x3b82f6,
             wireframe: true,
@@ -83,12 +101,16 @@ export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { hei
             return new THREE.Vector3(
                 -(r * Math.sin(phi) * Math.cos(theta)),
                 r * Math.cos(phi),
-                r * Math.sin(phi) * Math.sin(theta)
+                r * Math.sin(phi) * Math.sin(theta),
             );
         };
 
         const pinGeom = new THREE.SphereGeometry(1.2, 16, 16);
-        const pinMat = new THREE.MeshPhongMaterial({ color: 0x60a5fa, emissive: 0x2563eb, emissiveIntensity: 0.5 });
+        const pinMat = new THREE.MeshPhongMaterial({
+            color: 0x60a5fa,
+            emissive: 0x2563eb,
+            emissiveIntensity: 0.5,
+        });
 
         branches.forEach((branch) => {
             if (branch.location?.coordinates) {
@@ -169,14 +191,18 @@ export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { hei
     }, [branches]);
 
     return (
-        <div className={`relative w-full ${height} flex items-center justify-center overflow-hidden`}>
+        <div
+            className={`relative w-full ${height} flex items-center justify-center overflow-hidden`}
+        >
             <div ref={containerRef} className="w-full h-full" />
-            
+
             {/* Legend / Overlay */}
             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/10 dark:bg-black/20 backdrop-blur-md border border-white/20 px-6 py-3 rounded-2xl flex items-center gap-4 animate-fade-in">
                 <div className="flex items-center gap-2">
                     <div className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_var(--shadow-blue-glow)] animate-pulse" />
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">Live Nodes</span>
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">
+                        Live Nodes
+                    </span>
                 </div>
                 <div className="h-4 w-px bg-white/20" />
                 <span className="text-xs font-medium text-gray-300">
@@ -187,8 +213,12 @@ export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { hei
             {/* Hover Tooltip */}
             {hoveredBranch && (
                 <div className="absolute top-1/4 bg-white dark:bg-slate-900 p-4 rounded-xl shadow-2xl border border-gray-100 dark:border-slate-800 pointer-events-none animate-in zoom-in-95 fade-in duration-200">
-                    <p className="text-[10px] font-black text-blue-600 uppercase mb-1">{hoveredBranch.branchCode}</p>
-                    <p className="text-sm font-bold text-gray-900 dark:text-white">{hoveredBranch.branchName}</p>
+                    <p className="text-[10px] font-black text-blue-600 uppercase mb-1">
+                        {hoveredBranch.branchCode}
+                    </p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-white">
+                        {hoveredBranch.branchName}
+                    </p>
                 </div>
             )}
 

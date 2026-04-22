@@ -37,8 +37,7 @@ export async function POST(req: Request) {
             );
 
         await dbConnect();
-        const { nickName, accountNumber, accountName } =
-            await req.json();
+        const { nickName, accountNumber, accountName } = await req.json();
 
         if (!nickName || !accountNumber || !accountName) {
             return NextResponse.json(

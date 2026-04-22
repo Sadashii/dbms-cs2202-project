@@ -9,7 +9,8 @@ interface CardDetailsProps {
 export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
     const {
         selectedCard,
-        activeTab, setActiveTab,
+        activeTab,
+        setActiveTab,
         handleToggleStatus,
         handleDeleteCard,
         isUpdatingFeature,
@@ -19,7 +20,7 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
         setIsExpenseModalOpen,
         setIsRepayModalOpen,
         isTransactionsLoading,
-        cardTransactions
+        cardTransactions,
     } = hookState;
 
     if (!selectedCard) return null;
@@ -44,17 +45,28 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                     {selectedCard.currentStatus !== "Closed" && (
                         <div className="flex gap-4">
                             <button
-                                onClick={() => handleToggleStatus(selectedCard._id, selectedCard.currentStatus)}
+                                onClick={() =>
+                                    handleToggleStatus(
+                                        selectedCard._id,
+                                        selectedCard.currentStatus,
+                                    )
+                                }
                                 className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors uppercase tracking-wider"
                             >
-                                {selectedCard.currentStatus === "Active" ? "Freeze" : "Unfreeze"}
+                                {selectedCard.currentStatus === "Active"
+                                    ? "Freeze"
+                                    : "Unfreeze"}
                             </button>
 
                             <button
-                                onClick={() => handleDeleteCard(selectedCard._id)}
+                                onClick={() =>
+                                    handleDeleteCard(selectedCard._id)
+                                }
                                 className={`text-xs font-bold transition-colors uppercase tracking-wider ${
                                     selectedCard.currentStatus === "Blocked"
-                                        ? selectedCard.cardType === "Credit" && (selectedCard.limits?.outstandingAmount || 0) > 0
+                                        ? selectedCard.cardType === "Credit" &&
+                                          (selectedCard.limits
+                                              ?.outstandingAmount || 0) > 0
                                             ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
                                             : "text-red-600 dark:text-red-500 hover:text-red-800 dark:hover:text-red-400"
                                         : "text-gray-300 dark:text-gray-600 cursor-not-allowed"
@@ -62,9 +74,11 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                 title={
                                     selectedCard.currentStatus !== "Blocked"
                                         ? "Freeze card first"
-                                        : selectedCard.cardType === "Credit" && (selectedCard.limits?.outstandingAmount || 0) > 0
-                                            ? "Clear balance first"
-                                            : ""
+                                        : selectedCard.cardType === "Credit" &&
+                                            (selectedCard.limits
+                                                ?.outstandingAmount || 0) > 0
+                                          ? "Clear balance first"
+                                          : ""
                                 }
                             >
                                 Permanent Delete
@@ -101,21 +115,27 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                             Total Outstanding
                                         </p>
                                         <h3 className="text-3xl font-black">
-                                            ₹ {selectedCard.limits?.outstandingAmount?.toLocaleString()}
+                                            ₹{" "}
+                                            {selectedCard.limits?.outstandingAmount?.toLocaleString()}
                                         </h3>
                                         <p className="text-indigo-200/60 text-[10px] font-mono">
-                                            Limit: ₹ {selectedCard.limits?.creditLimit?.toLocaleString()}
+                                            Limit: ₹{" "}
+                                            {selectedCard.limits?.creditLimit?.toLocaleString()}
                                         </p>
                                     </div>
                                     <div className="flex gap-3 w-full md:w-auto">
                                         <Button
-                                            onClick={() => setIsRepayModalOpen(true)}
+                                            onClick={() =>
+                                                setIsRepayModalOpen(true)
+                                            }
                                             className="flex-1 md:flex-none bg-emerald-500 text-white hover:bg-emerald-400 font-bold border-none shadow-lg shadow-emerald-900/20"
                                         >
                                             Make Repayment
                                         </Button>
                                         <Button
-                                            onClick={() => setIsExpenseModalOpen(true)}
+                                            onClick={() =>
+                                                setIsExpenseModalOpen(true)
+                                            }
                                             className="flex-1 md:flex-none bg-indigo-700 hover:bg-indigo-600 text-white font-bold border-indigo-500 border"
                                         >
                                             Create Expense
@@ -134,30 +154,33 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                             </div>
                         )}
 
-                        {selectedCard.cardType === "Debit" && selectedCard.currentStatus === "Active" && (
-                            <div className="flex gap-4">
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => setIsExpenseModalOpen(true)}
-                                    className="flex-1 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700/50 shadow-sm flex items-center justify-center gap-2 transition-colors"
-                                >
-                                    <svg
-                                        className="w-4 h-4 text-blue-600 dark:text-blue-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
+                        {selectedCard.cardType === "Debit" &&
+                            selectedCard.currentStatus === "Active" && (
+                                <div className="flex gap-4">
+                                    <Button
+                                        variant="secondary"
+                                        onClick={() =>
+                                            setIsExpenseModalOpen(true)
+                                        }
+                                        className="flex-1 bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700 text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-700/50 shadow-sm flex items-center justify-center gap-2 transition-colors"
                                     >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        ></path>
-                                    </svg>
-                                    Create Dummy Expense
-                                </Button>
-                            </div>
-                        )}
+                                        <svg
+                                            className="w-4 h-4 text-blue-600 dark:text-blue-400"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth="2"
+                                                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                                            ></path>
+                                        </svg>
+                                        Create Dummy Expense
+                                    </Button>
+                                </div>
+                            )}
 
                         <div className="bg-white dark:bg-slate-800/50 p-5 rounded-xl border border-gray-200 dark:border-slate-700 shadow-sm transition-colors">
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4 border-b border-gray-100 dark:border-slate-700 pb-4">
@@ -211,7 +234,9 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                         Daily Online
                                     </p>
                                     <p className="font-bold text-gray-900 dark:text-white text-xl">
-                                        ₹ {selectedCard.limits?.dailyOnlineLimit?.toLocaleString() || "100,000"}
+                                        ₹{" "}
+                                        {selectedCard.limits?.dailyOnlineLimit?.toLocaleString() ||
+                                            "100,000"}
                                     </p>
                                 </div>
                                 <div className="border border-indigo-100 dark:border-indigo-800/30 rounded-xl p-4 bg-indigo-50/50 dark:bg-indigo-900/20 transition-colors">
@@ -219,7 +244,9 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                         Daily ATM
                                     </p>
                                     <p className="font-bold text-gray-900 dark:text-white text-xl">
-                                        ₹ {selectedCard.limits?.dailyWithdrawalLimit?.toLocaleString() || "50,000"}
+                                        ₹{" "}
+                                        {selectedCard.limits?.dailyWithdrawalLimit?.toLocaleString() ||
+                                            "50,000"}
                                     </p>
                                 </div>
                                 <div className="border border-teal-100 dark:border-teal-800/30 rounded-xl p-4 bg-teal-50/50 dark:bg-teal-900/20 transition-colors">
@@ -227,7 +254,9 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                         Contactless
                                     </p>
                                     <p className="font-bold text-gray-900 dark:text-white text-xl">
-                                        ₹ {selectedCard.limits?.contactlessLimit?.toLocaleString() || "5,000"}
+                                        ₹{" "}
+                                        {selectedCard.limits?.contactlessLimit?.toLocaleString() ||
+                                            "5,000"}
                                     </p>
                                 </div>
                             </div>
@@ -240,7 +269,9 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                             <div className="space-y-3">
                                 <div
                                     className={`flex items-center justify-between p-3 border border-gray-100 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isUpdatingFeature ? "opacity-50 pointer-events-none" : ""}`}
-                                    onClick={() => handleToggleFeature("online")}
+                                    onClick={() =>
+                                        handleToggleFeature("online")
+                                    }
                                 >
                                     <div>
                                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -261,14 +292,17 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
 
                                 <div
                                     className={`flex items-center justify-between p-3 border border-gray-100 dark:border-slate-700 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer ${isUpdatingFeature ? "opacity-50 pointer-events-none" : ""}`}
-                                    onClick={() => handleToggleFeature("international")}
+                                    onClick={() =>
+                                        handleToggleFeature("international")
+                                    }
                                 >
                                     <div>
                                         <p className="text-sm font-semibold text-gray-900 dark:text-white">
                                             International Usage
                                         </p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                                            Allow transactions in foreign currencies.
+                                            Allow transactions in foreign
+                                            currencies.
                                         </p>
                                     </div>
                                     <div
@@ -287,14 +321,17 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                                 Virtual Security PIN
                                             </p>
                                             <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                                                Enable/Change your 4-digit card PIN.
+                                                Enable/Change your 4-digit card
+                                                PIN.
                                             </p>
                                         </div>
                                         <Button
                                             size="sm"
                                             variant="outline"
                                             className="text-xs h-8 border-blue-200 dark:border-blue-800/50 text-blue-700 dark:text-blue-400 dark:bg-transparent dark:hover:bg-slate-800"
-                                            onClick={() => setIsPinModalOpen(true)}
+                                            onClick={() =>
+                                                setIsPinModalOpen(true)
+                                            }
                                         >
                                             Set New PIN
                                         </Button>
@@ -344,16 +381,26 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                             >
                                                 <td className="px-6 py-4">
                                                     <p className="text-xs text-gray-900 dark:text-gray-100 font-medium">
-                                                        {new Date(tx.createdAt).toLocaleDateString("en-GB", {
-                                                            day: "2-digit",
-                                                            month: "short",
-                                                        })}
+                                                        {new Date(
+                                                            tx.createdAt,
+                                                        ).toLocaleDateString(
+                                                            "en-GB",
+                                                            {
+                                                                day: "2-digit",
+                                                                month: "short",
+                                                            },
+                                                        )}
                                                     </p>
                                                     <p className="text-[9px] text-gray-400 dark:text-gray-500">
-                                                        {new Date(tx.createdAt).toLocaleTimeString([], {
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        })}
+                                                        {new Date(
+                                                            tx.createdAt,
+                                                        ).toLocaleTimeString(
+                                                            [],
+                                                            {
+                                                                hour: "2-digit",
+                                                                minute: "2-digit",
+                                                            },
+                                                        )}
                                                     </p>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -361,14 +408,21 @@ export const CardDetails: React.FC<CardDetailsProps> = ({ hookState }) => {
                                                         {tx.memo}
                                                     </p>
                                                     <p className="text-[9px] text-gray-400 dark:text-gray-500 font-mono uppercase">
-                                                        {tx.transaction?.referenceId}
+                                                        {
+                                                            tx.transaction
+                                                                ?.referenceId
+                                                        }
                                                     </p>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <p
                                                         className={`text-sm font-bold ${tx.entryType === "Debit" ? "text-red-600 dark:text-red-400" : "text-green-600 dark:text-green-400"}`}
                                                     >
-                                                        {tx.entryType === "Debit" ? "-" : "+"} ₹{" "}
+                                                        {tx.entryType ===
+                                                        "Debit"
+                                                            ? "-"
+                                                            : "+"}{" "}
+                                                        ₹{" "}
                                                         {tx.amount.toLocaleString()}
                                                     </p>
                                                 </td>

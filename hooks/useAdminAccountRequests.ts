@@ -41,7 +41,9 @@ export const useAdminAccountRequests = () => {
     const [processingId, setProcessingId] = useState<string | null>(null);
 
     const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
-    const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+    const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(
+        null,
+    );
     const [rejectionReason, setRejectionReason] = useState("");
 
     const [searchQuery, setSearchQuery] = useState("");
@@ -71,10 +73,13 @@ export const useAdminAccountRequests = () => {
     const handleApprove = async (requestId: string) => {
         setProcessingId(requestId);
         try {
-            const res = await apiFetch(`/api/admin/account-requests/${requestId}`, {
-                method: "PATCH",
-                body: JSON.stringify({ action: "approve" }),
-            });
+            const res = await apiFetch(
+                `/api/admin/account-requests/${requestId}`,
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({ action: "approve" }),
+                },
+            );
 
             if (res.ok) {
                 toast.success("Account Approved successfully!");
@@ -95,13 +100,16 @@ export const useAdminAccountRequests = () => {
         if (!rejectingRequestId) return;
         setProcessingId(rejectingRequestId);
         try {
-            const res = await apiFetch(`/api/admin/account-requests/${rejectingRequestId}`, {
-                method: "PATCH",
-                body: JSON.stringify({
-                    action: "reject",
-                    reason: rejectionReason,
-                }),
-            });
+            const res = await apiFetch(
+                `/api/admin/account-requests/${rejectingRequestId}`,
+                {
+                    method: "PATCH",
+                    body: JSON.stringify({
+                        action: "reject",
+                        reason: rejectionReason,
+                    }),
+                },
+            );
 
             if (res.ok) {
                 toast.success("Account Request Rejected.");
@@ -126,13 +134,17 @@ export const useAdminAccountRequests = () => {
     };
 
     const filteredRequests = requests.filter((req) => {
-        const name = `${req.userId?.firstName || ""} ${req.userId?.lastName || ""}`.toLowerCase();
+        const name =
+            `${req.userId?.firstName || ""} ${req.userId?.lastName || ""}`.toLowerCase();
         const email = (req.userId?.email || "").toLowerCase();
         const matchesSearch =
             email.includes(searchQuery.toLowerCase()) ||
-            (req.accountType || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (req.accountType || "")
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase()) ||
             name.includes(searchQuery.toLowerCase());
-        const matchesStatus = statusFilter === "All" || req.currentStatus === statusFilter;
+        const matchesStatus =
+            statusFilter === "All" || req.currentStatus === statusFilter;
         return matchesSearch && matchesStatus;
     });
 
@@ -146,16 +158,21 @@ export const useAdminAccountRequests = () => {
         requests,
         isLoading,
         processingId,
-        isRejectModalOpen, setIsRejectModalOpen,
-        rejectionReason, setRejectionReason,
-        searchQuery, setSearchQuery,
-        statusFilter, setStatusFilter,
-        currentPage, setCurrentPage,
+        isRejectModalOpen,
+        setIsRejectModalOpen,
+        rejectionReason,
+        setRejectionReason,
+        searchQuery,
+        setSearchQuery,
+        statusFilter,
+        setStatusFilter,
+        currentPage,
+        setCurrentPage,
         totalPages,
         paginatedRequests,
         handleApprove,
         handleReject,
         openRejectModal,
-        fetchRequests
+        fetchRequests,
     };
 };

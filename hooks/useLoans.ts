@@ -34,7 +34,12 @@ export interface LoanPayment {
 }
 
 export const useLoans = () => {
-    const { user, apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
+    const {
+        user,
+        apiFetch,
+        isLoading: authLoading,
+        isLoggedIn,
+    } = useAuthContext();
     const router = useRouter();
 
     const [loans, setLoans] = useState<Loan[]>([]);
@@ -84,17 +89,25 @@ export const useLoans = () => {
         let balance = loan.principalAmount;
         const monthlyRate = loan.interestRate / 12 / 100;
         const schedule = [];
-        const currentDate = loan.nextPaymentDate ? new Date(loan.nextPaymentDate) : new Date();
-        if (!loan.nextPaymentDate) currentDate.setMonth(currentDate.getMonth() + 1);
+        const currentDate = loan.nextPaymentDate
+            ? new Date(loan.nextPaymentDate)
+            : new Date();
+        if (!loan.nextPaymentDate)
+            currentDate.setMonth(currentDate.getMonth() + 1);
 
         for (let i = 1; i <= loan.tenureMonths; i++) {
             const interestForMonth = balance * monthlyRate;
             let principalForMonth = loan.emiAmount - interestForMonth;
-            if (i === loan.tenureMonths || balance <= principalForMonth) principalForMonth = balance;
+            if (i === loan.tenureMonths || balance <= principalForMonth)
+                principalForMonth = balance;
             balance -= principalForMonth;
             schedule.push({
                 month: i,
-                date: currentDate.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "2-digit" }),
+                date: currentDate.toLocaleDateString("en-IN", {
+                    year: "numeric",
+                    month: "short",
+                    day: "2-digit",
+                }),
                 emi: principalForMonth + interestForMonth,
                 principal: principalForMonth,
                 interest: interestForMonth,
@@ -105,9 +118,18 @@ export const useLoans = () => {
         return schedule;
     };
 
-    const handleRepay = async (loanId: string, paymentId: string, type: "EMI" | "FORECLOSE") => {
+    const handleRepay = async (
+        loanId: string,
+        paymentId: string,
+        type: "EMI" | "FORECLOSE",
+    ) => {
         if (isProcessing) return;
-        if (!confirm(`Are you sure you want to ${type === "EMI" ? "pay your monthly installment" : "foreclose the entire loan"}?`)) return;
+        if (
+            !confirm(
+                `Are you sure you want to ${type === "EMI" ? "pay your monthly installment" : "foreclose the entire loan"}?`,
+            )
+        )
+            return;
         setIsProcessing(loanId);
         try {
             const res = await apiFetch("/api/loans/repay", {
@@ -148,10 +170,18 @@ export const useLoans = () => {
     };
 
     return {
-        loans, payments, isLoading, authLoading,
-        isProcessing, scheduleLoan, setScheduleLoan,
-        historyLoan, setHistoryLoan,
-        fetchLoans, generateSchedule,
-        handleRepay, handleSimulateBilling,
+        loans,
+        payments,
+        isLoading,
+        authLoading,
+        isProcessing,
+        scheduleLoan,
+        setScheduleLoan,
+        historyLoan,
+        setHistoryLoan,
+        fetchLoans,
+        generateSchedule,
+        handleRepay,
+        handleSimulateBilling,
     };
 };

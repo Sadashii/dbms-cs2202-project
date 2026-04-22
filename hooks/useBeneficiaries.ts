@@ -75,7 +75,9 @@ export const useBeneficiaries = () => {
             });
             const data = await res.json();
             if (!res.ok) {
-                toast.error(data.message || "Failed to add recipient.", { id: tid });
+                toast.error(data.message || "Failed to add recipient.", {
+                    id: tid,
+                });
                 return;
             }
             toast.success("Recipient saved!", { id: tid });
@@ -107,7 +109,9 @@ export const useBeneficiaries = () => {
             toast.success("Nickname updated.", { id: tid });
             setRenameId(null);
             setBeneficiaries((prev) =>
-                prev.map((b) => (b._id === id ? { ...b, nickName: renameValue.trim() } : b)),
+                prev.map((b) =>
+                    b._id === id ? { ...b, nickName: renameValue.trim() } : b,
+                ),
             );
         } catch {
             toast.error("Something went wrong.", { id: tid });
@@ -120,7 +124,9 @@ export const useBeneficiaries = () => {
         setIsDeleting(true);
         const tid = toast.loading("Removing recipient...");
         try {
-            const res = await apiFetch(`/api/beneficiaries?id=${id}`, { method: "DELETE" });
+            const res = await apiFetch(`/api/beneficiaries?id=${id}`, {
+                method: "DELETE",
+            });
             const data = await res.json();
             if (!res.ok) {
                 toast.error(data.message || "Delete failed.", { id: tid });
@@ -140,18 +146,24 @@ export const useBeneficiaries = () => {
         beneficiaries,
         isLoading,
         authLoading,
-        search, setSearch,
-        isAddOpen, setIsAddOpen,
-        addForm, setAddForm,
+        search,
+        setSearch,
+        isAddOpen,
+        setIsAddOpen,
+        addForm,
+        setAddForm,
         isSaving,
-        renameId, setRenameId,
-        renameValue, setRenameValue,
+        renameId,
+        setRenameId,
+        renameValue,
+        setRenameValue,
         isRenaming,
-        deleteId, setDeleteId,
+        deleteId,
+        setDeleteId,
         isDeleting,
         filtered,
         handleAdd,
         handleRename,
-        handleDelete
+        handleDelete,
     };
 };

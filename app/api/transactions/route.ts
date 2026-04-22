@@ -23,7 +23,10 @@ const TransferSchema = z.object({
 
 export async function POST(req: Request) {
     const reqHeaders = await headers();
-    const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+    const ip =
+        reqHeaders.get("x-forwarded-for") ??
+        reqHeaders.get("x-real-ip") ??
+        "unknown";
     if (!checkRateLimit(ip, "transactions", 20, 60 * 60 * 1000)) {
         return NextResponse.json(
             { message: "Too many transactions. Please try again in an hour." },

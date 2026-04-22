@@ -45,20 +45,29 @@ export interface CardTransaction {
 }
 
 export const useCards = () => {
-    const { apiFetch, user, isLoading: authLoading, isLoggedIn } = useAuthContext();
+    const {
+        apiFetch,
+        user,
+        isLoading: authLoading,
+        isLoggedIn,
+    } = useAuthContext();
     const router = useRouter();
-    
+
     const [cards, setCards] = useState<Card[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
 
     // Selection
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
-    const [activeTab, setActiveTab] = useState<"controls" | "transactions" | "analytics">("controls");
+    const [activeTab, setActiveTab] = useState<
+        "controls" | "transactions" | "analytics"
+    >("controls");
     const [flippedCardId, setFlippedCardId] = useState<string | null>(null);
 
     const [accounts, setAccounts] = useState<Account[]>([]);
-    const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>([]);
+    const [cardTransactions, setCardTransactions] = useState<CardTransaction[]>(
+        [],
+    );
     const [isTransactionsLoading, setIsTransactionsLoading] = useState(false);
 
     const [isUpdatingFeature, setIsUpdatingFeature] = useState(false);
@@ -111,10 +120,17 @@ export const useCards = () => {
                 if (validCards.length > 0) {
                     if (autoSelectLatest) {
                         setSelectedCard(validCards[validCards.length - 1]);
-                    } else if (!selectedCard || !validCards.find((c: Card) => c._id === selectedCard._id)) {
+                    } else if (
+                        !selectedCard ||
+                        !validCards.find(
+                            (c: Card) => c._id === selectedCard._id,
+                        )
+                    ) {
                         setSelectedCard(validCards[0]);
                     } else {
-                        const updatedSelected = validCards.find((c: Card) => c._id === selectedCard._id);
+                        const updatedSelected = validCards.find(
+                            (c: Card) => c._id === selectedCard._id,
+                        );
                         if (updatedSelected) setSelectedCard(updatedSelected);
                     }
                 }
@@ -185,8 +201,12 @@ export const useCards = () => {
                 body: JSON.stringify({
                     cardType: newCardType,
                     cardNetwork: newCardNetwork,
-                    accountId: newCardType === "Debit" ? linkAccountId : undefined,
-                    creditLimit: newCardType === "Credit" ? parseFloat(newCreditLimit) : undefined,
+                    accountId:
+                        newCardType === "Debit" ? linkAccountId : undefined,
+                    creditLimit:
+                        newCardType === "Credit"
+                            ? parseFloat(newCreditLimit)
+                            : undefined,
                 }),
             });
 
@@ -195,7 +215,9 @@ export const useCards = () => {
                 setIsRequestModalOpen(false);
                 await fetchCards(true);
             } else {
-                toast.error(`Server Error: ${data.message || "Unknown error occurred"}`);
+                toast.error(
+                    `Server Error: ${data.message || "Unknown error occurred"}`,
+                );
             }
         } catch (error: any) {
             toast.error(`Network Error: ${error.message}`);
@@ -270,11 +292,16 @@ export const useCards = () => {
         setSelectedCard(card);
         setOnlineLimit(card.limits?.dailyOnlineLimit?.toString() || "100000");
         setAtmLimit(card.limits?.dailyWithdrawalLimit?.toString() || "50000");
-        setContactlessLimit(card.limits?.contactlessLimit?.toString() || "5000");
+        setContactlessLimit(
+            card.limits?.contactlessLimit?.toString() || "5000",
+        );
         setIsLimitModalOpen(true);
     };
 
-    const handleToggleStatus = async (cardId: string, currentStatus: string) => {
+    const handleToggleStatus = async (
+        cardId: string,
+        currentStatus: string,
+    ) => {
         const action = currentStatus === "Active" ? "Freeze" : "Unfreeze";
         if (!confirm(`Are you sure you want to ${action} this card?`)) return;
 
@@ -304,7 +331,9 @@ export const useCards = () => {
             });
             if (res.ok) {
                 await fetchCards();
-                toast.success(`${feature.charAt(0).toUpperCase() + feature.slice(1)} setting updated.`);
+                toast.success(
+                    `${feature.charAt(0).toUpperCase() + feature.slice(1)} setting updated.`,
+                );
             } else {
                 toast.error("Failed to update feature.");
             }
@@ -324,12 +353,18 @@ export const useCards = () => {
             return;
         }
 
-        if (cardToDelete.cardType === "Credit" && (cardToDelete.limits?.outstandingAmount || 0) > 0) {
-            toast.error("Credit cards must have zero outstanding balance before deletion.");
+        if (
+            cardToDelete.cardType === "Credit" &&
+            (cardToDelete.limits?.outstandingAmount || 0) > 0
+        ) {
+            toast.error(
+                "Credit cards must have zero outstanding balance before deletion.",
+            );
             return;
         }
 
-        if (!confirm("Are you sure you want to permanently delete this card?")) return;
+        if (!confirm("Are you sure you want to permanently delete this card?"))
+            return;
 
         try {
             const res = await apiFetch("/api/cards", {
@@ -371,7 +406,8 @@ export const useCards = () => {
                 setExpenseAmount("");
                 setExpenseMerchant("");
                 fetchCards();
-                if (activeTab === "transactions") fetchCardTransactions(selectedCard._id);
+                if (activeTab === "transactions")
+                    fetchCardTransactions(selectedCard._id);
             } else {
                 toast.error(data.message || "Failed to create expense.");
             }
@@ -401,7 +437,8 @@ export const useCards = () => {
                 setIsRepayModalOpen(false);
                 setRepayAmount("");
                 fetchCards();
-                if (activeTab === "transactions") fetchCardTransactions(selectedCard._id);
+                if (activeTab === "transactions")
+                    fetchCardTransactions(selectedCard._id);
             } else {
                 toast.error(data.message || "Repayment failed.");
             }
@@ -416,7 +453,9 @@ export const useCards = () => {
         (c) =>
             c.currentStatus !== "Closed" &&
             (c.maskedNumber.includes(searchQuery) ||
-                c.cardNetwork.toLowerCase().includes(searchQuery.toLowerCase())),
+                c.cardNetwork
+                    .toLowerCase()
+                    .includes(searchQuery.toLowerCase())),
     );
 
     const debitCards = filteredCards.filter((c) => c.cardType === "Debit");
@@ -428,40 +467,65 @@ export const useCards = () => {
         isLoading,
         authLoading,
         cards,
-        searchQuery, setSearchQuery,
-        selectedCard, setSelectedCard,
-        activeTab, setActiveTab,
-        flippedCardId, setFlippedCardId,
+        searchQuery,
+        setSearchQuery,
+        selectedCard,
+        setSelectedCard,
+        activeTab,
+        setActiveTab,
+        flippedCardId,
+        setFlippedCardId,
         accounts,
         cardTransactions,
         isTransactionsLoading,
         isUpdatingFeature,
-        isRequestModalOpen, setIsRequestModalOpen,
-        isLimitModalOpen, setIsLimitModalOpen,
-        isExpenseModalOpen, setIsExpenseModalOpen,
-        isRepayModalOpen, setIsRepayModalOpen,
-        isPinModalOpen, setIsPinModalOpen,
+        isRequestModalOpen,
+        setIsRequestModalOpen,
+        isLimitModalOpen,
+        setIsLimitModalOpen,
+        isExpenseModalOpen,
+        setIsExpenseModalOpen,
+        isRepayModalOpen,
+        setIsRepayModalOpen,
+        isPinModalOpen,
+        setIsPinModalOpen,
         isGenerating,
         isSubmittingLimits,
         isSubmittingExpense,
         isSubmittingRepay,
         isSubmittingPin,
-        newPin, setNewPin,
-        newCardType, setNewCardType,
-        newCardNetwork, setNewCardNetwork,
-        linkAccountId, setLinkAccountId,
-        newCreditLimit, setNewCreditLimit,
-        onlineLimit, setOnlineLimit,
-        atmLimit, setAtmLimit,
-        contactlessLimit, setContactlessLimit,
-        expenseAmount, setExpenseAmount,
-        expenseMerchant, setExpenseMerchant,
-        isOnlineExpense, setIsOnlineExpense,
-        isInternationalExpense, setIsInternationalExpense,
-        isContactlessExpense, setIsContactlessExpense,
-        isATMExpense, setIsATMExpense,
-        repayAmount, setRepayAmount,
-        repaySourceAccountId, setRepaySourceAccountId,
+        newPin,
+        setNewPin,
+        newCardType,
+        setNewCardType,
+        newCardNetwork,
+        setNewCardNetwork,
+        linkAccountId,
+        setLinkAccountId,
+        newCreditLimit,
+        setNewCreditLimit,
+        onlineLimit,
+        setOnlineLimit,
+        atmLimit,
+        setAtmLimit,
+        contactlessLimit,
+        setContactlessLimit,
+        expenseAmount,
+        setExpenseAmount,
+        expenseMerchant,
+        setExpenseMerchant,
+        isOnlineExpense,
+        setIsOnlineExpense,
+        isInternationalExpense,
+        setIsInternationalExpense,
+        isContactlessExpense,
+        setIsContactlessExpense,
+        isATMExpense,
+        setIsATMExpense,
+        repayAmount,
+        setRepayAmount,
+        repaySourceAccountId,
+        setRepaySourceAccountId,
         filteredCards,
         debitCards,
         creditCards,
@@ -475,6 +539,6 @@ export const useCards = () => {
         handleToggleFeature,
         handleDeleteCard,
         handleCreateExpense,
-        handleRepayCreditCard
+        handleRepayCreditCard,
     };
 };

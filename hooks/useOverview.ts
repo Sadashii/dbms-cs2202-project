@@ -31,7 +31,12 @@ export interface DashboardData {
 }
 
 export const useOverview = () => {
-    const { user, apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
+    const {
+        user,
+        apiFetch,
+        isLoading: authLoading,
+        isLoggedIn,
+    } = useAuthContext();
     const router = useRouter();
 
     const [data, setData] = useState<DashboardData | null>(null);
@@ -54,13 +59,17 @@ export const useOverview = () => {
                 setIsLoading(false);
             }
         })();
-        
-        if (!user.isTwoFactorEnabled && !sessionStorage.getItem('2fa_prompted')) {
+
+        if (
+            !user.isTwoFactorEnabled &&
+            !sessionStorage.getItem("2fa_prompted")
+        ) {
             setShow2FAPrompt(true);
         }
     }, [user, apiFetch]);
 
-    const isNewUser = !isLoading && (!data?.accounts || data.accounts.length === 0);
+    const isNewUser =
+        !isLoading && (!data?.accounts || data.accounts.length === 0);
 
     const fmt = (n: number, cur = "INR") =>
         new Intl.NumberFormat("en-IN", {
@@ -74,10 +83,11 @@ export const useOverview = () => {
         data,
         isLoading,
         authLoading,
-        show2FAPrompt, setShow2FAPrompt,
+        show2FAPrompt,
+        setShow2FAPrompt,
         isNewUser,
         fmt,
         router,
-        apiFetch
+        apiFetch,
     };
 };

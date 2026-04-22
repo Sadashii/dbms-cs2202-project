@@ -94,8 +94,6 @@ export default function LoginPage() {
             }
         };
 
-
-
     const handleSendOTP = async (e: React.FormEvent) => {
         e.preventDefault();
         const nextErrors: { identifier?: string; password?: string } = {};
@@ -165,12 +163,18 @@ export default function LoginPage() {
             >
                 <div className="flex flex-col items-center justify-center py-6 space-y-6">
                     <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                        For development testing, here is your OTP. In production, this is sent via email/SMS.
+                        For development testing, here is your OTP. In
+                        production, this is sent via email/SMS.
                     </p>
                     <div className="text-4xl font-mono tracking-[0.3em] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-6 py-4 rounded-2xl border border-blue-100 dark:border-blue-800">
                         {generatedOtp}
                     </div>
-                    <Button onClick={() => setShowOtpModal(false)} className="w-full h-12">Close & Continue Login</Button>
+                    <Button
+                        onClick={() => setShowOtpModal(false)}
+                        className="w-full h-12"
+                    >
+                        Close & Continue Login
+                    </Button>
                 </div>
             </Modal>
 

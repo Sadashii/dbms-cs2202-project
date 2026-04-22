@@ -87,10 +87,15 @@ export const CardList: React.FC<CardListProps> = ({
                                                     {user?.firstName}
                                                 </div>
                                                 <div className="text-[9px] text-white/60 font-mono italic">
-                                                    {new Date(card.expiryDate).toLocaleDateString("en-US", {
-                                                        month: "2-digit",
-                                                        year: "2-digit",
-                                                    })}
+                                                    {new Date(
+                                                        card.expiryDate,
+                                                    ).toLocaleDateString(
+                                                        "en-US",
+                                                        {
+                                                            month: "2-digit",
+                                                            year: "2-digit",
+                                                        },
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -147,10 +152,15 @@ export const CardList: React.FC<CardListProps> = ({
                                                     {user?.firstName}
                                                 </div>
                                                 <div className="text-[9px] text-white/60 font-mono italic">
-                                                    {new Date(card.expiryDate).toLocaleDateString("en-US", {
-                                                        month: "2-digit",
-                                                        year: "2-digit",
-                                                    })}
+                                                    {new Date(
+                                                        card.expiryDate,
+                                                    ).toLocaleDateString(
+                                                        "en-US",
+                                                        {
+                                                            month: "2-digit",
+                                                            year: "2-digit",
+                                                        },
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -205,10 +215,15 @@ export const CardList: React.FC<CardListProps> = ({
                                                     {user?.firstName}
                                                 </div>
                                                 <div className="text-[9px] text-white/60 font-mono italic">
-                                                    {new Date(card.expiryDate).toLocaleDateString("en-US", {
-                                                        month: "2-digit",
-                                                        year: "2-digit",
-                                                    })}
+                                                    {new Date(
+                                                        card.expiryDate,
+                                                    ).toLocaleDateString(
+                                                        "en-US",
+                                                        {
+                                                            month: "2-digit",
+                                                            year: "2-digit",
+                                                        },
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>

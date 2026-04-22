@@ -46,7 +46,9 @@ export const useAdminSupport = () => {
                 setStats(data.stats);
             }
 
-            const ticketsRes = await apiFetch(`/api/admin/support?status=${statusFilter}`);
+            const ticketsRes = await apiFetch(
+                `/api/admin/support?status=${statusFilter}`,
+            );
             if (ticketsRes.ok) {
                 const data = await ticketsRes.json();
                 setTickets(data.tickets);
@@ -76,11 +78,13 @@ export const useAdminSupport = () => {
         tickets,
         stats,
         isLoading,
-        statusFilter, setStatusFilter,
-        searchQuery, setSearchQuery,
+        statusFilter,
+        setStatusFilter,
+        searchQuery,
+        setSearchQuery,
         filteredTickets,
         user,
         router,
-        fetchData
+        fetchData,
     };
 };

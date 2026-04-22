@@ -11,7 +11,10 @@ import { checkRateLimit } from "@/lib/rateLimit";
 export async function GET(req: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "support-get", 100, 15 * 60 * 1000)) {
             return NextResponse.json(
                 { error: "Too many requests. Please try again in 15 minutes." },
@@ -46,7 +49,10 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "support-post", 10, 15 * 60 * 1000)) {
             return NextResponse.json(
                 { error: "Too many support requests. Please try again later." },

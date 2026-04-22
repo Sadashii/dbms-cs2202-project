@@ -10,10 +10,16 @@ import { checkRateLimit } from "@/lib/rateLimit";
 export async function GET(req: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "loans-get", 100, 15 * 60 * 1000)) {
             return NextResponse.json(
-                { message: "Too many requests. Please try again in 15 minutes." },
+                {
+                    message:
+                        "Too many requests. Please try again in 15 minutes.",
+                },
                 { status: 429 },
             );
         }
@@ -87,10 +93,16 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "loans-post", 5, 15 * 60 * 1000)) {
             return NextResponse.json(
-                { message: "Too many loan applications. Please try again later." },
+                {
+                    message:
+                        "Too many loan applications. Please try again later.",
+                },
                 { status: 429 },
             );
         }

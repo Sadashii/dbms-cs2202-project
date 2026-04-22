@@ -6,17 +6,17 @@ export async function GET() {
     try {
         await dbConnect();
         const branches = await Branch.find(
-            { 
+            {
                 currentStatus: "Active",
-                "location.coordinates": { $exists: true } 
+                "location.coordinates": { $exists: true },
             },
             {
                 branchName: 1,
                 branchCode: 1,
                 location: 1,
                 address: 1,
-                contactInfo: 1
-            }
+                contactInfo: 1,
+            },
         );
 
         return NextResponse.json({ branches }, { status: 200 });

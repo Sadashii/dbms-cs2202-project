@@ -92,10 +92,7 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
                             onChange={(e) =>
                                 setFormData({
                                     ...formData,
-                                    phone: e.target.value.replace(
-                                        /\D/g,
-                                        "",
-                                    ),
+                                    phone: e.target.value.replace(/\D/g, ""),
                                 })
                             }
                             placeholder="e.g. 9876543210"
@@ -182,8 +179,8 @@ export const GeneralTab: React.FC<GeneralTabProps> = ({
                     Danger Zone
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Deleting your account is permanent. This action will
-                    erase all your data, close your accounts, and wipe your
+                    Deleting your account is permanent. This action will erase
+                    all your data, close your accounts, and wipe your
                     transaction history.
                 </p>
                 <Button

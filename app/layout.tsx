@@ -22,7 +22,9 @@ export default function RootLayout({
 }>) {
     return (
         <html lang="en" className="h-full antialiased" suppressHydrationWarning>
-            <body className={`${inter.className} h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex flex-col`}>
+            <body
+                className={`${inter.className} h-full bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex flex-col`}
+            >
                 <AppProviders>{children}</AppProviders>
                 <Toaster position="bottom-right" />
             </body>

@@ -92,19 +92,23 @@ export default function ProfilePage() {
                 {/* Content Area */}
                 <div className="lg:col-span-3">
                     {activeTab === "general" && (
-                        <GeneralTab 
+                        <GeneralTab
                             profile={profile}
                             formData={formData}
                             setFormData={setFormData}
                             isSaving={isSaving}
                             handleSaveChanges={handleSaveChanges}
-                            isSubmittingDeletionRequest={isSubmittingDeletionRequest}
-                            handleDeleteAccountRequest={handleDeleteAccountRequest}
+                            isSubmittingDeletionRequest={
+                                isSubmittingDeletionRequest
+                            }
+                            handleDeleteAccountRequest={
+                                handleDeleteAccountRequest
+                            }
                         />
                     )}
 
                     {activeTab === "security" && (
-                        <SecurityTab 
+                        <SecurityTab
                             profile={profile}
                             setProfile={setProfile}
                             sessions={sessions}
@@ -119,10 +123,7 @@ export default function ProfilePage() {
                     )}
 
                     {activeTab === "preferences" && (
-                        <PreferencesTab 
-                            notifs={notifs}
-                            setNotifs={setNotifs}
-                        />
+                        <PreferencesTab notifs={notifs} setNotifs={setNotifs} />
                     )}
                 </div>
             </div>

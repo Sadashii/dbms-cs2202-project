@@ -32,10 +32,16 @@ const strongPasswordRegex =
 export async function POST(req: Request) {
     try {
         const reqHeaders = await headers();
-        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        const ip =
+            reqHeaders.get("x-forwarded-for") ??
+            reqHeaders.get("x-real-ip") ??
+            "unknown";
         if (!checkRateLimit(ip, "reset-password", 5, 15 * 60 * 1000)) {
             return NextResponse.json(
-                { message: "Too many reset attempts. Please try again in 15 minutes." },
+                {
+                    message:
+                        "Too many reset attempts. Please try again in 15 minutes.",
+                },
                 { status: 429 },
             );
         }

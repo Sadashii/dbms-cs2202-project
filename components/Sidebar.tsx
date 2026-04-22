@@ -247,7 +247,7 @@ function NavList({
 
                 return (
                     <div key={section.title} className="space-y-1.5">
-                        { }
+                        {}
                         <div className="px-3 mb-2 flex items-center justify-between">
                             <span
                                 className={`text-[10px] font-bold uppercase tracking-[0.1em] px-2 py-0.5 rounded border 
@@ -279,13 +279,14 @@ function NavList({
                                     href={item.href}
                                     onClick={onNavClick}
                                     className={`group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative
-                    ${isActive
-                                            ? "bg-slate-50 dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm border border-slate-100 dark:border-slate-800"
-                                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
-                                        }
+                    ${
+                        isActive
+                            ? "bg-slate-50 dark:bg-slate-900 text-gray-900 dark:text-white shadow-sm border border-slate-100 dark:border-slate-800"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-white"
+                    }
                   `}
                                 >
-                                    { }
+                                    {}
                                     {isActive && (
                                         <div
                                             className={`absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full
@@ -299,13 +300,14 @@ function NavList({
 
                                     <div
                                         className={`mr-3 flex-shrink-0 transition-all duration-200 p-1.5 rounded-md
-                    ${isActive
-                                                ? `${section.color === "blue" ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" : ""}
+                    ${
+                        isActive
+                            ? `${section.color === "blue" ? "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400" : ""}
                          ${section.color === "amber" ? "bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-400" : ""}
                          ${section.color === "indigo" ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400" : ""}
                          ${section.color === "rose" ? "bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400" : ""}`
-                                                : "text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300"
-                                            }
+                            : "text-gray-400 dark:text-gray-500 group-hover:text-gray-500 dark:group-hover:text-gray-300"
+                    }
                   `}
                                     >
                                         {item.icon}
@@ -403,7 +405,7 @@ export const Sidebar = () => {
                 {statusFooter}
             </div>
 
-            { }
+            {}
             <aside className="hidden md:flex h-full flex-col self-stretch w-64 bg-white dark:bg-slate-950 border-r border-gray-100 dark:border-slate-800 shrink-0 shadow-[1px_0_0_rgb(0,0,0,0.02)] transition-colors">
                 <div className="flex flex-col flex-grow pt-4 pb-4 overflow-y-auto custom-scrollbar">
                     <NavList pathname={pathname} userRole={user.role} />

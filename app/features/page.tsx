@@ -9,41 +9,85 @@ import { Button } from "@/components/ui/button";
 const featuresData = [
     {
         title: "Smart Accounts",
-        description: "Open high-yield savings or flexible checking accounts in minutes. Track your expenses automatically and grow your money effortlessly with auto-transfers.",
+        description:
+            "Open high-yield savings or flexible checking accounts in minutes. Track your expenses automatically and grow your money effortlessly with auto-transfers.",
         gradient: "from-blue-500 to-indigo-600",
         icon: (
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            <svg
+                className="w-7 h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                />
             </svg>
         ),
     },
     {
         title: "Instant Loans",
-        description: "Need cash fast? Get personalized loan offers with transparent EMI calculations. Apply directly from your dashboard and get approved in hours, not days.",
+        description:
+            "Need cash fast? Get personalized loan offers with transparent EMI calculations. Apply directly from your dashboard and get approved in hours, not days.",
         gradient: "from-emerald-400 to-teal-600",
         icon: (
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg
+                className="w-7 h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
             </svg>
         ),
     },
     {
         title: "Virtual Cards",
-        description: "Generate one-time use virtual credit or debit cards for secure online shopping. Easily manage limits, freeze cards, and protect your physical card details.",
+        description:
+            "Generate one-time use virtual credit or debit cards for secure online shopping. Easily manage limits, freeze cards, and protect your physical card details.",
         gradient: "from-purple-500 to-rose-500",
         icon: (
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            <svg
+                className="w-7 h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                />
             </svg>
         ),
     },
     {
         title: "Bank-grade Security",
-        description: "Rest easy knowing your funds are protected by end-to-end encryption, multi-factor authentication, and robust audit trails across all actions.",
+        description:
+            "Rest easy knowing your funds are protected by end-to-end encryption, multi-factor authentication, and robust audit trails across all actions.",
         gradient: "from-orange-400 to-red-500",
         icon: (
-            <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            <svg
+                className="w-7 h-7 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+            >
+                <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                />
             </svg>
         ),
     },
@@ -67,7 +111,10 @@ export default function FeaturesPage() {
                         </span>
                     </h1>
                     <p className="text-lg md:text-2xl text-blue-100/90 mb-12 leading-relaxed max-w-3xl mx-auto font-light">
-                        VaultPay brings together your checking, savings, credit, and loans into one powerful, unified experience. Discover the features that make us the best choice for your finances.
+                        VaultPay brings together your checking, savings, credit,
+                        and loans into one powerful, unified experience.
+                        Discover the features that make us the best choice for
+                        your finances.
                     </p>
                     <div className="flex flex-col sm:flex-row justify-center gap-4">
                         <Link href="/auth/signup">
@@ -85,14 +132,15 @@ export default function FeaturesPage() {
             {/* Features Grid */}
             <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-
                     {/* Render Standard Features */}
                     {featuresData.map((feature, index) => (
                         <div
                             key={index}
                             className="bg-white/80 backdrop-blur-2xl border border-white/60 p-8 rounded-[2rem] shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-blue-200/40 hover:ring-2 hover:ring-blue-500/10 transition-all duration-300 transform hover:-translate-y-2 group"
                         >
-                            <div className={`w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}>
+                            <div
+                                className={`w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300`}
+                            >
                                 {feature.icon}
                             </div>
                             <h3 className="text-2xl font-bold text-slate-900 mb-4 tracking-tight">
@@ -109,15 +157,29 @@ export default function FeaturesPage() {
                         <div className="flex flex-col lg:flex-row lg:items-center gap-10">
                             <div className="flex-1">
                                 <div className="w-16 h-16 bg-gradient-to-br from-slate-800 to-black rounded-2xl flex items-center justify-center mb-8 shadow-lg group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
-                                    <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    <svg
+                                        className="w-7 h-7 text-white"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                        />
                                     </svg>
                                 </div>
                                 <h3 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight text-left">
                                     Automated Transfers
                                 </h3>
                                 <p className="text-slate-600 leading-relaxed text-left text-lg">
-                                    Put your finances on autopilot. Schedule recurring daily, weekly, or monthly transfers to beneficiaries. Ensure bills are paid on time, and savings happen automatically without you lifting a finger.
+                                    Put your finances on autopilot. Schedule
+                                    recurring daily, weekly, or monthly
+                                    transfers to beneficiaries. Ensure bills are
+                                    paid on time, and savings happen
+                                    automatically without you lifting a finger.
                                 </p>
                             </div>
 
@@ -134,8 +196,12 @@ export default function FeaturesPage() {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-base font-bold text-slate-800">₹45,000</div>
-                                        <div className="text-xs font-medium text-slate-400 mt-1">Monthly</div>
+                                        <div className="text-base font-bold text-slate-800">
+                                            ₹45,000
+                                        </div>
+                                        <div className="text-xs font-medium text-slate-400 mt-1">
+                                            Monthly
+                                        </div>
                                     </div>
                                 </div>
 
@@ -150,8 +216,12 @@ export default function FeaturesPage() {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <div className="text-base font-bold text-slate-800">₹10,000</div>
-                                        <div className="text-xs font-medium text-slate-400 mt-1">Weekly</div>
+                                        <div className="text-base font-bold text-slate-800">
+                                            ₹10,000
+                                        </div>
+                                        <div className="text-xs font-medium text-slate-400 mt-1">
+                                            Weekly
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -167,7 +237,9 @@ export default function FeaturesPage() {
                         Ready to take control?
                     </h2>
                     <p className="text-xl text-slate-600 mb-10 max-w-2xl leading-relaxed">
-                        Join millions of users who are already building their financial future with VaultPay. Sign up takes less than 3 minutes.
+                        Join millions of users who are already building their
+                        financial future with VaultPay. Sign up takes less than
+                        3 minutes.
                     </p>
                     <Link href="/auth/signup">
                         <Button

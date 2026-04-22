@@ -15,7 +15,8 @@ export default function EnhancedCardsPage() {
         isLoading,
         authLoading,
         cards,
-        searchQuery, setSearchQuery,
+        searchQuery,
+        setSearchQuery,
         selectedCard,
         debitCards,
         creditCards,
@@ -67,7 +68,8 @@ export default function EnhancedCardsPage() {
                         Your Wallet is Empty
                     </h3>
                     <p className="text-gray-500 dark:text-gray-400 mt-2 mb-8 max-w-md mx-auto">
-                        Click the button below to generate a brand new Debit or Credit Card.
+                        Click the button below to generate a brand new Debit or
+                        Credit Card.
                     </p>
                     <Button
                         variant="primary"

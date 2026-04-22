@@ -70,7 +70,8 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({
                                 Extra Sign-in Security (2FA)
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                Add an extra step to your login for more security.
+                                Add an extra step to your login for more
+                                security.
                             </p>
                         </div>
                         {profile.isTwoFactorEnabled ? (
@@ -117,7 +118,8 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({
                                 Account Password
                             </p>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                Change your password to keep your account secure.
+                                Change your password to keep your account
+                                secure.
                             </p>
                         </div>
                         <Button
@@ -218,7 +220,9 @@ export const SecurityTab: React.FC<SecurityTabProps> = ({
                                     variant="ghost"
                                     size="sm"
                                     className="text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
-                                    onClick={() => handleLogoutSession(session._id)}
+                                    onClick={() =>
+                                        handleLogoutSession(session._id)
+                                    }
                                 >
                                     Log out
                                 </Button>

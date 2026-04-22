@@ -12,32 +12,53 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
     const {
         selectedCard,
         accounts,
-        isRequestModalOpen, setIsRequestModalOpen,
-        isLimitModalOpen, setIsLimitModalOpen,
-        isExpenseModalOpen, setIsExpenseModalOpen,
-        isRepayModalOpen, setIsRepayModalOpen,
-        isPinModalOpen, setIsPinModalOpen,
+        isRequestModalOpen,
+        setIsRequestModalOpen,
+        isLimitModalOpen,
+        setIsLimitModalOpen,
+        isExpenseModalOpen,
+        setIsExpenseModalOpen,
+        isRepayModalOpen,
+        setIsRepayModalOpen,
+        isPinModalOpen,
+        setIsPinModalOpen,
         isGenerating,
         isSubmittingLimits,
         isSubmittingExpense,
         isSubmittingRepay,
         isSubmittingPin,
-        newPin, setNewPin,
-        newCardType, setNewCardType,
-        newCardNetwork, setNewCardNetwork,
-        linkAccountId, setLinkAccountId,
-        newCreditLimit, setNewCreditLimit,
-        onlineLimit, setOnlineLimit,
-        atmLimit, setAtmLimit,
-        contactlessLimit, setContactlessLimit,
-        expenseAmount, setExpenseAmount,
-        expenseMerchant, setExpenseMerchant,
-        isOnlineExpense, setIsOnlineExpense,
-        isInternationalExpense, setIsInternationalExpense,
-        isContactlessExpense, setIsContactlessExpense,
-        isATMExpense, setIsATMExpense,
-        repayAmount, setRepayAmount,
-        repaySourceAccountId, setRepaySourceAccountId,
+        newPin,
+        setNewPin,
+        newCardType,
+        setNewCardType,
+        newCardNetwork,
+        setNewCardNetwork,
+        linkAccountId,
+        setLinkAccountId,
+        newCreditLimit,
+        setNewCreditLimit,
+        onlineLimit,
+        setOnlineLimit,
+        atmLimit,
+        setAtmLimit,
+        contactlessLimit,
+        setContactlessLimit,
+        expenseAmount,
+        setExpenseAmount,
+        expenseMerchant,
+        setExpenseMerchant,
+        isOnlineExpense,
+        setIsOnlineExpense,
+        isInternationalExpense,
+        setIsInternationalExpense,
+        isContactlessExpense,
+        setIsContactlessExpense,
+        isATMExpense,
+        setIsATMExpense,
+        repayAmount,
+        setRepayAmount,
+        repaySourceAccountId,
+        setRepaySourceAccountId,
         handleRequestCard,
         handleUpdateLimits,
         handleCreateExpense,
@@ -66,7 +87,9 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         >
                             <option value="Debit">Debit Card</option>
                             <option value="Credit">Credit Card</option>
-                            <option value="Virtual">Virtual One-Time Card</option>
+                            <option value="Virtual">
+                                Virtual One-Time Card
+                            </option>
                         </select>
                     </div>
                     <div>
@@ -94,13 +117,15 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                             <select
                                 className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition-colors"
                                 value={linkAccountId}
-                                onChange={(e) => setLinkAccountId(e.target.value)}
+                                onChange={(e) =>
+                                    setLinkAccountId(e.target.value)
+                                }
                                 disabled={isGenerating}
                             >
                                 {accounts.map((acc) => (
                                     <option key={acc._id} value={acc._id}>
-                                        {acc.accountNumber} ({acc.accountType}) - ₹
-                                        {acc.balance.toLocaleString()}
+                                        {acc.accountNumber} ({acc.accountType})
+                                        - ₹{acc.balance.toLocaleString()}
                                     </option>
                                 ))}
                             </select>
@@ -114,7 +139,9 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                                 type="number"
                                 placeholder="Enter desired limit"
                                 value={newCreditLimit}
-                                onChange={(e) => setNewCreditLimit(e.target.value)}
+                                onChange={(e) =>
+                                    setNewCreditLimit(e.target.value)
+                                }
                                 disabled={isGenerating}
                             />
                         </div>
@@ -143,7 +170,9 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
             {/* Edit Limits Modal */}
             <Modal
                 isOpen={isLimitModalOpen}
-                onClose={() => !isSubmittingLimits && setIsLimitModalOpen(false)}
+                onClose={() =>
+                    !isSubmittingLimits && setIsLimitModalOpen(false)
+                }
                 title="Edit Card Limits"
             >
                 <form onSubmit={handleUpdateLimits} className="space-y-4">
@@ -180,7 +209,11 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={isSubmittingLimits}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            isLoading={isSubmittingLimits}
+                        >
                             Save Changes
                         </Button>
                     </div>
@@ -190,7 +223,9 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
             {/* Simulate Expense Modal */}
             <Modal
                 isOpen={isExpenseModalOpen}
-                onClose={() => !isSubmittingExpense && setIsExpenseModalOpen(false)}
+                onClose={() =>
+                    !isSubmittingExpense && setIsExpenseModalOpen(false)
+                }
                 title="Simulate Card Expense"
             >
                 <form onSubmit={handleCreateExpense} className="space-y-4">
@@ -230,16 +265,22 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                                     }
                                 }}
                             />
-                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Online?</span>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                Online?
+                            </span>
                         </label>
                         <label className="flex items-center gap-3 p-3 border border-gray-100 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                             <input
                                 type="checkbox"
                                 className="w-4 h-4 text-blue-600 rounded bg-white dark:bg-slate-900 border-gray-300 dark:border-slate-600 focus:ring-blue-500"
                                 checked={isInternationalExpense}
-                                onChange={(e) => setIsInternationalExpense(e.target.checked)}
+                                onChange={(e) =>
+                                    setIsInternationalExpense(e.target.checked)
+                                }
                             />
-                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">International?</span>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                International?
+                            </span>
                         </label>
                         <label className="flex items-center gap-3 p-3 border border-gray-100 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                             <input
@@ -254,7 +295,9 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                                     }
                                 }}
                             />
-                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">Contactless?</span>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                Contactless?
+                            </span>
                         </label>
                         <label className="flex items-center gap-3 p-3 border border-gray-100 dark:border-slate-700 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors">
                             <input
@@ -269,7 +312,9 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                                     }
                                 }}
                             />
-                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">ATM?</span>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                ATM?
+                            </span>
                         </label>
                     </div>
                     <div className="pt-4 flex justify-end gap-3 border-t border-gray-100 dark:border-slate-800 mt-4 transition-colors">
@@ -281,7 +326,11 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={isSubmittingExpense}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            isLoading={isSubmittingExpense}
+                        >
                             Confirm Transaction
                         </Button>
                     </div>
@@ -301,7 +350,8 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         </p>
                         <p className="text-2xl font-black text-blue-900 dark:text-blue-100">
                             ₹{" "}
-                            {selectedCard?.limits?.outstandingAmount?.toLocaleString() || "0"}
+                            {selectedCard?.limits?.outstandingAmount?.toLocaleString() ||
+                                "0"}
                         </p>
                     </div>
                     <div>
@@ -311,12 +361,15 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         <select
                             className="w-full border border-gray-300 dark:border-slate-700 rounded-md px-3 py-2 bg-white dark:bg-slate-900 text-gray-900 dark:text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm transition-colors"
                             value={repaySourceAccountId}
-                            onChange={(e) => setRepaySourceAccountId(e.target.value)}
+                            onChange={(e) =>
+                                setRepaySourceAccountId(e.target.value)
+                            }
                             disabled={isSubmittingRepay}
                         >
                             {accounts.map((acc) => (
                                 <option key={acc._id} value={acc._id}>
-                                    {acc.accountNumber} - ₹{acc.balance.toLocaleString()}
+                                    {acc.accountNumber} - ₹
+                                    {acc.balance.toLocaleString()}
                                 </option>
                             ))}
                         </select>
@@ -339,7 +392,11 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={isSubmittingRepay}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            isLoading={isSubmittingRepay}
+                        >
                             Process Payment
                         </Button>
                     </div>
@@ -362,7 +419,9 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         maxLength={4}
                         placeholder="****"
                         value={newPin}
-                        onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ""))}
+                        onChange={(e) =>
+                            setNewPin(e.target.value.replace(/\D/g, ""))
+                        }
                         required
                         disabled={isSubmittingPin}
                     />
@@ -375,7 +434,11 @@ export const CardModals: React.FC<CardModalsProps> = ({ hookState }) => {
                         >
                             Cancel
                         </Button>
-                        <Button type="submit" variant="primary" isLoading={isSubmittingPin}>
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            isLoading={isSubmittingPin}
+                        >
                             Update PIN
                         </Button>
                     </div>

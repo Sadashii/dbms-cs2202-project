@@ -203,7 +203,12 @@ export const useAuth = () => {
                 return { success: false, message: data.message };
             }
 
-            return { success: true, otp: data.otp, message: data.message, is2FA: data.is2FA };
+            return {
+                success: true,
+                otp: data.otp,
+                message: data.message,
+                is2FA: data.is2FA,
+            };
         } catch (error) {
             console.error("Network Error:", error);
             return {
@@ -239,7 +244,7 @@ export const useAuth = () => {
             setAccessToken(data.access_token);
             setUser(data.user);
             setIsLoggedIn(true);
-            sessionStorage.removeItem('2fa_prompted');
+            sessionStorage.removeItem("2fa_prompted");
 
             return true;
         } catch (error) {
@@ -332,7 +337,7 @@ export const useAuth = () => {
             setUser(null);
             setAccessToken(null);
             setIsLoggedIn(false);
-            sessionStorage.removeItem('2fa_prompted');
+            sessionStorage.removeItem("2fa_prompted");
             router.push(redirect);
         }
     };

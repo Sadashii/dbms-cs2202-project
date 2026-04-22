@@ -42,7 +42,9 @@ export const useAccountDetail = () => {
                 ...(endDate && { end: endDate }),
             });
 
-            const res = await apiFetch(`/api/accounts/${params.accountId}/transactions?${qs}`);
+            const res = await apiFetch(
+                `/api/accounts/${params.accountId}/transactions?${qs}`,
+            );
             if (res.ok) {
                 const data = await res.json();
                 setAccount(data.account);
@@ -74,22 +76,32 @@ export const useAccountDetail = () => {
           })
         : entries;
 
-    const symbol = account?.currency === "INR" ? "₹" : account?.currency === "USD" ? "$" : "€";
+    const symbol =
+        account?.currency === "INR"
+            ? "₹"
+            : account?.currency === "USD"
+              ? "$"
+              : "€";
 
     return {
         account,
         entries,
         isLoading,
         authLoading,
-        searchQuery, setSearchQuery,
-        entryTypeFilter, setEntryTypeFilter,
-        startDate, setStartDate,
-        endDate, setEndDate,
-        page, setPage,
+        searchQuery,
+        setSearchQuery,
+        entryTypeFilter,
+        setEntryTypeFilter,
+        startDate,
+        setStartDate,
+        endDate,
+        setEndDate,
+        page,
+        setPage,
         totalPages,
         total,
         displayedEntries,
         symbol,
-        router
+        router,
     };
 };

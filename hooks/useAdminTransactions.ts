@@ -22,11 +22,15 @@ export const useAdminTransactions = (type: "deposit" | "withdrawal") => {
         const loadingToast = toast.loading("Verifying account...");
 
         try {
-            const response = await apiFetch(`/api/admin/accounts/${accountNumber.trim()}`);
+            const response = await apiFetch(
+                `/api/admin/accounts/${accountNumber.trim()}`,
+            );
             const data = await response.json();
 
             if (!response.ok) {
-                toast.error(data.message || "Account not found.", { id: loadingToast });
+                toast.error(data.message || "Account not found.", {
+                    id: loadingToast,
+                });
                 return;
             }
 
@@ -54,7 +58,11 @@ export const useAdminTransactions = (type: "deposit" | "withdrawal") => {
             return;
         }
 
-        if (type === "withdrawal" && accountDetails && parsedAmount > accountDetails.balance) {
+        if (
+            type === "withdrawal" &&
+            accountDetails &&
+            parsedAmount > accountDetails.balance
+        ) {
             toast.error(`Insufficient funds. Max: ${accountDetails.balance}`);
             return;
         }
@@ -77,13 +85,18 @@ export const useAdminTransactions = (type: "deposit" | "withdrawal") => {
             const data = await response.json();
 
             if (!response.ok) {
-                toast.error(data.message || "Transaction failed.", { id: loadingToast });
+                toast.error(data.message || "Transaction failed.", {
+                    id: loadingToast,
+                });
                 return;
             }
 
-            toast.success(`${type === "deposit" ? "Credit" : "Debit"} authorized! New Balance: ${data.newBalance}`, {
-                id: loadingToast,
-            });
+            toast.success(
+                `${type === "deposit" ? "Credit" : "Debit"} authorized! New Balance: ${data.newBalance}`,
+                {
+                    id: loadingToast,
+                },
+            );
             reset();
         } catch (error: any) {
             toast.error("Unexpected error occurred.", { id: loadingToast });
@@ -101,14 +114,18 @@ export const useAdminTransactions = (type: "deposit" | "withdrawal") => {
     };
 
     return {
-        step, setStep,
-        accountNumber, setAccountNumber,
+        step,
+        setStep,
+        accountNumber,
+        setAccountNumber,
         accountDetails,
-        amount, setAmount,
-        memo, setMemo,
+        amount,
+        setAmount,
+        memo,
+        setMemo,
         isLoading,
         handleVerifyAccount,
         handleExecute,
-        reset
+        reset,
     };
 };

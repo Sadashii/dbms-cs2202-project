@@ -46,7 +46,12 @@ export interface Pagination {
 }
 
 export const useAdminAudit = () => {
-    const { user, apiFetch, isLoading: authLoading, isLoggedIn } = useAuthContext();
+    const {
+        user,
+        apiFetch,
+        isLoading: authLoading,
+        isLoggedIn,
+    } = useAuthContext();
     const router = useRouter();
 
     const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -95,7 +100,16 @@ export const useAdminAudit = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [apiFetch, page, search, severity, category, status, startDate, endDate]);
+    }, [
+        apiFetch,
+        page,
+        search,
+        severity,
+        category,
+        status,
+        startDate,
+        endDate,
+    ]);
 
     useEffect(() => {
         if (user && ["Admin", "Manager"].includes(user.role)) {
@@ -118,15 +132,23 @@ export const useAdminAudit = () => {
         logs,
         pagination,
         isLoading,
-        selectedLog, setSelectedLog,
-        search, setSearch,
-        severity, setSeverity,
-        category, setCategory,
-        status, setStatus,
-        startDate, setStartDate,
-        endDate, setEndDate,
-        page, setPage,
+        selectedLog,
+        setSelectedLog,
+        search,
+        setSearch,
+        severity,
+        setSeverity,
+        category,
+        setCategory,
+        status,
+        setStatus,
+        startDate,
+        setStartDate,
+        endDate,
+        setEndDate,
+        page,
+        setPage,
         fetchLogs,
-        resetFilters
+        resetFilters,
     };
 };

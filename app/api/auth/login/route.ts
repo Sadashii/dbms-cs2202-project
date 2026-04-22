@@ -80,7 +80,9 @@ export async function POST(req: Request) {
             ? { customerId: normalizeCustomerId(normalizedIdentifier) }
             : { email: normalizedIdentifier.toLowerCase() };
 
-        const user = await User.findOne(userLookup).select("+passwords +twoFactorSecret");
+        const user = await User.findOne(userLookup).select(
+            "+passwords +twoFactorSecret",
+        );
         if (!user) {
             return NextResponse.json(
                 { message: "Invalid email or password." },
@@ -104,7 +106,8 @@ export async function POST(req: Request) {
             if (user.isTwoFactorEnabled) {
                 return NextResponse.json(
                     {
-                        message: "Please enter the 6-digit code from your Authenticator app.",
+                        message:
+                            "Please enter the 6-digit code from your Authenticator app.",
                         is2FA: true,
                     },
                     { status: 200 },
@@ -135,7 +138,7 @@ export async function POST(req: Request) {
                     secret: user.twoFactorSecret,
                     encoding: "base32",
                     token: otp || "",
-                    window: 1
+                    window: 1,
                 });
                 if (!isValid) {
                     return NextResponse.json(
@@ -145,7 +148,10 @@ export async function POST(req: Request) {
                 }
             } else {
                 const presenttotp = generateHashTimeOTP(latestPassword.hash);
-                const lastminutetotp = generateHashTimeOTP(latestPassword.hash, -1);
+                const lastminutetotp = generateHashTimeOTP(
+                    latestPassword.hash,
+                    -1,
+                );
 
                 if (otp !== presenttotp && otp !== lastminutetotp) {
                     return NextResponse.json(
@@ -170,10 +176,15 @@ export async function POST(req: Request) {
             const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
             const userAgent = reqHeaders.get("user-agent") || "Unknown Device";
-            
-            const country = reqHeaders.get("x-vercel-ip-country") || reqHeaders.get("cf-ipcountry");
+
+            const country =
+                reqHeaders.get("x-vercel-ip-country") ||
+                reqHeaders.get("cf-ipcountry");
             const city = reqHeaders.get("x-vercel-ip-city");
-            const location = city && country ? `${city}, ${country}` : (country || "Unknown Location");
+            const location =
+                city && country
+                    ? `${city}, ${country}`
+                    : country || "Unknown Location";
 
             await Session.create({
                 userId: user._id,
