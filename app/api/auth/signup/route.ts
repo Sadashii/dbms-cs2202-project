@@ -3,9 +3,20 @@ import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
 import { backfillMissingCustomerIds } from "@/lib/customerId";
+import { headers } from "next/headers";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
     try {
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "signup", 5, 60 * 60 * 1000)) {
+            return NextResponse.json(
+                { message: "Too many signup attempts. Please try again in an hour." },
+                { status: 429 },
+            );
+        }
+
         await dbConnect();
         await backfillMissingCustomerIds();
         const body = await req.json();

@@ -4,9 +4,14 @@ import qrcode from "qrcode";
 import dbConnect from "@/lib/mongodb";
 import User from "@/models/User";
 import { verifyAuth } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
     try {
+        const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+        if (!checkRateLimit(ip, "2fa-setup", 10, 15 * 60 * 1000)) {
+            return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+        }
         await dbConnect();
         const authPayload = verifyAuth(req.headers);
         if (!authPayload || !authPayload.userId) {

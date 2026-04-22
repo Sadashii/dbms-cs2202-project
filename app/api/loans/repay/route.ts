@@ -9,13 +9,23 @@ import Ledger from "@/models/Ledger";
 import mongoose from "mongoose";
 import { verifyAuth } from "@/lib/auth";
 import crypto from "crypto";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: Request) {
+    const reqHeaders = await headers();
+    const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+    if (!checkRateLimit(ip, "loan-repay", 10, 60 * 60 * 1000)) {
+        return NextResponse.json(
+            { message: "Too many repayment attempts. Please try again later." },
+            { status: 429 },
+        );
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        const decoded = verifyAuth(await headers());
+        const decoded = verifyAuth(reqHeaders);
         if (!decoded)
             return NextResponse.json(
                 { message: "Unauthorized" },

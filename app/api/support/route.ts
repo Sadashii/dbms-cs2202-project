@@ -6,11 +6,21 @@ import mongoose from "mongoose";
 import { verifyAuth } from "@/lib/auth";
 import { headers } from "next/headers";
 import { createAuditLog } from "@/lib/audit";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
     try {
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "support-get", 100, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { error: "Too many requests. Please try again in 15 minutes." },
+                { status: 429 },
+            );
+        }
+
         await dbConnect();
-        const decoded = verifyAuth(await headers());
+        const decoded = verifyAuth(reqHeaders);
 
         if (!decoded) {
             return NextResponse.json(
@@ -35,8 +45,17 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "support-post", 10, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { error: "Too many support requests. Please try again later." },
+                { status: 429 },
+            );
+        }
+
         await dbConnect();
-        const decoded = verifyAuth(await headers());
+        const decoded = verifyAuth(reqHeaders);
 
         if (!decoded) {
             return NextResponse.json(

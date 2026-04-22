@@ -5,10 +5,20 @@ import KYC from "@/models/KYC";
 import AccountRequest from "@/models/AccountRequests";
 import { verifyAuth } from "@/lib/auth";
 import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET() {
     try {
-        const decoded = verifyAuth(await headers());
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "kyc-get", 100, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { message: "Too many requests. Please try again in 15 minutes." },
+                { status: 429 },
+            );
+        }
+
+        const decoded = verifyAuth(reqHeaders);
         if (!decoded)
             return NextResponse.json(
                 { message: "Unauthorized" },

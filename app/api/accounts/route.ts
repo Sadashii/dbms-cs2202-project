@@ -3,10 +3,20 @@ import { headers } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import Account from "@/models/Accounts";
 import { verifyAuth } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
     try {
-        const decoded = verifyAuth(await headers());
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "accounts", 100, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { message: "Too many requests. Please try again in 15 minutes." },
+                { status: 429 },
+            );
+        }
+
+        const decoded = verifyAuth(reqHeaders);
         if (!decoded) {
             return NextResponse.json(
                 { message: "Unauthorized" },

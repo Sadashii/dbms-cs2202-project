@@ -2,9 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import { verifyAuth } from "@/lib/auth";
 import Session from "@/models/Session";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function DELETE(req: NextRequest) {
     try {
+        const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+        if (!checkRateLimit(ip, "sessions-delete", 10, 15 * 60 * 1000)) {
+            return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+        }
         await dbConnect();
         const authPayload = verifyAuth(req.headers);
 

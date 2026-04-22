@@ -10,6 +10,8 @@ import {
     normalizeCustomerId,
 } from "@/lib/customerId";
 import { generateHashTimeOTP } from "@/app/api/auth/login/route";
+import { headers } from "next/headers";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const ResetPasswordSchema = z.object({
     process: z.enum(["generateotp", "verifyotp"]),
@@ -29,6 +31,15 @@ const strongPasswordRegex =
 
 export async function POST(req: Request) {
     try {
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "reset-password", 5, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { message: "Too many reset attempts. Please try again in 15 minutes." },
+                { status: 429 },
+            );
+        }
+
         await dbConnect();
         await backfillMissingCustomerIds();
 

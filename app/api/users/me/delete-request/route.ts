@@ -7,12 +7,21 @@ import User from "@/models/User";
 import { verifyAuth } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
 import { ensureUserHasValidCustomerId } from "@/lib/customerId";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function POST() {
     try {
-        await dbConnect();
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "account-delete-request", 2, 24 * 60 * 60 * 1000)) {
+            return NextResponse.json(
+                { error: "Too many delete requests. Please contact support." },
+                { status: 429 },
+            );
+        }
 
-        const decoded = verifyAuth(await headers());
+        await dbConnect();
+        const decoded = verifyAuth(reqHeaders);
         if (!decoded?.userId) {
             return NextResponse.json(
                 { error: "Unauthorized" },

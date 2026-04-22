@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import User from "@/models/User";
 import dbConnect from "@/lib/mongodb";
 import { verifyAuth } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rateLimit";
 import {
     backfillMissingCustomerIds,
     ensureUserHasValidCustomerId,
@@ -10,6 +11,10 @@ import Session from "@/models/Session";
 
 export async function GET(req: NextRequest) {
     try {
+        const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+        if (!checkRateLimit(ip, "profile-get", 100, 15 * 60 * 1000)) {
+            return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+        }
         await dbConnect();
         await backfillMissingCustomerIds();
 
@@ -47,6 +52,10 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
     try {
+        const ip = req.headers.get("x-forwarded-for") ?? "unknown";
+        if (!checkRateLimit(ip, "profile-patch", 10, 15 * 60 * 1000)) {
+            return NextResponse.json({ error: "Too many updates" }, { status: 429 });
+        }
         await dbConnect();
         await backfillMissingCustomerIds();
 

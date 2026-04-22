@@ -5,10 +5,20 @@ import crypto from "crypto";
 import dbConnect from "@/lib/mongodb";
 import Loan from "@/models/Loans";
 import { verifyAuth } from "@/lib/auth";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export async function GET(req: Request) {
     try {
-        const decoded = verifyAuth(await headers());
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "loans-get", 100, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { message: "Too many requests. Please try again in 15 minutes." },
+                { status: 429 },
+            );
+        }
+
+        const decoded = verifyAuth(reqHeaders);
         if (!decoded) {
             return NextResponse.json(
                 { message: "Unauthorized" },
@@ -76,7 +86,16 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const decoded = verifyAuth(await headers());
+        const reqHeaders = await headers();
+        const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+        if (!checkRateLimit(ip, "loans-post", 5, 15 * 60 * 1000)) {
+            return NextResponse.json(
+                { message: "Too many loan applications. Please try again later." },
+                { status: 429 },
+            );
+        }
+
+        const decoded = verifyAuth(reqHeaders);
         if (!decoded) {
             return NextResponse.json(
                 { message: "Unauthorized" },

@@ -9,6 +9,7 @@ import Ledger from "@/models/Ledger";
 import { verifyAuth } from "@/lib/auth";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const TransferSchema = z.object({
     fromAccountId: z.string().min(1, "Source account is required"),
@@ -21,7 +22,16 @@ const TransferSchema = z.object({
 });
 
 export async function POST(req: Request) {
-    const decoded = verifyAuth(await headers());
+    const reqHeaders = await headers();
+    const ip = reqHeaders.get("x-forwarded-for") ?? reqHeaders.get("x-real-ip") ?? "unknown";
+    if (!checkRateLimit(ip, "transactions", 20, 60 * 60 * 1000)) {
+        return NextResponse.json(
+            { message: "Too many transactions. Please try again in an hour." },
+            { status: 429 },
+        );
+    }
+
+    const decoded = verifyAuth(reqHeaders);
     if (!decoded)
         return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
