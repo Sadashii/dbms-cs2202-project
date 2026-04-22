@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import toast from "react-hot-toast";
 import { UpdatePasswordModal } from "@/components/UpdatePasswordModal";
+import { TwoFactorModal } from "@/components/TwoFactorModal";
 
 interface Address {
     street?: string;
@@ -23,6 +24,7 @@ interface UserProfile {
     customerId: string;
     email: string;
     isEmailVerified: boolean;
+    isTwoFactorEnabled: boolean;
     phone?: string;
     role: string;
     createdAt: string;
@@ -41,6 +43,7 @@ export default function ProfilePage() {
     >("general");
     const [sessions, setSessions] = useState<any[]>([]);
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
 
     const [formData, setFormData] = useState({
         firstName: "",
@@ -448,14 +451,34 @@ export default function ProfilePage() {
                                                 to your account.
                                             </p>
                                         </div>
-                                        <Button
-                                            disabled
-                                            variant="outline"
-                                            size="sm"
-                                            className="opacity-50 cursor-not-allowed"
-                                        >
-                                            Coming soon
-                                        </Button>
+                                        {profile.isTwoFactorEnabled ? (
+                                            <span className="flex items-center gap-1 text-sm font-bold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 px-3 py-1 rounded-full">
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="2"
+                                                        d="M5 13l4 4L19 7"
+                                                    ></path>
+                                                </svg>{" "}
+                                                Enabled
+                                            </span>
+                                        ) : (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() =>
+                                                    setIsTwoFactorModalOpen(true)
+                                                }
+                                            >
+                                                Enable 2FA
+                                            </Button>
+                                        )}
                                     </div>
 
                                     <div className="flex items-center justify-between">
@@ -487,6 +510,18 @@ export default function ProfilePage() {
                                 onClose={() => setIsPasswordModalOpen(false)}
                                 customerId={profile.customerId}
                                 email={profile.email}
+                            />
+
+                            <TwoFactorModal
+                                isOpen={isTwoFactorModalOpen}
+                                onClose={() => setIsTwoFactorModalOpen(false)}
+                                onSuccess={() =>
+                                    setProfile({
+                                        ...profile,
+                                        isTwoFactorEnabled: true,
+                                    })
+                                }
+                                apiFetch={apiFetch}
                             />
 
                             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-gray-200 dark:border-slate-800 p-6 md:p-8 shadow-sm transition-colors">

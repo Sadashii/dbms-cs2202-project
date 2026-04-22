@@ -80,7 +80,7 @@ export async function POST(req: Request) {
             ? { customerId: normalizeCustomerId(normalizedIdentifier) }
             : { email: normalizedIdentifier.toLowerCase() };
 
-        const user = await User.findOne(userLookup).select("+passwords");
+        const user = await User.findOne(userLookup).select("+passwords +twoFactorSecret");
         if (!user) {
             return NextResponse.json(
                 { message: "Invalid email or password." },
@@ -101,6 +101,16 @@ export async function POST(req: Request) {
         }
 
         if (requestprocess === "generateotp") {
+            if (user.isTwoFactorEnabled) {
+                return NextResponse.json(
+                    {
+                        message: "Please enter the 6-digit code from your Authenticator app.",
+                        is2FA: true,
+                    },
+                    { status: 200 },
+                );
+            }
+
             const totp = generateHashTimeOTP(latestPassword.hash);
             await Notification.create({
                 userId: user._id,
@@ -119,14 +129,30 @@ export async function POST(req: Request) {
         }
 
         if (requestprocess === "verifyotp") {
-            const presenttotp = generateHashTimeOTP(latestPassword.hash);
-            const lastminutetotp = generateHashTimeOTP(latestPassword.hash, -1);
+            if (user.isTwoFactorEnabled) {
+                const speakeasy = require("speakeasy");
+                const isValid = speakeasy.totp.verify({
+                    secret: user.twoFactorSecret,
+                    encoding: "base32",
+                    token: otp || "",
+                    window: 1
+                });
+                if (!isValid) {
+                    return NextResponse.json(
+                        { message: "Invalid authenticator code." },
+                        { status: 401 },
+                    );
+                }
+            } else {
+                const presenttotp = generateHashTimeOTP(latestPassword.hash);
+                const lastminutetotp = generateHashTimeOTP(latestPassword.hash, -1);
 
-            if (otp !== presenttotp && otp !== lastminutetotp) {
-                return NextResponse.json(
-                    { message: "Invalid or expired OTP." },
-                    { status: 401 },
-                );
+                if (otp !== presenttotp && otp !== lastminutetotp) {
+                    return NextResponse.json(
+                        { message: "Invalid or expired OTP." },
+                        { status: 401 },
+                    );
+                }
             }
 
             const accessToken = jwt.sign(
@@ -175,6 +201,7 @@ export async function POST(req: Request) {
                 email: user.email,
                 role: user.role,
                 currentStatus: user.currentStatus,
+                isTwoFactorEnabled: user.isTwoFactorEnabled,
             };
 
             await createAuditLog({

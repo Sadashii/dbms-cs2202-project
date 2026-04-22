@@ -29,6 +29,7 @@ export interface UserPayload {
     email: string;
     role: string;
     currentStatus: string;
+    isTwoFactorEnabled: boolean;
 }
 
 export interface SignupResult {
@@ -41,6 +42,7 @@ export interface LoginOtpResult {
     success: boolean;
     otp?: string;
     message?: string;
+    is2FA?: boolean;
 }
 
 export interface PasswordResetOtpResult {
@@ -201,7 +203,7 @@ export const useAuth = () => {
                 return { success: false, message: data.message };
             }
 
-            return { success: true, otp: data.otp, message: data.message };
+            return { success: true, otp: data.otp, message: data.message, is2FA: data.is2FA };
         } catch (error) {
             console.error("Network Error:", error);
             return {

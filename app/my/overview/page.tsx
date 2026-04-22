@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useAuthContext } from "@/components/AuthProvider";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { TwoFactorModal } from "@/components/TwoFactorModal";
 
 interface DashboardData {
     summary: {
@@ -203,6 +204,7 @@ export default function DashboardOverview() {
 
     const [data, setData] = useState<DashboardData | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [show2FAPrompt, setShow2FAPrompt] = useState(false);
 
     useEffect(() => {
         if (!authLoading && !isLoggedIn) router.push("/auth/login");
@@ -220,6 +222,11 @@ export default function DashboardOverview() {
                 setIsLoading(false);
             }
         })();
+        
+        if (!user.isTwoFactorEnabled && !sessionStorage.getItem('2fa_prompted')) {
+            setShow2FAPrompt(true);
+            sessionStorage.setItem('2fa_prompted', 'true');
+        }
     }, [user, apiFetch]);
 
     if (!user) return null;
@@ -259,6 +266,16 @@ export default function DashboardOverview() {
 
     return (
         <div className="max-w-7xl mx-auto space-y-6 animate-fade-in pb-16 px-4 sm:px-6 pt-4">
+            <TwoFactorModal
+                isOpen={show2FAPrompt}
+                onClose={() => setShow2FAPrompt(false)}
+                onSuccess={() => {
+                    setShow2FAPrompt(false);
+                    router.refresh();
+                }}
+                apiFetch={apiFetch}
+            />
+            
             {}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>

@@ -69,9 +69,7 @@ export default function AccountsPage() {
     const [aadharNumber, setAadharNumber] = useState("");
     const [signatureFile, setSignatureFile] = useState<File | null>(null);
 
-    // Derived state for the active account request
-    const accountRequest =
-        accountRequests.length > 0 ? accountRequests[0] : null;
+    // Removed derived state accountRequest, we now use accountRequests directly
 
     // Redirect unauthenticated users
     useEffect(() => {
@@ -281,10 +279,7 @@ export default function AccountsPage() {
             if (aadharFile) formData.append("aadhar", aadharFile);
             if (signatureFile) formData.append("signature", signatureFile);
 
-            const method =
-                accountRequest && accountRequest.currentStatus !== "Approved"
-                    ? "PATCH"
-                    : "POST";
+            const method = "POST";
 
             const response = await apiFetch("/api/account-requests", {
                 method: method,
@@ -356,84 +351,94 @@ export default function AccountsPage() {
             </div>
 
             {}
-            {accountRequest && accountRequest.currentStatus !== "Approved" && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm mb-6 transition-colors">
-                    <div className="flex items-center justify-between mb-4">
-                        <div>
-                            <h2 className="text-lg font-bold text-blue-900 dark:text-blue-400">
-                                Account Request Status:{" "}
-                                {accountRequest.currentStatus.replace("_", " ")}
-                            </h2>
-                            <p className="text-sm text-blue-700 dark:text-blue-300">
-                                Tracking progress for your{" "}
-                                {accountRequest.accountType} account.
-                            </p>
-                        </div>
-                        <div className="flex gap-2">
-                            <span
-                                className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === "Rejected" ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"}`}
-                            >
-                                {accountRequest.currentStatus}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {["PAN", "Aadhar", "Signature"].map((type) => {
-                            const kyc =
-                                kycs.find((k) => k.documentType === type) ||
-                                (type === "Signature"
-                                    ? { currentStatus: "Verified" }
-                                    : null);
-                            const status =
-                                kyc?.currentStatus || "Not Submitted";
-
-                            return (
-                                <div
-                                    key={type}
-                                    className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-blue-100 dark:border-slate-800 flex flex-col justify-between transition-colors"
+            {accountRequests
+                .filter((req) => req.currentStatus !== "Approved")
+                .map((accountRequest) => (
+                    <div key={accountRequest._id} className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/30 rounded-xl p-6 shadow-sm mb-6 transition-colors">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 className="text-lg font-bold text-blue-900 dark:text-blue-400">
+                                    Account Request Status:{" "}
+                                    {accountRequest.currentStatus.replace("_", " ")}
+                                </h2>
+                                <p className="text-sm text-blue-700 dark:text-blue-300">
+                                    Tracking progress for your{" "}
+                                    {accountRequest.accountType} account.
+                                </p>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <span
+                                    className={`px-2 py-1 rounded text-xs font-bold ${accountRequest.currentStatus === "Rejected" ? "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400" : "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300"}`}
                                 >
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">
-                                            {type} Document
-                                        </p>
-                                        <div className="flex items-center gap-2">
-                                            <span
-                                                className={`w-2 h-2 rounded-full ${status === "Verified" ? "bg-green-500" : status === "Rejected" ? "bg-red-500" : "bg-orange-500"}`}
-                                            ></span>
-                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">
-                                                {status}
+                                    {accountRequest.currentStatus}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-red-600 border-red-200 hover:bg-red-50 dark:text-red-400 dark:border-red-900/50 dark:hover:bg-red-900/30"
+                                    onClick={() => handleWithdrawRequest(accountRequest._id)}
+                                >
+                                    Withdraw Request
+                                </Button>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {["PAN", "Aadhar", "Signature"].map((type) => {
+                                const kyc =
+                                    kycs.find((k) => k.documentType === type && k.accountRequestId === accountRequest._id) ||
+                                    (type === "Signature"
+                                        ? { currentStatus: "Verified" }
+                                        : null);
+                                const status =
+                                    kyc?.currentStatus || "Not Submitted";
+
+                                return (
+                                    <div
+                                        key={type}
+                                        className="bg-white dark:bg-slate-900 p-4 rounded-lg border border-blue-100 dark:border-slate-800 flex flex-col justify-between transition-colors"
+                                    >
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase mb-1">
+                                                {type} Document
                                             </p>
+                                            <div className="flex items-center gap-2">
+                                                <span
+                                                    className={`w-2 h-2 rounded-full ${status === "Verified" ? "bg-green-500" : status === "Rejected" ? "bg-red-500" : "bg-orange-500"}`}
+                                                ></span>
+                                                <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                                                    {status}
+                                                </p>
+                                            </div>
                                         </div>
+                                        {status === "Rejected" && (
+                                            <div className="mt-3">
+                                                <p className="text-[10px] text-red-600 dark:text-red-400 mb-2">
+                                                    {kyc?.metadata
+                                                        ?.rejectionReason ||
+                                                        "Please re-upload clear image."}
+                                                </p>
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="w-full text-[10px] py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
+                                                    onClick={() => {
+                                                        setReuploadDocType(type);
+                                                        setIsReuploadModalOpen(
+                                                            true,
+                                                        );
+                                                    }}
+                                                >
+                                                    Fix & Re-upload
+                                                </Button>
+                                            </div>
+                                        )}
                                     </div>
-                                    {status === "Rejected" && (
-                                        <div className="mt-3">
-                                            <p className="text-[10px] text-red-600 dark:text-red-400 mb-2">
-                                                {kyc?.metadata
-                                                    ?.rejectionReason ||
-                                                    "Please re-upload clear image."}
-                                            </p>
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="w-full text-[10px] py-1 h-auto dark:border-slate-700 dark:text-white dark:hover:bg-slate-800"
-                                                onClick={() => {
-                                                    setReuploadDocType(type);
-                                                    setIsReuploadModalOpen(
-                                                        true,
-                                                    );
-                                                }}
-                                            >
-                                                Fix & Re-upload
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
-                </div>
-            )}
+                ))}
 
             {}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">

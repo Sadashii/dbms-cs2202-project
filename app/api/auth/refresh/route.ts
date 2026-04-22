@@ -71,6 +71,7 @@ export async function POST() {
             email: user.email,
             role: user.role,
             currentStatus: user.currentStatus,
+            isTwoFactorEnabled: user.isTwoFactorEnabled,
         };
 
         return NextResponse.json(

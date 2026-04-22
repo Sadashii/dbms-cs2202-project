@@ -8,6 +8,8 @@ export interface IUser extends Document {
     email: string;
     isEmailVerified: boolean;
     phone?: string;
+    isTwoFactorEnabled: boolean;
+    twoFactorSecret?: string;
 
     role: "Customer" | "Employee" | "Manager" | "Admin";
     branchId?: Types.ObjectId;
@@ -55,6 +57,8 @@ const UserSchema = new Schema<IUser>(
         },
         isEmailVerified: { type: Boolean, default: false },
         phone: { type: String, trim: true },
+        isTwoFactorEnabled: { type: Boolean, default: false },
+        twoFactorSecret: { type: String, select: false },
 
         role: {
             type: String,
