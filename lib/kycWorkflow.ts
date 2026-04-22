@@ -3,7 +3,22 @@ import KYC from "@/models/KYC";
 import User from "@/models/User";
 import { ensureUserHasValidCustomerId } from "@/lib/customerId";
 
-const REQUIRED_DOCUMENT_TYPES = ["PAN", "Aadhar", "Signature"] as const;
+export const REQUIRED_DOCUMENT_TYPES = ["PAN", "Aadhar", "Signature"] as const;
+
+type KycLike = {
+    _id?: unknown;
+    documentType: string;
+    updatedAt?: string | Date;
+    createdAt?: string | Date;
+} & Record<string, unknown>;
+
+type BundleUser = {
+    _id: unknown;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    customerId?: string;
+};
 
 export async function autoApproveSignatureDocuments(userId?: string) {
     if (!userId) return;
@@ -24,8 +39,8 @@ export async function autoApproveSignatureDocuments(userId?: string) {
     }
 }
 
-export function pickLatestDocumentsByType(documents: any[]) {
-    const latestByType = new Map<string, any>();
+export function pickLatestDocumentsByType(documents: KycLike[]) {
+    const latestByType = new Map<string, KycLike>();
 
     for (const document of documents) {
         const existing = latestByType.get(document.documentType);
@@ -50,8 +65,53 @@ export function pickLatestDocumentsByType(documents: any[]) {
     );
 }
 
+export async function getLatestKycDocumentsForRequest(accountRequest: {
+    _id: unknown;
+    userId: unknown;
+    kycDocuments?: {
+        panCardFileUrl?: string;
+        aadharFileUrl?: string;
+        signatureFileUrl?: string;
+    };
+}) {
+    const fileUrls = [
+        accountRequest.kycDocuments?.panCardFileUrl,
+        accountRequest.kycDocuments?.aadharFileUrl,
+        accountRequest.kycDocuments?.signatureFileUrl,
+    ].filter(Boolean);
+
+    let documents: KycLike[] = [];
+
+    if (accountRequest._id) {
+        documents = await KYC.find({ accountRequestId: accountRequest._id })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .lean();
+    }
+
+    if (documents.length === 0 && fileUrls.length > 0) {
+        documents = await KYC.find({
+            userId: accountRequest.userId,
+            documentType: { $in: REQUIRED_DOCUMENT_TYPES },
+            "attachments.fileUrl": { $in: fileUrls },
+        })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .lean();
+    }
+
+    if (documents.length === 0) {
+        documents = await KYC.find({
+            userId: accountRequest.userId,
+            documentType: { $in: REQUIRED_DOCUMENT_TYPES },
+        })
+            .sort({ updatedAt: -1, createdAt: -1 })
+            .lean();
+    }
+
+    return pickLatestDocumentsByType(documents);
+}
+
 export async function resolveKycReviewBundle(identifier: string) {
-    let user: any = null;
+    let user: BundleUser | null = null;
     let accountRequest = await AccountRequest.findById(identifier).lean();
 
     if (accountRequest) {
@@ -86,7 +146,7 @@ export async function resolveKycReviewBundle(identifier: string) {
             lastName: hydratedUser.lastName,
             email: hydratedUser.email,
             customerId: hydratedUser.customerId,
-        } as any;
+        };
     }
 
     await autoApproveSignatureDocuments(userId);
@@ -104,7 +164,7 @@ export async function resolveKycReviewBundle(identifier: string) {
                 .lean());
     }
 
-    let documents: any[] = [];
+    let documents: KycLike[] = [];
 
     if (accountRequest) {
         documents = await KYC.find({ accountRequestId: accountRequest._id })
@@ -113,21 +173,7 @@ export async function resolveKycReviewBundle(identifier: string) {
     }
 
     if (documents.length === 0 && accountRequest) {
-        const requestFileUrls = [
-            accountRequest.kycDocuments?.panCardFileUrl,
-            accountRequest.kycDocuments?.aadharFileUrl,
-            accountRequest.kycDocuments?.signatureFileUrl,
-        ].filter(Boolean);
-
-        if (requestFileUrls.length) {
-            documents = await KYC.find({
-                userId,
-                documentType: { $in: REQUIRED_DOCUMENT_TYPES },
-                "attachments.fileUrl": { $in: requestFileUrls },
-            })
-                .sort({ updatedAt: -1, createdAt: -1 })
-                .lean();
-        }
+        documents = await getLatestKycDocumentsForRequest(accountRequest);
     }
 
     if (documents.length === 0) {

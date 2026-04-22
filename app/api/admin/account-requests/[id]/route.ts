@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { headers } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import AccountRequest from "@/models/AccountRequests";
-import KYC from "@/models/KYC";
 import Accounts from "@/models/Accounts";
 import { verifyAuth } from "@/lib/auth";
 import { createAuditLog } from "@/lib/audit";
-import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
+import {
+    autoApproveSignatureDocuments,
+    getLatestKycDocumentsForRequest,
+} from "@/lib/kycWorkflow";
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
 
 export async function PATCH(
     req: NextRequest,
@@ -84,17 +89,21 @@ export async function PATCH(
 
         await autoApproveSignatureDocuments(String(accountReq.userId));
 
-        const userKycs = await KYC.find({ userId: accountReq.userId });
+        const latestDocuments = await getLatestKycDocumentsForRequest({
+            _id: accountReq._id,
+            userId: accountReq.userId,
+            kycDocuments: accountReq.kycDocuments,
+        });
 
-        const requiredDocs = ["PAN", "Aadhar"];
-        const foundDocs = userKycs.filter((k) =>
+        const requiredDocs = ["PAN", "Aadhar", "Signature"];
+        const foundDocs = latestDocuments.filter((k) =>
             requiredDocs.includes(k.documentType),
         );
 
         const allVerified =
             foundDocs.length === requiredDocs.length &&
             foundDocs.every((k) => k.currentStatus === "Verified");
-        const anyRejected = userKycs.some(
+        const anyRejected = foundDocs.some(
             (k) => k.currentStatus === "Rejected",
         );
 
@@ -158,10 +167,10 @@ export async function PATCH(
             { message: "Account Request Approved and Account Created" },
             { status: 200 },
         );
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error approving request:", error);
         return NextResponse.json(
-            { message: "Internal server error" },
+            { message: getErrorMessage(error, "Internal server error") },
             { status: 500 },
         );
     }
