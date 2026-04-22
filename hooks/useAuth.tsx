@@ -239,6 +239,7 @@ export const useAuth = () => {
             setAccessToken(data.access_token);
             setUser(data.user);
             setIsLoggedIn(true);
+            sessionStorage.removeItem('2fa_prompted');
 
             return true;
         } catch (error) {
@@ -331,6 +332,7 @@ export const useAuth = () => {
             setUser(null);
             setAccessToken(null);
             setIsLoggedIn(false);
+            sessionStorage.removeItem('2fa_prompted');
             router.push(redirect);
         }
     };
