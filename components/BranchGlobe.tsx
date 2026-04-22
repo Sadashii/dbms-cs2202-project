@@ -12,7 +12,7 @@ interface Branch {
     };
 }
 
-export default function BranchGlobe() {
+export default function BranchGlobe({ height = "h-[400px] md:h-[600px]" }: { height?: string }) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [branches, setBranches] = useState<Branch[]>([]);
     const [hoveredBranch, setHoveredBranch] = useState<Branch | null>(null);
@@ -169,7 +169,7 @@ export default function BranchGlobe() {
     }, [branches]);
 
     return (
-        <div className="relative w-full h-[400px] md:h-[600px] flex items-center justify-center overflow-hidden">
+        <div className={`relative w-full ${height} flex items-center justify-center overflow-hidden`}>
             <div ref={containerRef} className="w-full h-full" />
             
             {/* Legend / Overlay */}

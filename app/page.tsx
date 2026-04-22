@@ -4,6 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { useAuthContext } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
+import BranchGlobe from "@/components/BranchGlobe";
 
 export default function LandingPage() {
   const { isLoggedIn, isLoading } = useAuthContext();
@@ -49,6 +50,22 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Globe Section */}
+      <div className="relative isolate py-24 overflow-hidden bg-white dark:bg-slate-950 transition-colors border-t border-gray-100 dark:border-slate-900">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
+            <div className="mx-auto max-w-2xl mb-16 animate-fade-in">
+                <h2 className="text-base font-semibold leading-7 text-blue-600 dark:text-blue-400 uppercase tracking-widest">Global Network</h2>
+                <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
+                    Our presence, everywhere you go
+                </p>
+                <p className="mt-6 text-lg leading-8 text-gray-600 dark:text-gray-300">
+                    With physical branches and digital nodes across the globe, VaultPay ensures you're connected to your finances no matter where you are.
+                </p>
+            </div>
+            <BranchGlobe height="h-[500px] md:h-[750px]" />
         </div>
       </div>
 
