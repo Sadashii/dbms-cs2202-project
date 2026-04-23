@@ -97,7 +97,7 @@ export async function PATCH(
 
         const requiredDocs = ["PAN", "Aadhar", "Signature"];
         const foundDocs = latestDocuments.filter((k) =>
-            requiredDocs.includes(k.documentType),
+            k?.documentType && requiredDocs.includes(k.documentType),
         );
 
         const allVerified =

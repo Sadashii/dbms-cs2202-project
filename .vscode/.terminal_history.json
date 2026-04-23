@@ -26,7 +26,17 @@
       "command": "npm run dev",
       "timestamp": 1776922054212,
       "cwd": "f:\\Projects\\DW - CS2202 - Banking Application"
+    },
+    {
+      "command": "& \"C:\\Users\\Tanishq\\AppData\\Local\\Temp\\wshist_g3ythr.ps1\"; Remove-Item \"C:\\Users\\Tanishq\\AppData\\Local\\Temp\\wshist_g3ythr.ps1\" -ErrorAction SilentlyContinue",
+      "timestamp": 1776925629700,
+      "cwd": "f:\\Projects\\DW - CS2202 - Banking Application"
+    },
+    {
+      "command": "npm run build",
+      "timestamp": 1776925731969,
+      "cwd": "f:\\Projects\\DW - CS2202 - Banking Application"
     }
   ],
-  "lastUpdated": 1776922054212
+  "lastUpdated": 1776925731969
 }
