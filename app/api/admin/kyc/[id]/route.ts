@@ -165,15 +165,15 @@ export async function PATCH(
 
             const latestDocs = pickLatestDocumentsByType(matchingDocs).filter(
                 (doc) =>
-                    doc.documentType === "PAN" || doc.documentType === "Aadhar",
+                    doc?.documentType === "PAN" || doc?.documentType === "Aadhar",
             );
 
             const hasRejectedDoc = latestDocs.some(
-                (doc) => doc.currentStatus === "Rejected",
+                (doc) => doc?.currentStatus === "Rejected",
             );
             const allCoreDocsVerified =
                 latestDocs.length === 2 &&
-                latestDocs.every((doc) => doc.currentStatus === "Verified");
+                latestDocs.every((doc) => doc?.currentStatus === "Verified");
 
             if (hasRejectedDoc) {
                 relatedAccountRequest.currentStatus = "Rejected";

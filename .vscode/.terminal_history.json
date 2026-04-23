@@ -36,7 +36,22 @@
       "command": "npm run build",
       "timestamp": 1776925731969,
       "cwd": "f:\\Projects\\DW - CS2202 - Banking Application"
+    },
+    {
+      "command": "np& \"C:\\Users\\Tanishq\\AppData\\Local\\Temp\\wshist_50ecqf.ps1\"; Remove-Item \"C:\\Users\\Tanishq\\AppData\\Local\\Temp\\wshist_50ecqf.ps1\" -ErrorAction SilentlyContinue",
+      "timestamp": 1776925927407,
+      "cwd": "f:\\Projects\\DW - CS2202 - Banking Application"
+    },
+    {
+      "command": "m run bild",
+      "timestamp": 1776925928385,
+      "cwd": "f:\\Projects\\DW - CS2202 - Banking Application"
+    },
+    {
+      "command": "npm run build",
+      "timestamp": 1776925951793,
+      "cwd": "f:\\Projects\\DW - CS2202 - Banking Application"
     }
   ],
-  "lastUpdated": 1776925731969
+  "lastUpdated": 1776925951793
 }

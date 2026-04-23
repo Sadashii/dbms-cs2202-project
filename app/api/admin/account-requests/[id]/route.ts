@@ -102,9 +102,9 @@ export async function PATCH(
 
         const allVerified =
             foundDocs.length === requiredDocs.length &&
-            foundDocs.every((k) => k.currentStatus === "Verified");
+            foundDocs.every((k) => k?.currentStatus === "Verified");
         const anyRejected = foundDocs.some(
-            (k) => k.currentStatus === "Rejected",
+            (k) => k?.currentStatus === "Rejected",
         );
 
         if (anyRejected) {

@@ -44,7 +44,7 @@ export async function GET() {
                 });
 
                 const userKycs = await KYC.find({
-                    _id: { $in: latestRequestKycs.map((kyc) => kyc._id) },
+                    _id: { $in: latestRequestKycs.map((kyc) => kyc?._id) },
                 })
                     .select(
                         "kycReference documentType currentStatus attachments documentDetails verifiedAt metadata createdAt updatedAt",
