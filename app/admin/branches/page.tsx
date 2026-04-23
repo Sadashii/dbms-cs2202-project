@@ -166,7 +166,7 @@ export default function AdminBranchesPage() {
                                         onClick={() => setRoleFilter(r)}
                                         className={`px-3 py-1.5 text-[10px] font-black uppercase rounded-lg transition-all ${roleFilter === r ? "bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm" : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"}`}
                                     >
-                                        {r || "All Entities"}
+                                        {r || "All"}
                                     </button>
                                 ),
                             )}
@@ -468,26 +468,26 @@ export default function AdminBranchesPage() {
                                 value="Customer"
                                 className="dark:bg-slate-900"
                             >
-                                Standard Principal (Customer)
+                                Customer
                             </option>
                             <option
                                 value="Employee"
                                 className="dark:bg-slate-900"
                             >
-                                Operational Agent (Employee)
+                                Employee
                             </option>
                             <option
                                 value="Manager"
                                 className="dark:bg-slate-900"
                             >
-                                Node Commander (Manager)
+                                Manager
                             </option>
                             {user.role === "Admin" && (
                                 <option
                                     value="Admin"
                                     className="dark:bg-slate-900"
                                 >
-                                    System Core (Admin)
+                                    Admin
                                 </option>
                             )}
                         </select>
@@ -502,7 +502,7 @@ export default function AdminBranchesPage() {
                             onChange={(e) => setAssignBranchId(e.target.value)}
                         >
                             <option value="" className="dark:bg-slate-900">
-                                Detached Source (No Branch)
+                                No Branch
                             </option>
                             {branches.map((b) => (
                                 <option

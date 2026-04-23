@@ -23,14 +23,12 @@ export default function AuthProvider({
     if (!isMounted || auth.isLoading) {
         return (
             <AuthContext.Provider value={auth}>
-                {" "}
-                {}
                 <div className="min-h-screen flex flex-col bg-slate-50">
                     <Navbar />
                     <div className="flex flex-1 items-center justify-center flex-col">
                         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
                         <p className="text-sm text-gray-500 animate-pulse">
-                            Authenticating securely...
+                            Authenticating...
                         </p>
                     </div>
                 </div>

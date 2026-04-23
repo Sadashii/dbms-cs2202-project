@@ -47,13 +47,14 @@ export async function POST(req: Request) {
 
         const nameParts = name.trim().split(" ");
         const firstName = nameParts[0];
-        const lastName = nameParts.slice(1).join(" ") || "N/A";
+        const lastName = nameParts.slice(1).join(" ") || "";
 
         const createdUser = await User.create({
             firstName,
             lastName,
             email,
             passwords: [{ hash: hashedPassword }],
+            isEmailVerified: true
         });
 
         return NextResponse.json(

@@ -26,7 +26,6 @@ export default function LoginPage() {
         password?: string;
         otp?: string;
     }>({});
-    const otpToastIdRef = useRef<string | null>(null);
 
     const [generatedOtp, setGeneratedOtp] = useState("");
     const [showOtpModal, setShowOtpModal] = useState(false);
@@ -295,10 +294,6 @@ export default function LoginPage() {
                             <button
                                 type="button"
                                 onClick={() => {
-                                    if (otpToastIdRef.current) {
-                                        toast.dismiss(otpToastIdRef.current);
-                                        otpToastIdRef.current = null;
-                                    }
                                     setStep(1);
                                 }}
                                 className="text-blue-600 dark:text-blue-400 hover:text-blue-500 font-medium transition-colors"
