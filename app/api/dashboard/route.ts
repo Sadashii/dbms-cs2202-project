@@ -9,6 +9,24 @@ import Transaction from "@/models/Transactions";
 import { verifyAuth } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rateLimit";
 
+type DecimalLike = { toString(): string };
+
+type LoanSummary = {
+    principalAmount?: DecimalLike;
+    remainingAmount?: DecimalLike;
+    emiAmount?: DecimalLike;
+    nextPaymentDate?: string | Date;
+    loanType?: string;
+} & Record<string, unknown>;
+
+type LedgerSummary = {
+    amount?: DecimalLike;
+    balanceAfter?: DecimalLike;
+} & Record<string, unknown>;
+
+const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+
 export async function GET() {
     try {
         const reqHeaders = await headers();
@@ -40,7 +58,7 @@ export async function GET() {
 
         const userId = decoded.userId;
 
-        const [accounts, loans, cards, recentLedger] = await Promise.all([
+        const [accounts, loans, cards] = await Promise.all([
             Account.find({ userId })
                 .select(
                     "accountNumber accountType balance currency currentStatus",
@@ -56,11 +74,12 @@ export async function GET() {
                     "loanType principalAmount remainingAmount emiAmount currentStatus nextPaymentDate",
                 )
                 .lean(),
-            Card.find({ userId, currentStatus: { $in: ["Active", "Blocked"] } })
+            Card.find({
+                userId,
+                currentStatus: { $in: ["Active", "Frozen", "Blocked"] },
+            })
                 .select("cardType cardNetwork maskedNumber currentStatus")
                 .lean(),
-
-            Account.find({ userId }).select("_id").lean(),
         ]);
 
         const accountIds = accounts.map((a) => a._id);
@@ -78,26 +97,38 @@ export async function GET() {
             balance: acc.balance ? parseFloat(acc.balance.toString()) : 0,
         }));
 
-        const formattedLoans = loans.map((loan: any) => ({
-            ...loan,
-            principalAmount: loan.principalAmount
-                ? parseFloat(loan.principalAmount.toString())
-                : 0,
-            remainingAmount: loan.remainingAmount
-                ? parseFloat(loan.remainingAmount.toString())
-                : 0,
-            emiAmount: loan.emiAmount
-                ? parseFloat(loan.emiAmount.toString())
-                : 0,
-        }));
+        const formattedLoans = loans.map((rawLoan) => {
+            const loan = rawLoan as LoanSummary;
 
-        const formattedTransactions = recentTransactions.map((t: any) => ({
-            ...t,
-            amount: t.amount ? parseFloat(t.amount.toString()) : 0,
-            balanceAfter: t.balanceAfter
-                ? parseFloat(t.balanceAfter.toString())
-                : 0,
-        }));
+            return {
+                ...loan,
+                principalAmount: loan.principalAmount
+                    ? parseFloat(loan.principalAmount.toString())
+                    : 0,
+                remainingAmount: loan.remainingAmount
+                    ? parseFloat(loan.remainingAmount.toString())
+                    : 0,
+                emiAmount: loan.emiAmount
+                    ? parseFloat(loan.emiAmount.toString())
+                    : 0,
+            };
+        });
+
+        const formattedTransactions = recentTransactions.map(
+            (rawTransaction) => {
+                const transaction = rawTransaction as LedgerSummary;
+
+                return {
+                    ...transaction,
+                    amount: transaction.amount
+                        ? parseFloat(transaction.amount.toString())
+                        : 0,
+                    balanceAfter: transaction.balanceAfter
+                        ? parseFloat(transaction.balanceAfter.toString())
+                        : 0,
+                };
+            },
+        );
 
         const totalBalance = formattedAccounts.reduce(
             (sum, a) => sum + a.balance,
@@ -139,10 +170,10 @@ export async function GET() {
             cards,
             recentTransactions: formattedTransactions,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Dashboard API Error:", error);
         return NextResponse.json(
-            { message: "Internal server error." },
+            { message: getErrorMessage(error, "Internal server error.") },
             { status: 500 },
         );
     }

@@ -13,7 +13,6 @@ export default function FocusedKYCPage() {
         setRejectingId,
         rejectionReason,
         setRejectionReason,
-        selectedDocumentId,
         setSelectedDocumentId,
         handleUpdateStatus,
         statusSummary,
@@ -212,6 +211,8 @@ export default function FocusedKYCPage() {
                                 const document = selectedDocument;
                                 const isSignature =
                                     document.documentType === "Signature";
+                                const isVerified =
+                                    document.currentStatus === "Verified";
                                 const isRejecting =
                                     rejectingId === document._id;
                                 const previewableAttachment =
@@ -531,6 +532,15 @@ export default function FocusedKYCPage() {
                                                             approved without
                                                             employee
                                                             intervention.
+                                                        </div>
+                                                    ) : isVerified ? (
+                                                        <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-5 text-sm font-medium leading-relaxed text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-900/20 dark:text-emerald-300">
+                                                            This document is
+                                                            already verified.
+                                                            Approval controls are
+                                                            hidden because no
+                                                            further action is
+                                                            needed here.
                                                         </div>
                                                     ) : isRejecting ? (
                                                         <div className="mt-4 space-y-4">

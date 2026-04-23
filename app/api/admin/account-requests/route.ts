@@ -1,12 +1,18 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import dbConnect from "@/lib/mongodb";
 import AccountRequest from "@/models/AccountRequests";
 import KYC from "@/models/KYC";
 import { verifyAuth } from "@/lib/auth";
-import { autoApproveSignatureDocuments } from "@/lib/kycWorkflow";
+import {
+    autoApproveSignatureDocuments,
+    getLatestKycDocumentsForRequest,
+} from "@/lib/kycWorkflow";
 
-export async function GET(req: NextRequest) {
+const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+
+export async function GET() {
     try {
         const decoded = verifyAuth(await headers());
         if (!decoded) {
@@ -31,15 +37,14 @@ export async function GET(req: NextRequest) {
             requests.map(async (request) => {
                 await autoApproveSignatureDocuments(String(request.userId._id));
 
-                const fileUrls = [
-                    request.kycDocuments?.panCardFileUrl,
-                    request.kycDocuments?.aadharFileUrl,
-                    request.kycDocuments?.signatureFileUrl,
-                ].filter(Boolean);
+                const latestRequestKycs = await getLatestKycDocumentsForRequest({
+                    _id: request._id,
+                    userId: request.userId._id,
+                    kycDocuments: request.kycDocuments,
+                });
 
                 const userKycs = await KYC.find({
-                    userId: request.userId._id,
-                    "attachments.fileUrl": { $in: fileUrls },
+                    _id: { $in: latestRequestKycs.map((kyc) => kyc._id) },
                 })
                     .select(
                         "kycReference documentType currentStatus attachments documentDetails verifiedAt metadata createdAt updatedAt",
@@ -54,10 +59,10 @@ export async function GET(req: NextRequest) {
         );
 
         return NextResponse.json(enhancedRequests, { status: 200 });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Error fetching account requests:", error);
         return NextResponse.json(
-            { message: "Internal server error" },
+            { message: getErrorMessage(error, "Internal server error") },
             { status: 500 },
         );
     }
